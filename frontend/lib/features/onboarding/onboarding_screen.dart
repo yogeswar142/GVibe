@@ -22,6 +22,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _selectedYear = 2;
   final Set<String> _selectedTags = {'SKATER', 'TECH'};
 
+  // Date picker state
+  static const List<String> _months = [
+    'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+    'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ];
+  int _selectedMonth = 2; // MAR (0-indexed)
+  int _selectedDay = 14; // day value (1-31)
+  int _selectedBirthYear = 2004; // year value
+
+  late final FixedExtentScrollController _monthController;
+  late final FixedExtentScrollController _dayController;
+  late final FixedExtentScrollController _yearController;
+
   final List<String> _departments = [
     'DEPARTMENT OF DESIGN',
     'COMPUTER SCIENCE',
@@ -36,10 +49,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     '#MUSIC', '#ART', '#CODE', '#SPORTS',
   ];
 
+  int _daysInMonth(int month, int year) {
+    // month is 0-indexed (0=JAN, 11=DEC)
+    final daysPerMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (month == 1) {
+      // February leap year check
+      if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) return 29;
+    }
+    return daysPerMonth[month];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _monthController = FixedExtentScrollController(initialItem: _selectedMonth);
+    _dayController = FixedExtentScrollController(initialItem: _selectedDay - 1);
+    _yearController = FixedExtentScrollController(initialItem: _selectedBirthYear - 1990);
+  }
+
   @override
   void dispose() {
     _handleController.dispose();
+    _monthController.dispose();
+    _dayController.dispose();
+    _yearController.dispose();
     super.dispose();
+  }
+
+  String get _formattedDate {
+    final day = _selectedDay.toString().padLeft(2, '0');
+    return '${_months[_selectedMonth]}_${day}_$_selectedBirthYear';
   }
 
   @override
@@ -128,6 +167,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _buildSectionLabel('03_CHRONO_DATA'),
                   const SizedBox(height: 8),
                   _buildDateDrum(),
+                  // Selected date preview
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'DOB_SET: $_formattedDate',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 28),
 
@@ -287,40 +336,162 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildDateDrum() {
-    final months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY'];
-    final days = [12, 13, 14, 15, 16];
-    final years = [2002, 2003, 2004, 2005, 2006];
-    const activeIndex = 2;
+    const double itemExtent = 36.0;
+    const double drumHeight = 180.0;
+    final int maxDays = _daysInMonth(_selectedMonth, _selectedBirthYear);
+
+    // Generate year range (1990–2010)
+    final years = List.generate(21, (i) => 1990 + i);
 
     return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      height: drumHeight,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.outline, width: 0.5),
+      ),
+      child: Stack(
         children: [
-          Expanded(child: _drumColumn(months, activeIndex)),
-          Expanded(child: _drumColumn(days.map((d) => '$d').toList(), activeIndex)),
-          Expanded(child: _drumColumn(years.map((y) => '$y').toList(), activeIndex)),
+          // Highlight band for selected row
+          Center(
+            child: Container(
+              height: itemExtent,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.08),
+                border: Border(
+                  top: BorderSide(color: AppColors.accent.withOpacity(0.4), width: 1),
+                  bottom: BorderSide(color: AppColors.accent.withOpacity(0.4), width: 1),
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              // Month drum
+              Expanded(
+                child: _buildWheelColumn(
+                  controller: _monthController,
+                  itemCount: _months.length,
+                  itemExtent: itemExtent,
+                  labelBuilder: (i) => _months[i],
+                  selectedIndex: _selectedMonth,
+                  onChanged: (i) {
+                    setState(() {
+                      _selectedMonth = i;
+                      // Clamp day if needed
+                      final maxD = _daysInMonth(_selectedMonth, _selectedBirthYear);
+                      if (_selectedDay > maxD) {
+                        _selectedDay = maxD;
+                        _dayController.jumpToItem(_selectedDay - 1);
+                      }
+                    });
+                  },
+                ),
+              ),
+              Container(width: 1, color: AppColors.outline.withOpacity(0.3)),
+              // Day drum
+              Expanded(
+                child: _buildWheelColumn(
+                  controller: _dayController,
+                  itemCount: maxDays,
+                  itemExtent: itemExtent,
+                  labelBuilder: (i) => '${i + 1}'.padLeft(2, '0'),
+                  selectedIndex: _selectedDay - 1,
+                  onChanged: (i) {
+                    setState(() => _selectedDay = i + 1);
+                  },
+                ),
+              ),
+              Container(width: 1, color: AppColors.outline.withOpacity(0.3)),
+              // Year drum
+              Expanded(
+                child: _buildWheelColumn(
+                  controller: _yearController,
+                  itemCount: years.length,
+                  itemExtent: itemExtent,
+                  labelBuilder: (i) => '${years[i]}',
+                  selectedIndex: _selectedBirthYear - 1990,
+                  onChanged: (i) {
+                    setState(() {
+                      _selectedBirthYear = years[i];
+                      // Clamp day if needed (e.g. Feb 29 on non-leap year)
+                      final maxD = _daysInMonth(_selectedMonth, _selectedBirthYear);
+                      if (_selectedDay > maxD) {
+                        _selectedDay = maxD;
+                        _dayController.jumpToItem(_selectedDay - 1);
+                      }
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          // Column labels at top
+          Positioned(
+            top: 4,
+            left: 0,
+            right: 0,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text('MONTH',
+                        style: AppTextStyles.monoXs
+                            .copyWith(color: AppColors.textMuted, fontSize: 8)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('DAY',
+                        style: AppTextStyles.monoXs
+                            .copyWith(color: AppColors.textMuted, fontSize: 8)),
+                  ),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text('YEAR',
+                        style: AppTextStyles.monoXs
+                            .copyWith(color: AppColors.textMuted, fontSize: 8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _drumColumn(List<String> items, int activeIndex) {
-    return Column(
-      children: items.asMap().entries.map((e) {
-        final isActive = e.key == activeIndex;
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(
-            e.value,
-            style: (isActive ? AppTextStyles.monoMd : AppTextStyles.monoXs).copyWith(
-              color: isActive ? AppColors.accent : AppColors.textMuted,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+  Widget _buildWheelColumn({
+    required FixedExtentScrollController controller,
+    required int itemCount,
+    required double itemExtent,
+    required String Function(int) labelBuilder,
+    required int selectedIndex,
+    required ValueChanged<int> onChanged,
+  }) {
+    return ListWheelScrollView.useDelegate(
+      controller: controller,
+      itemExtent: itemExtent,
+      diameterRatio: 1.6,
+      perspective: 0.003,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: onChanged,
+      childDelegate: ListWheelChildBuilderDelegate(
+        childCount: itemCount,
+        builder: (context, index) {
+          final isActive = index == selectedIndex;
+          return Center(
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: (isActive ? AppTextStyles.monoMd : AppTextStyles.monoSm).copyWith(
+                color: isActive ? AppColors.accent : AppColors.textMuted,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+              ),
+              child: Text(labelBuilder(index)),
             ),
-            textAlign: TextAlign.center,
-          ),
-        );
-      }).toList(),
+          );
+        },
+      ),
     );
   }
 
@@ -411,6 +582,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 style: AppTextStyles.monoXs
                                     .copyWith(color: AppColors.textMuted)),
                             Text('YEAR_0${_selectedYear}',
+                                style: AppTextStyles.monoXs
+                                    .copyWith(color: AppColors.textPrimary)),
+                          ],
+                        ),
+                        const SizedBox(width: 24),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('DOB',
+                                style: AppTextStyles.monoXs
+                                    .copyWith(color: AppColors.textMuted)),
+                            Text(_formattedDate,
                                 style: AppTextStyles.monoXs
                                     .copyWith(color: AppColors.textPrimary)),
                           ],

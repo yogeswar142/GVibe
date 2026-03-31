@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -7,9 +8,9 @@ class ApiService {
 
   late final Dio dio;
 
-  // Change this to your machine's IP if testing on a physical device
-  // For Android emulator, use 10.0.2.2 instead
-  static const String baseUrl = 'http://192.168.29.111:5000/api';
+  // Retrieve the base URL from the .env file.
+  // If not found, it defaults to the emulator localhost IP.
+  static final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5000/api';
 
   ApiService._internal() {
     dio = Dio(BaseOptions(

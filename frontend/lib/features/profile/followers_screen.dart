@@ -73,17 +73,20 @@ class _FollowersScreenState extends State<FollowersScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    '${_followers.length}',
-                    style: AppTextStyles.monoMd
-                        .copyWith(color: AppColors.accent),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    color: AppColors.accent.withOpacity(0.1),
+                    child: Text(
+                      '${_followers.length}',
+                      style: AppTextStyles.monoMd
+                          .copyWith(color: AppColors.accent),
+                    ),
                   ),
                 ],
               ),
             ),
-            // Divider
             Container(height: 1, color: AppColors.outline),
-            // List
             Expanded(
               child: _loading
                   ? const Center(
@@ -106,19 +109,35 @@ class _FollowersScreenState extends State<FollowersScreen> {
                         )
                       : _followers.isEmpty
                           ? Center(
-                              child: Text('NO FOLLOWERS YET',
-                                  style: AppTextStyles.monoMd.copyWith(
-                                      color: AppColors.textMuted)),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.people_outline,
+                                      color: AppColors.textMuted,
+                                      size: 40),
+                                  const SizedBox(height: 16),
+                                  Text('NO FOLLOWERS YET',
+                                      style: AppTextStyles.monoMd.copyWith(
+                                          color: AppColors.textMuted)),
+                                ],
+                              ),
                             )
-                          : ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _followers.length,
-                              separatorBuilder: (_, __) =>
-                                  Container(height: 1, color: AppColors.outline),
-                              itemBuilder: (context, index) {
-                                final user = _followers[index];
-                                return _FollowUserTile(user: user);
-                              },
+                          : RefreshIndicator(
+                              onRefresh: _fetchFollowers,
+                              color: AppColors.accent,
+                              backgroundColor: AppColors.surface,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _followers.length,
+                                separatorBuilder: (_, __) =>
+                                    Container(
+                                        height: 1,
+                                        color: AppColors.outline),
+                                itemBuilder: (context, index) {
+                                  final user = _followers[index];
+                                  return _FollowUserTile(user: user);
+                                },
+                              ),
                             ),
             ),
           ],
@@ -156,9 +175,11 @@ class _FollowUserTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.accent, width: 1),
+                    border:
+                        Border.all(color: AppColors.accent, width: 1),
                   ),
-                  child: CutCornerAvatar(imageUrl: avatar, size: 48),
+                  child:
+                      CutCornerAvatar(imageUrl: avatar, size: 48),
                 ),
                 Positioned(
                   bottom: -6,
@@ -194,7 +215,8 @@ class _FollowUserTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       bio,
-                      style: AppTextStyles.bodySm.copyWith(fontSize: 12),
+                      style: AppTextStyles.bodySm
+                          .copyWith(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

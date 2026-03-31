@@ -363,14 +363,19 @@ class GVibeNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 64,
-      color: AppColors.surface,
+      height: 68,
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        border: Border(
+          top: BorderSide(color: AppColors.outline, width: 0.5),
+        ),
+      ),
       child: Row(
         children: [
-          _NavItem(icon: Icons.grid_view, label: 'POSTS', index: 0, current: currentIndex, onTap: onTap),
-          _NavItem(icon: Icons.bolt, label: 'VIBES', index: 1, current: currentIndex, onTap: onTap),
-          _NavItem(icon: Icons.chat_bubble_outline, label: 'DIRECT', index: 2, current: currentIndex, onTap: onTap),
-          _NavItem(icon: Icons.group_outlined, label: 'CLUBS', index: 3, current: currentIndex, onTap: onTap),
+          _NavItem(icon: Icons.grid_view_rounded, index: 0, current: currentIndex, onTap: onTap),
+          _NavItem(icon: Icons.explore_outlined, index: 1, current: currentIndex, onTap: onTap),
+          _NavItem(icon: Icons.chat_bubble_rounded, index: 2, current: currentIndex, onTap: onTap),
+          _NavItem(icon: Icons.person, index: 3, current: currentIndex, onTap: onTap),
         ],
       ),
     );
@@ -379,14 +384,12 @@ class GVibeNavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
-  final String label;
   final int index;
   final int current;
   final ValueChanged<int> onTap;
 
   const _NavItem({
     required this.icon,
-    required this.label,
     required this.index,
     required this.current,
     required this.onTap,
@@ -398,31 +401,21 @@ class _NavItem extends StatelessWidget {
     return Expanded(
       child: GestureDetector(
         onTap: () => onTap(index),
-        child: Container(
-          decoration: isActive
-              ? const BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: AppColors.accent, width: 2),
-                  ),
-                )
-              : null,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 20,
-                color: isActive ? AppColors.accent : AppColors.textSecondary,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: AppTextStyles.monoXs.copyWith(
-                  color: isActive ? AppColors.accent : AppColors.textSecondary,
-                  fontSize: 9,
-                ),
-              ),
-            ],
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: isActive ? AppColors.accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              icon,
+              size: 24,
+              color: isActive ? AppColors.accentDark : AppColors.textSecondary,
+            ),
           ),
         ),
       ),

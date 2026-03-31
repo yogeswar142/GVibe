@@ -5,6 +5,8 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/signup_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/profile/followers_screen.dart';
+import '../../features/profile/following_screen.dart';
 import '../../features/error/error_screen.dart';
 
 class AppRouter {
@@ -42,9 +44,34 @@ class AppRouter {
         path: home,
         builder: (context, state) => const HomeScreen(),
       ),
+      // Own profile (no ID param — backwards compatible)
       GoRoute(
         path: profile,
         builder: (context, state) => const ProfileScreen(),
+      ),
+      // Profile by user ID
+      GoRoute(
+        path: '/profile/:id',
+        builder: (context, state) {
+          final userId = state.pathParameters['id']!;
+          return ProfileScreen(userId: userId);
+        },
+        routes: [
+          GoRoute(
+            path: 'followers',
+            builder: (context, state) {
+              final userId = state.pathParameters['id']!;
+              return FollowersScreen(userId: userId);
+            },
+          ),
+          GoRoute(
+            path: 'following',
+            builder: (context, state) {
+              final userId = state.pathParameters['id']!;
+              return FollowingScreen(userId: userId);
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: notFound,
@@ -53,4 +80,3 @@ class AppRouter {
     ],
   );
 }
-

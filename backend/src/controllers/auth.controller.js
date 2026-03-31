@@ -27,7 +27,7 @@ exports.register = async (req, res) => {
     if (user) {
       res.status(201).json({
         success: true,
-        data: {
+        data: { 
           _id: user._id,
           name: user.name,
           email: user.email,

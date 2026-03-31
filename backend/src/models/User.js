@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema({
   year: { type: String, trim: true },
   bio: { type: String, default: '', maxlength: 500 },
   avatar: { type: String, default: '' },
+  level: { type: Number, default: 1 },
+  followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 // Hash password before saving

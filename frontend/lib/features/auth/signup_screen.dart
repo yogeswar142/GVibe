@@ -66,9 +66,10 @@ class _SignupScreenState extends State<SignupScreen> {
       }
       if (mounted) context.go(AppRouter.onboarding);
     } on DioException catch (e) {
-      setState(() {
-        _error = e.response?.data?['message'] ?? 'SIGNUP_FAILED. TRY AGAIN.';
-      });
+      final data = e.response?.data;
+      final msg = (data is Map) ? (data['message'] ?? 'SIGNUP_FAILED. TRY AGAIN.') : 'SIGNUP_FAILED. TRY AGAIN.';
+      setState(() => _error = msg.toString());
+
     } finally {
       if (mounted) setState(() => _loading = false);
     }

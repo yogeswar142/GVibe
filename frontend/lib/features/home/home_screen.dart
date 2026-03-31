@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import 'tabs/home_feed_tab.dart';
-import 'tabs/vibes_tab.dart';
-import '../messages/messages_screen.dart';
 import '../discovery/discovery_screen.dart';
+import '../messages/messages_screen.dart';
+import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,19 +18,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _tabs = const [
     HomeFeedTab(),
-    VibesTab(),
-    MessagesScreen(),
     DiscoveryScreen(),
+    MessagesScreen(),
+    ProfileScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: IndexedStack(index: _currentIndex, children: _tabs),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _tabs,
+      ),
       bottomNavigationBar: GVibeNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }

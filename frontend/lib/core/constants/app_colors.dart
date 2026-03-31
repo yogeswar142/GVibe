@@ -11,7 +11,7 @@ class AppColors {
 
   // Accents
   static const Color accent = Color(0xFFC8FF00);
-  static const Color accentDark = Color(0xFF4F6700);
+  static const Color accentDark = Color(0xFF0A0A0F);
   static const Color pink = Color(0xFFFF3CAC);
 
   // Text

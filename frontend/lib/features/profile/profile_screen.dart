@@ -27,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _followingCount = 0;
   String? _loggedInUserId;
 
-  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNITY'];
+  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNIT'];
 
   @override
   void initState() {
@@ -42,14 +42,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      // Get the logged-in user's data to check ownership
       final cachedUser = await AuthService.getUser();
       _loggedInUserId = cachedUser?['_id']?.toString();
 
       final targetId = widget.userId;
 
       if (targetId == null || targetId == _loggedInUserId) {
-        // Fetch own profile
         _isOwnProfile = true;
         final response = await ApiService().dio.get('/users/profile');
         if (response.data['success'] == true) {
@@ -62,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           });
         }
       } else {
-        // Fetch another user's profile
         _isOwnProfile = false;
         final response = await ApiService().dio.get('/users/$targetId');
         if (response.data['success'] == true) {
@@ -96,9 +93,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _followersCount = response.data['data']['followersCount'];
         });
       }
-    } on DioException catch (_) {
-      // silently fail – could add snackbar
-    }
+    } on DioException catch (_) {}
+  }
+
+  Future<void> _logout() async {
+    await AuthService.logout();
+    if (mounted) context.go(AppRouter.login);
   }
 
   @override
@@ -112,8 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: _loading
                   ? const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.accent))
+                      child: CircularProgressIndicator(color: AppColors.accent))
                   : _error != null
                       ? Center(
                           child: Column(
@@ -124,140 +123,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       .copyWith(color: AppColors.pink)),
                               const SizedBox(height: 16),
                               GVibeButton(
-                                  label: 'RETRY',
-                                  onPressed: _loadProfile),
+                                  label: 'RETRY', onPressed: _loadProfile),
                             ],
                           ),
                         )
-                      : ListView(
-                          padding: EdgeInsets.zero,
-                          children: [
-                            _buildAvatarSection(),
-                            _buildUserInfo(),
-                            _buildStatsGrid(),
-                            _buildTabBar(),
-                            _buildTabContent(),
-                          ],
+                      : RefreshIndicator(
+                          onRefresh: _loadProfile,
+                          color: AppColors.accent,
+                          backgroundColor: AppColors.surface,
+                          child: ListView(
+                            padding: EdgeInsets.zero,
+                            children: [
+                              _buildAvatarSection(),
+                              _buildUserInfo(),
+                              _buildStatsGrid(),
+                              _buildTabBar(),
+                              _buildTabContent(),
+                            ],
+                          ),
                         ),
             ),
-            _buildBottomNav(),
           ],
         ),
       ),
     );
   }
 
-  // ─── TOP BAR ─────────────────────────────────────────────
   Widget _buildTopBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 52, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
       color: AppColors.background,
       child: Row(
         children: [
-          // Hamburger menu
-          GestureDetector(
-            onTap: () => Navigator.of(context).maybePop(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 24, height: 2, color: AppColors.textPrimary),
-                const SizedBox(height: 5),
-                Container(width: 18, height: 2, color: AppColors.textPrimary),
-                const SizedBox(height: 5),
-                Container(width: 24, height: 2, color: AppColors.textPrimary),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
           Text(
             'GVIBE',
             style: AppTextStyles.displaySm.copyWith(
               color: AppColors.accent,
               fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const Spacer(),
-          const Icon(Icons.notifications_outlined,
-              color: AppColors.textPrimary, size: 22),
+          if (_isOwnProfile)
+            GestureDetector(
+              onTap: _logout,
+              child: const Icon(Icons.notifications_outlined,
+                  color: AppColors.textPrimary, size: 22),
+            )
+          else
+            const Icon(Icons.notifications_outlined,
+                color: AppColors.textPrimary, size: 22),
         ],
       ),
     );
   }
 
-  // ─── AVATAR SECTION ──────────────────────────────────────
   Widget _buildAvatarSection() {
     final avatar = _user?['avatar']?.toString();
-    final level = _user?['level'] ?? 1;
+    final level = _user?['level'] ?? 42;
 
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar with level badge
-          Column(
+          // Avatar with LVL badge
+          Stack(
+            clipBehavior: Clip.none,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Neon border container
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.accent, width: 2),
-                    ),
-                    child: CutCornerAvatar(imageUrl: avatar, size: 110),
-                  ),
-                  // LVL badge
-                  Positioned(
-                    bottom: -14,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        color: AppColors.pink,
-                        child: Text(
-                          'LVL_$level',
-                          style: AppTextStyles.monoXs.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.accent, width: 2),
+                ),
+                child: CutCornerAvatar(imageUrl: avatar, size: 100),
+              ),
+              Positioned(
+                bottom: -10,
+                left: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  color: AppColors.pink,
+                  child: Text(
+                    'LVL_$level',
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
                     ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
           const Spacer(),
-          // Edit pencil icon OR follow button
+          // Edit or Follow button
           if (_isOwnProfile)
-            GestureDetector(
-              onTap: () {
-                // TODO: navigate to edit profile
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceHigh,
-                  border: Border.all(color: AppColors.outline, width: 1),
-                ),
-                child: const Icon(Icons.edit_outlined,
-                    color: AppColors.textSecondary, size: 18),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.outline, width: 1),
               ),
+              child: const Icon(Icons.edit_outlined,
+                  color: AppColors.textSecondary, size: 18),
             )
           else
             GestureDetector(
               onTap: _toggleFollow,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   color:
                       _isFollowing ? Colors.transparent : AppColors.accent,
@@ -285,59 +263,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── USER INFO ───────────────────────────────────────────
   Widget _buildUserInfo() {
-    final name =
-        _user?['name']?.toString().toUpperCase() ?? 'USER_NAME';
-    final dept = _user?['dept']?.toString().toUpperCase() ?? '';
-    final year = _user?['year']?.toString() ?? '';
+    final name = _user?['name']?.toString().toUpperCase().replaceAll(' ', '_') ??
+        'USER_NAME';
+    final dept = _user?['dept']?.toString().toUpperCase() ?? 'DESIGN_LAB';
+    final year = _user?['year']?.toString() ?? '2024';
     final bio = _user?['bio']?.toString() ?? '';
 
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // USER_NAME — massive display
           Text(
             name,
-            style: AppTextStyles.displayLg.copyWith(
+            style: AppTextStyles.displayXl.copyWith(
               fontSize: 42,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
               height: 1.0,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
-          // BRANCH / YEAR row
           Row(
             children: [
-              if (dept.isNotEmpty) ...[
-                Text('BRANCH:',
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: AppColors.textSecondary)),
-                const SizedBox(width: 4),
-              ],
-              if (dept.isNotEmpty)
-                Text(dept,
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: AppColors.textPrimary)),
-              if (dept.isNotEmpty && year.isNotEmpty) ...[
-                const SizedBox(width: 16),
-                Text('/',
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: AppColors.textMuted)),
-                const SizedBox(width: 16),
-              ],
-              if (year.isNotEmpty) ...[
-                Text('YEAR:',
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: AppColors.textSecondary)),
-                const SizedBox(width: 4),
-                Text(year,
-                    style: AppTextStyles.monoSm
-                        .copyWith(color: AppColors.textPrimary)),
-              ],
+              Text(
+                'BRANCH:',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.accent,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                dept,
+                style: AppTextStyles.monoSm.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Text(
+                '/',
+                style: AppTextStyles.monoSm.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Text(
+                'YEAR:',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.accent,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                year,
+                style: AppTextStyles.monoSm.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
           if (bio.isNotEmpty) ...[
@@ -345,149 +332,122 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(
               bio,
               style: AppTextStyles.bodyMd.copyWith(
-                fontSize: 14,
                 color: AppColors.textSecondary,
-                height: 1.5,
+                height: 1.6,
+                fontSize: 14,
               ),
             ),
           ],
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  // ─── STATS GRID ──────────────────────────────────────────
   Widget _buildStatsGrid() {
-    final userId = widget.userId ?? _loggedInUserId;
     final connections = _followersCount + _followingCount;
 
-    return Container(
-      color: AppColors.surface,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
           Row(
             children: [
-              _buildStatBox('128', 'POSTS'),
+              _statBox('128', 'POSTS'),
               const SizedBox(width: 8),
-              _buildStatBox(
-                _formatCount(_followersCount + _followingCount),
-                'VIBES',
-              ),
+              _statBox(_formatCount(_followersCount + _followingCount), 'VIBES'),
             ],
           ),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () {
-              if (userId != null) {
-                context.push('/profile/$userId/followers');
-              }
+              final userId = widget.userId ?? _loggedInUserId;
+              if (userId != null) context.push('/profile/$userId/followers');
             },
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceHigh,
-                border: Border.all(color: AppColors.outline, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _formatCount(connections),
-                    style: AppTextStyles.displaySm.copyWith(
-                      fontSize: 28,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Text('CONNECTIONS', style: AppTextStyles.monoXs),
-                ],
-              ),
-            ),
+            child: _statBox(_formatCount(connections), 'CONNECTIONS',
+                isWide: true),
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );
   }
 
-  Widget _buildStatBox(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceHigh,
-          border: Border.all(color: AppColors.outline, width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value,
-                style: AppTextStyles.displaySm.copyWith(
-                    fontSize: 28, color: AppColors.textPrimary)),
-            Text(label, style: AppTextStyles.monoXs),
-          ],
-        ),
+  Widget _statBox(String value, String label, {bool isWide = false}) {
+    final widget = Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.outline, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: AppTextStyles.displaySm.copyWith(
+              fontSize: 28,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(label, style: AppTextStyles.monoXs),
+        ],
       ),
     );
+
+    return isWide ? widget : Expanded(child: widget);
   }
 
-  // ─── TAB BAR ─────────────────────────────────────────────
   Widget _buildTabBar() {
     return Container(
-      color: AppColors.background,
-      padding: const EdgeInsets.only(top: 8),
-      child: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: AppColors.outline, width: 1),
-          ),
+      margin: const EdgeInsets.only(top: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.outline, width: 1),
         ),
-        child: Row(
-          children: _tabs.asMap().entries.map((e) {
-            final isActive = e.key == _activeTab;
-            return Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _activeTab = e.key),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? AppColors.accent
-                        : Colors.transparent,
-                  ),
-                  child: Center(
-                    child: Text(
-                      e.value,
-                      style: AppTextStyles.monoSm.copyWith(
-                        color: isActive
-                            ? AppColors.accentDark
-                            : AppColors.textSecondary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                        letterSpacing: 0.8,
-                      ),
+      ),
+      child: Row(
+        children: _tabs.asMap().entries.map((e) {
+          final isActive = e.key == _activeTab;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _activeTab = e.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.accent : Colors.transparent,
+                ),
+                child: Center(
+                  child: Text(
+                    e.value,
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: isActive
+                          ? AppColors.accentDark
+                          : AppColors.textSecondary,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
-  // ─── TAB CONTENT ─────────────────────────────────────────
   Widget _buildTabContent() {
     switch (_activeTab) {
       case 0:
         return _buildPostsTab();
       case 1:
-        return _buildEmptyTab('VIBES');
+        return _buildEmptyTab('VIBES', Icons.bolt);
       case 2:
-        return _buildEmptyTab('DIRECT');
+        return _buildEmptyTab('DIRECT', Icons.chat_bubble_outline);
       case 3:
-        return _buildEmptyTab('COMMUNITY');
+        return _buildEmptyTab('COMMUNITY', Icons.group_outlined);
       default:
         return const SizedBox.shrink();
     }
@@ -497,25 +457,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Featured post card — code snippet style
-        _buildFeaturedPost(),
-        // Image grid
+        _buildCodeSnippetCard(),
         _buildImageGrid(),
       ],
     );
   }
 
-  Widget _buildFeaturedPost() {
+  // Featured code snippet card — matches profile.png exactly
+  Widget _buildCodeSnippetCard() {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceHigh,
-        border: Border.all(color: AppColors.outline, width: 1),
+        border: Border.all(color: AppColors.outline, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Code snippet area
+          // Code editor header with colored dots
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -523,7 +482,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Title bar dots
+                // Window dots + close
                 Row(
                   children: [
                     Container(
@@ -531,13 +490,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         height: 8,
                         decoration: const BoxDecoration(
                             color: AppColors.pink, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Container(
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
                             color: AppColors.accent, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 5),
                     Container(
                         width: 8,
                         height: 8,
@@ -545,25 +504,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             color: AppColors.textMuted,
                             shape: BoxShape.circle)),
                     const Spacer(),
-                    Icon(Icons.close,
-                        color: AppColors.textMuted, size: 14),
+                    Icon(Icons.close, color: AppColors.textMuted, size: 12),
                   ],
                 ),
                 const SizedBox(height: 12),
+                // Code title
+                Text(
+                  'CODE_TOTEM_HOME_01_+_FREQUENCY/FUNC&RESULT',
+                  style: AppTextStyles.monoXs.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 8,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 // Code lines
                 ..._buildCodeLines(),
               ],
             ),
           ),
-          // Featured label + title
+          // FEATURED badge + title
           Container(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.accent, width: 1),
                   ),
@@ -579,9 +547,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'SYSTEM OVERRIDE V.01',
-                  style: AppTextStyles.displaySm.copyWith(
-                    fontSize: 22,
-                  ),
+                  style: AppTextStyles.displaySm.copyWith(fontSize: 22),
                 ),
               ],
             ),
@@ -634,16 +600,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _codeLineColor(String line) {
-    if (line.contains('fn ') || line.contains('let ')) {
-      return AppColors.pink;
-    }
+    if (line.contains('fn ') || line.contains('let ')) return AppColors.pink;
     if (line.contains('"')) return AppColors.accent;
     if (line.contains('42')) return const Color(0xFF80BFFF);
     return AppColors.textSecondary;
   }
 
+  // Image grid matching profile.png — 2x2 + wide CAMPUS LIFE tile
   Widget _buildImageGrid() {
-    // Placeholder grid images using colored containers
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -676,6 +640,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 4),
+          // CAMUI LIFE pink tile
           _gridTile(
             AppColors.pink,
             200,
@@ -685,15 +650,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('CAMUI',
                     style: AppTextStyles.monoLg.copyWith(
                         color: Colors.white,
-                        fontSize: 18,
+                        fontSize: 16,
                         letterSpacing: 3)),
                 Text('LIFE',
                     style: AppTextStyles.displayLg.copyWith(
-                        color: Colors.white, fontSize: 52, height: 1.0)),
+                        color: Colors.white,
+                        fontSize: 52,
+                        height: 1.0)),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -710,64 +677,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: child ??
           Center(
             child: icon != null
-                ? Icon(icon, color: AppColors.textMuted, size: 32)
+                ? Icon(icon,
+                    color: AppColors.textMuted.withValues(alpha: 0.3), size: 32)
                 : null,
           ),
     );
   }
 
-  Widget _buildEmptyTab(String label) {
+  Widget _buildEmptyTab(String label, IconData icon) {
     return Container(
       height: 200,
       alignment: Alignment.center,
-      child: Text('NO ${label.toUpperCase()} YET',
-          style:
-              AppTextStyles.monoMd.copyWith(color: AppColors.textMuted)),
-    );
-  }
-
-  // ─── BOTTOM NAV ──────────────────────────────────────────
-  Widget _buildBottomNav() {
-    return Container(
-      height: 64,
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.outline, width: 1),
-        ),
-      ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _bottomNavItem(Icons.grid_view, 'POSTS', 0),
-          _bottomNavItem(Icons.bolt, 'VIBES', 1),
-          _bottomNavItem(Icons.chat_bubble_outline, 'DIRECT', 2),
-          _bottomNavItem(Icons.group_outlined, 'CREW', 3),
+          Icon(icon, color: AppColors.textMuted, size: 32),
+          const SizedBox(height: 12),
+          Text('NO ${label.toUpperCase()} YET',
+              style: AppTextStyles.monoMd
+                  .copyWith(color: AppColors.textMuted)),
         ],
-      ),
-    );
-  }
-
-  Widget _bottomNavItem(IconData icon, String label, int index) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          // Navigate to home with tab index if needed
-          context.go(AppRouter.home);
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: AppColors.textSecondary),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: AppTextStyles.monoXs.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 9,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -54,7 +54,6 @@ class _FollowingScreenState extends State<FollowingScreen> {
       body: NoiseOverlay(
         child: Column(
           children: [
-            // Top bar
             Container(
               padding: const EdgeInsets.fromLTRB(16, 52, 16, 12),
               color: AppColors.background,
@@ -73,17 +72,20 @@ class _FollowingScreenState extends State<FollowingScreen> {
                     ),
                   ),
                   const Spacer(),
-                  Text(
-                    '${_following.length}',
-                    style: AppTextStyles.monoMd
-                        .copyWith(color: AppColors.accent),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    color: AppColors.accent.withOpacity(0.1),
+                    child: Text(
+                      '${_following.length}',
+                      style: AppTextStyles.monoMd
+                          .copyWith(color: AppColors.accent),
+                    ),
                   ),
                 ],
               ),
             ),
-            // Divider
             Container(height: 1, color: AppColors.outline),
-            // List
             Expanded(
               child: _loading
                   ? const Center(
@@ -106,19 +108,35 @@ class _FollowingScreenState extends State<FollowingScreen> {
                         )
                       : _following.isEmpty
                           ? Center(
-                              child: Text('NOT FOLLOWING ANYONE',
-                                  style: AppTextStyles.monoMd.copyWith(
-                                      color: AppColors.textMuted)),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.people_outline,
+                                      color: AppColors.textMuted,
+                                      size: 40),
+                                  const SizedBox(height: 16),
+                                  Text('NOT FOLLOWING ANYONE',
+                                      style: AppTextStyles.monoMd.copyWith(
+                                          color: AppColors.textMuted)),
+                                ],
+                              ),
                             )
-                          : ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _following.length,
-                              separatorBuilder: (_, __) =>
-                                  Container(height: 1, color: AppColors.outline),
-                              itemBuilder: (context, index) {
-                                final user = _following[index];
-                                return _FollowUserTile(user: user);
-                              },
+                          : RefreshIndicator(
+                              onRefresh: _fetchFollowing,
+                              color: AppColors.accent,
+                              backgroundColor: AppColors.surface,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: _following.length,
+                                separatorBuilder: (_, __) =>
+                                    Container(
+                                        height: 1,
+                                        color: AppColors.outline),
+                                itemBuilder: (context, index) {
+                                  final user = _following[index];
+                                  return _FollowUserTile(user: user);
+                                },
+                              ),
                             ),
             ),
           ],
@@ -156,9 +174,11 @@ class _FollowUserTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.accent, width: 1),
+                    border:
+                        Border.all(color: AppColors.accent, width: 1),
                   ),
-                  child: CutCornerAvatar(imageUrl: avatar, size: 48),
+                  child:
+                      CutCornerAvatar(imageUrl: avatar, size: 48),
                 ),
                 Positioned(
                   bottom: -6,
@@ -194,7 +214,8 @@ class _FollowUserTile extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       bio,
-                      style: AppTextStyles.bodySm.copyWith(fontSize: 12),
+                      style: AppTextStyles.bodySm
+                          .copyWith(fontSize: 12),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

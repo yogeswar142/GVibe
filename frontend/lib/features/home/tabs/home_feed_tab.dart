@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
@@ -110,7 +111,11 @@ class _HomeFeedTabState extends State<HomeFeedTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const GVibeAppBar(showNotification: true),
+      appBar: GVibeAppBar(
+        showNotification: true,
+        showAvatar: true,
+        onMenuTap: () => context.push('/profile'),
+      ),
       body: NoiseOverlay(
         child: _loading
             ? const Center(child: CircularProgressIndicator(color: AppColors.accent))

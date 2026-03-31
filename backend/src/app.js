@@ -3,6 +3,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
+const postRoutes = require('./routes/post.routes');
 const vibeRoutes = require('./routes/vibe.routes');
 const discoveryRoutes = require('./routes/discovery.routes');
 const messageRoutes = require('./routes/message.routes');
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 app.use('/api/vibes', vibeRoutes);
 app.use('/api/discovery', discoveryRoutes);
 app.use('/api/messages', messageRoutes);

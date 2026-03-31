@@ -1,5 +1,19 @@
 const User = require('../models/User');
 
+// GET /api/users — list all users (for discovery)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ _id: { $ne: req.user.id } })
+      .select('name avatar dept year bio level followers following')
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // GET /api/users/profile — own profile
 exports.getProfile = async (req, res) => {
   try {

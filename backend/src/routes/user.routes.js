@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  getAllUsers,
   getProfile,
   updateProfile,
   getUserById,
@@ -12,6 +13,9 @@ const { protect } = require('../middleware/auth.middleware');
 const router = express.Router();
 
 router.use(protect);
+
+// List all users (for discovery screen)
+router.get('/', getAllUsers);
 
 // Own profile
 router.route('/profile')

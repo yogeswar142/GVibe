@@ -40,4 +40,22 @@ class ApiService {
       },
     ));
   }
+
+  static String getErrorMessage(dynamic error) {
+    if (error is DioException) {
+      try {
+        final data = error.response?.data;
+        if (data is Map) {
+          return data['message']?.toString() ?? 'An error occurred';
+        } else if (data is String && data.isNotEmpty) {
+          if (data.contains('<!DOCTYPE html>') || data.contains('<html>')) {
+            return 'Server error (HTML response)';
+          }
+          return data;
+        }
+      } catch (_) {}
+      return error.message ?? 'Network error';
+    }
+    return error?.toString() ?? 'An unexpected error occurred';
+  }
 }

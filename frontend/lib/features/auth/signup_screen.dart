@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/constants/app_theme_extension.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
@@ -20,6 +20,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -31,22 +32,18 @@ class _SignupScreenState extends State<SignupScreen> {
   Future<void> _signup() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
     if (email.isEmpty || password.isEmpty) {
       setState(() => _error = 'Please fill in all fields');
       return;
     }
-
     if (password.length < 6) {
       setState(() => _error = 'Password must be at least 6 characters');
       return;
     }
-
     setState(() {
       _loading = true;
       _error = null;
     });
-
     try {
       final name = email.split('@').first.toUpperCase().replaceAll('.', '_');
       final response = await ApiService().dio.post('/auth/register', data: {
@@ -54,7 +51,6 @@ class _SignupScreenState extends State<SignupScreen> {
         'email': email,
         'password': password,
       });
-
       if (response.data['success'] == true) {
         final data = response.data['data'];
         await AuthService.saveToken(data['token']);
@@ -64,7 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
         setState(() => _error = response.data['message'] ?? 'Signup failed');
       }
     } on DioException catch (e) {
-      setState(() => _error = e.response?.data?['message'] ?? 'Signup failed');
+      setState(() => _error = ApiService.getErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -72,254 +68,183 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: NoiseOverlay(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 48),
-                // JOIN GVIBE — huge centered heading with accent bolt behind
-                SizedBox(
-                  height: 200,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Accent bolt graphic behind text
-                      Positioned(
-                        right: 80,
-                        top: 20,
-                        child: Transform.rotate(
-                          angle: -0.3,
-                          child: Icon(
-                            Icons.bolt,
-                            size: 160,
-                            color: AppColors.accent.withValues(alpha: 0.2),
-                          ),
-                        ),
-                      ),
-                      // JOIN GVIBE text
-                      Text(
-                        'JOIN GVIBE',
-                        style: AppTextStyles.displayXl.copyWith(
-                          fontSize: 56,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -1,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ],
+      backgroundColor: cs.background,
+      body: Stack(
+        children: [
+          // Radial glow (bottom-right)
+          Positioned(
+            bottom: -120,
+            right: -80,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    cs.secondary.withOpacity(isDark ? 0.1 : 0.06),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 24),
+                  // Back button
+                  GestureDetector(
+                    onTap: () => context.go(AppRouter.login),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back_rounded,
+                            color: cs.onSurfaceVariant, size: 20),
+                        const SizedBox(width: 6),
+                        Text('Sign in',
+                            style: AppTextStyles.bodyMd.copyWith(
+                                color: cs.onSurfaceVariant)),
+                      ],
+                    ),
                   ),
-                ),
-                // Full-width accent yellow divider bar
-                Container(
-                  width: double.infinity,
-                  height: 4,
-                  color: AppColors.accent,
-                ),
-                const SizedBox(height: 36),
-                // Error
-                if (_error != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
+                  const SizedBox(height: 36),
+                  // Heading
+                  Text(
+                    'Join\nGVibe',
+                    style: AppTextStyles.displayXl.copyWith(
+                      color: cs.onBackground,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Connect with your campus community',
+                    style: AppTextStyles.bodyMd.copyWith(
+                        color: cs.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 36),
+                  // Error
+                  if (_error != null) ...[
+                    Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.pink, width: 1),
+                        color: cs.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            Border.all(color: cs.error.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline,
-                              color: AppColors.pink, size: 16),
+                          Icon(Icons.error_outline_rounded,
+                              color: cs.error, size: 16),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(_error!,
-                                style: AppTextStyles.monoSm
-                                    .copyWith(color: AppColors.pink)),
+                                style: AppTextStyles.bodySm
+                                    .copyWith(color: cs.error)),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(height: 20),
+                  ],
+                  // Email
+                  GVibeTextField(
+                    label: 'Campus Email',
+                    hint: 'you@university.edu',
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    suffix: Icon(Icons.alternate_email_rounded,
+                        color: cs.onSurfaceVariant, size: 18),
                   ),
-                  const SizedBox(height: 20),
-                ],
-                // CONTINUE WITH GOOGLE button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    width: double.infinity,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.textMuted, width: 1),
+                  const SizedBox(height: 16),
+                  // Password
+                  GVibeTextField(
+                    label: 'Password',
+                    hint: 'Min. 6 characters',
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    suffix: GestureDetector(
+                      onTap: () => setState(
+                          () => _obscurePassword = !_obscurePassword),
+                      child: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: cs.onSurfaceVariant,
+                        size: 20,
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 28),
+                  GVibeButton(
+                    label: 'Create Account',
+                    onPressed: _signup,
+                    isLoading: _loading,
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      'Only @student emails accepted',
+                      style: AppTextStyles.bodyXs.copyWith(
+                          color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: ext.outline)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('or',
+                            style: AppTextStyles.bodyXs.copyWith(
+                                color: cs.onSurfaceVariant)),
+                      ),
+                      Expanded(child: Divider(color: ext.outline)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  GVibeButton(
+                    label: 'Continue with Google',
+                    isPrimary: false,
+                    icon: Icons.g_mobiledata_rounded,
+                    onPressed: () {},
+                  ),
+                  const SizedBox(height: 32),
+                  Center(
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'G',
-                          style: AppTextStyles.displaySm.copyWith(
-                            color: AppColors.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          'CONTINUE WITH GOOGLE',
-                          style: AppTextStyles.monoSm.copyWith(
-                            color: AppColors.textPrimary,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Text('Already have an account? ',
+                            style: AppTextStyles.bodyMd.copyWith(
+                                color: cs.onSurfaceVariant)),
+                        GestureDetector(
+                          onTap: () => context.go(AppRouter.login),
+                          child: Text('Sign in',
+                              style: AppTextStyles.bodyMd.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.w600,
+                              )),
                         ),
                       ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                // OR CREATE WITH EMAIL divider
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                          child: Container(height: 1, color: AppColors.outline)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'OR CREATE WITH EMAIL',
-                          style: AppTextStyles.monoXs.copyWith(
-                            color: AppColors.textMuted,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                          child: Container(height: 1, color: AppColors.outline)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 36),
-                // CAMPUS EMAIL field
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    style: AppTextStyles.monoMd.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'CAMPUS EMAIL',
-                      hintStyle: AppTextStyles.monoMd.copyWith(
-                        color: AppColors.textMuted,
-                        letterSpacing: 1.5,
-                      ),
-                      filled: false,
-                      suffixIcon: const Icon(Icons.alternate_email,
-                          color: AppColors.textMuted, size: 20),
-                      border: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.outline),
-                      ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.outline),
-                      ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.accent, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.only(bottom: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                // PASSWORD field
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    style: AppTextStyles.monoMd.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'PASSWORD',
-                      hintStyle: AppTextStyles.monoMd.copyWith(
-                        color: AppColors.textMuted,
-                        letterSpacing: 1.5,
-                      ),
-                      filled: false,
-                      suffixIcon: const Icon(Icons.lock_outline,
-                          color: AppColors.textMuted, size: 20),
-                      border: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.outline),
-                      ),
-                      enabledBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.outline),
-                      ),
-                      focusedBorder: const UnderlineInputBorder(
-                        borderSide: BorderSide(color: AppColors.accent, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.only(bottom: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // CREATE ACCOUNT button — acid yellow
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: GVibeButton(
-                    label: 'CREATE ACCOUNT',
-                    onPressed: _signup,
-                    isLoading: _loading,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Secure enrollment notice
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    'SECURE ENROLLMENT: ONLY @STUDENT.GITAM.EDU EMAILS ACCEPTED',
-                    textAlign: TextAlign.center,
-                    style: AppTextStyles.monoXs.copyWith(
-                      color: AppColors.textMuted,
-                      letterSpacing: 0.5,
-                      height: 1.6,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                // ALREADY HAVE AN ACCOUNT? SIGN IN
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'ALREADY HAVE AN ACCOUNT?  ',
-                      style: AppTextStyles.monoSm.copyWith(
-                        color: AppColors.textSecondary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => context.go(AppRouter.login),
-                      child: Text(
-                        'SIGN IN',
-                        style: AppTextStyles.monoSm.copyWith(
-                          color: AppColors.pink,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-              ],
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

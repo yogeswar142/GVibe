@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/constants/app_theme_extension.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import '../../core/providers/theme_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? userId;
@@ -75,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } on DioException catch (e) {
       setState(() {
-        _error = e.response?.data?['message'] ?? 'Failed to load profile';
+        _error = ApiService.getErrorMessage(e);
         _loading = false;
       });
     }
@@ -103,307 +106,203 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: NoiseOverlay(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: _loading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.accent))
-                  : _error != null
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(_error!,
-                                  style: AppTextStyles.monoMd
-                                      .copyWith(color: AppColors.pink)),
-                              const SizedBox(height: 16),
-                              GVibeButton(
-                                  label: 'RETRY', onPressed: _loadProfile),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadProfile,
-                          color: AppColors.accent,
-                          backgroundColor: AppColors.surface,
-                          child: ListView(
-                            padding: EdgeInsets.zero,
-                            children: [
-                              _buildAvatarSection(),
-                              _buildUserInfo(),
-                              _buildStatsGrid(),
-                              _buildTabBar(),
-                              _buildTabContent(),
-                            ],
-                          ),
+      backgroundColor: cs.surface,
+      body: Column(
+        children: [
+          _buildTopBar(),
+          Expanded(
+            child: _loading
+                ? Center(
+                    child: CircularProgressIndicator(color: cs.primary))
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_error!,
+                                style: AppTextStyles.bodyMd.copyWith(
+                                    color: cs.error)),
+                            const SizedBox(height: 16),
+                            GVibeButton(
+                                label: 'Retry',
+                                onPressed: _loadProfile),
+                          ],
                         ),
-            ),
-          ],
-        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadProfile,
+                        color: AppColors.primary,
+                        child: ListView(
+                          padding: EdgeInsets.zero,
+                          children: [
+                            _DigitalStudentIDCard(
+                              user: _user,
+                              isOwnProfile: _isOwnProfile,
+                              onEdit: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                        'Profile editing coming soon'),
+                                    backgroundColor: cs.primary,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                );
+                              },
+                              onToggleFollow: _toggleFollow,
+                              isFollowing: _isFollowing,
+                            ),
+                            _buildUserBio(),
+                            _buildStatsGrid(),
+                            _buildTabBar(),
+                            _buildTabContent(),
+                          ],
+                        ),
+                      ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTopBar() {
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-      color: AppColors.background,
+      color: cs.surface,
       child: Row(
         children: [
-          Text(
-            'GVIBE',
-            style: AppTextStyles.displaySm.copyWith(
-              color: AppColors.accent,
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w900,
-            ),
+          GradientText(
+            'GVibe',
+            style: AppTextStyles.displaySm.copyWith(fontSize: 26),
           ),
           const Spacer(),
-          if (_isOwnProfile)
+          Consumer(
+            builder: (context, ref, child) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return GestureDetector(
+                onTap: () => ref.read(themeModeProvider.notifier).toggle(),
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    color: cs.onSurface,
+                    size: 20,
+                  ),
+                ),
+              );
+            },
+          ),
+          if (_isOwnProfile) ...[          
+            const SizedBox(width: 12),
             GestureDetector(
               onTap: _logout,
-              child: const Icon(Icons.notifications_outlined,
-                  color: AppColors.textPrimary, size: 22),
-            )
-          else
-            const Icon(Icons.notifications_outlined,
-                color: AppColors.textPrimary, size: 22),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAvatarSection() {
-    final avatar = _user?['avatar']?.toString();
-    final level = _user?['level'] ?? 42;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Avatar with LVL badge
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(3),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.accent, width: 2),
+                  color: cs.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.error.withValues(alpha: 0.3)),
                 ),
-                child: CutCornerAvatar(imageUrl: avatar, size: 100),
-              ),
-              Positioned(
-                bottom: -10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
-                  color: AppColors.pink,
-                  child: Text(
-                    'LVL_$level',
-                    style: AppTextStyles.monoXs.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          // Edit or Follow button
-          if (_isOwnProfile)
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.outline, width: 1),
-              ),
-              child: const Icon(Icons.edit_outlined,
-                  color: AppColors.textSecondary, size: 18),
-            )
-          else
-            GestureDetector(
-              onTap: _toggleFollow,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color:
-                      _isFollowing ? Colors.transparent : AppColors.accent,
-                  border: Border.all(
-                    color: _isFollowing
-                        ? AppColors.textSecondary
-                        : AppColors.accent,
-                    width: 1,
-                  ),
-                ),
-                child: Text(
-                  _isFollowing ? 'UNFOLLOW' : 'FOLLOW',
-                  style: AppTextStyles.monoSm.copyWith(
-                    color: _isFollowing
-                        ? AppColors.textPrimary
-                        : AppColors.accentDark,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.logout_rounded, color: cs.error, size: 15),
+                  const SizedBox(width: 6),
+                  Text('Logout', style: AppTextStyles.labelLg.copyWith(
+                      color: cs.error, fontSize: 12)),
+                ]),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUserInfo() {
-    final name = _user?['name']?.toString().toUpperCase().replaceAll(' ', '_') ??
-        'USER_NAME';
-    final dept = _user?['dept']?.toString().toUpperCase() ?? 'DESIGN_LAB';
-    final year = _user?['year']?.toString() ?? '2024';
-    final bio = _user?['bio']?.toString() ?? '';
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: AppTextStyles.displayXl.copyWith(
-              fontSize: 42,
-              letterSpacing: -1,
-              height: 1.0,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'BRANCH:',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.accent,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                dept,
-                style: AppTextStyles.monoSm.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Text(
-                '/',
-                style: AppTextStyles.monoSm.copyWith(
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(width: 20),
-              Text(
-                'YEAR:',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.accent,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                year,
-                style: AppTextStyles.monoSm.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-          if (bio.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(
-              bio,
-              style: AppTextStyles.bodyMd.copyWith(
-                color: AppColors.textSecondary,
-                height: 1.6,
-                fontSize: 14,
-              ),
-            ),
+          ] else ...[
+            const SizedBox(width: 12),
+            Icon(Icons.notifications_outlined, color: cs.onSurface, size: 22),
           ],
-          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUserBio() {
+    final cs = Theme.of(context).colorScheme;
+    final bio = _user?['bio']?.toString() ?? '';
+    if (bio.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+      child: Text(
+        bio,
+        style: AppTextStyles.bodyMd.copyWith(
+          color: cs.onSurfaceVariant,
+          height: 1.6,
+        ),
       ),
     );
   }
 
   Widget _buildStatsGrid() {
-    final connections = _followersCount + _followingCount;
-
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
         children: [
-          Row(
-            children: [
-              _statBox('128', 'POSTS'),
-              const SizedBox(width: 8),
-              _statBox(_formatCount(_followersCount + _followingCount), 'VIBES'),
-            ],
-          ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () {
-              final userId = widget.userId ?? _loggedInUserId;
-              if (userId != null) context.push('/profile/$userId/followers');
-            },
-            child: _statBox(_formatCount(connections), 'CONNECTIONS',
-                isWide: true),
-          ),
-          const SizedBox(height: 8),
+          _statCard('128', 'Posts', cs),
+          const SizedBox(width: 10),
+          _statCard(_formatCount(_followersCount), 'Followers', cs, onTap: () {
+            final userId = widget.userId ?? _loggedInUserId;
+            if (userId != null) context.push('/profile/$userId/followers');
+          }),
+          const SizedBox(width: 10),
+          _statCard(_formatCount(_followingCount), 'Following', cs, onTap: () {
+            final userId = widget.userId ?? _loggedInUserId;
+            if (userId != null) context.push('/profile/$userId/following');
+          }),
         ],
       ),
     );
   }
 
-  Widget _statBox(String value, String label, {bool isWide = false}) {
-    final widget = Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.outline, width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: AppTextStyles.displaySm.copyWith(
-              fontSize: 28,
-              color: AppColors.textPrimary,
-            ),
+  Widget _statCard(String value, String label, ColorScheme cs,
+      {VoidCallback? onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: GVibeCard(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          child: Column(
+            children: [
+              Text(value,
+                  style: AppTextStyles.displaySm.copyWith(
+                    color: cs.onSurface,
+                    fontSize: 22,
+                  )),
+              const SizedBox(height: 2),
+              Text(label,
+                  style: AppTextStyles.bodyXs.copyWith(
+                      color: cs.onSurfaceVariant)),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(label, style: AppTextStyles.monoXs),
-        ],
+        ),
       ),
     );
-
-    return isWide ? widget : Expanded(child: widget);
   }
 
   Widget _buildTabBar() {
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
     return Container(
-      margin: const EdgeInsets.only(top: 12),
-      decoration: const BoxDecoration(
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.outline, width: 1),
+          bottom: BorderSide(color: ext.outline, width: 1),
         ),
       ),
       child: Row(
@@ -416,17 +315,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 duration: const Duration(milliseconds: 150),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.accent : Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: isActive ? cs.primary : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
                 ),
                 child: Center(
                   child: Text(
                     e.value,
-                    style: AppTextStyles.monoXs.copyWith(
-                      color: isActive
-                          ? AppColors.accentDark
-                          : AppColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
+                    style: AppTextStyles.label.copyWith(
+                      color: isActive ? cs.primary : cs.onSurfaceVariant,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                 ),
@@ -562,7 +463,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       '  fn main() {',
       '    let system = Engine::new();',
       '    system.override(Config {',
-      '      mode: "neo-brutal",',
+      '      mode: "gitam-green",',
       '      freq: 42.0,',
       '    });',
       '    system.run();',
@@ -600,7 +501,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _codeLineColor(String line) {
-    if (line.contains('fn ') || line.contains('let ')) return AppColors.pink;
+    if (line.contains('fn ') || line.contains('let ')) return AppColors.secondary;
     if (line.contains('"')) return AppColors.accent;
     if (line.contains('42')) return const Color(0xFF80BFFF);
     return AppColors.textSecondary;
@@ -640,9 +541,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          // CAMUI LIFE pink tile
+          // CAMUI LIFE green tile
           _gridTile(
-            AppColors.pink,
+            AppColors.primary,
             200,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -685,17 +586,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildEmptyTab(String label, IconData icon) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 200,
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppColors.textMuted, size: 32),
+          Icon(icon, color: cs.onSurfaceVariant, size: 36),
           const SizedBox(height: 12),
-          Text('NO ${label.toUpperCase()} YET',
-              style: AppTextStyles.monoMd
-                  .copyWith(color: AppColors.textMuted)),
+          Text('No $label yet',
+              style: AppTextStyles.bodyMd.copyWith(
+                  color: cs.onSurfaceVariant)),
         ],
       ),
     );
@@ -708,5 +610,457 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return '${(count / 1000).toStringAsFixed(1)}K';
     }
     return count.toString();
+  }
+}
+
+class _DigitalStudentIDCard extends StatefulWidget {
+  final Map<String, dynamic>? user;
+  final bool isOwnProfile;
+  final VoidCallback onEdit;
+  final VoidCallback onToggleFollow;
+  final bool isFollowing;
+
+  const _DigitalStudentIDCard({
+    super.key,
+    required this.user,
+    required this.isOwnProfile,
+    required this.onEdit,
+    required this.onToggleFollow,
+    required this.isFollowing,
+  });
+
+  @override
+  State<_DigitalStudentIDCard> createState() => _DigitalStudentIDCardState();
+}
+
+class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
+  bool _showFront = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = widget.user?['avatar']?.toString();
+    final level = widget.user?['level'] ?? 42;
+    final name = widget.user?['name']?.toString().toUpperCase().replaceAll(' ', '_') ?? 'USER_NAME';
+    final dept = widget.user?['dept']?.toString().toUpperCase() ?? 'COMPUTER_SCIENCE';
+    final year = widget.user?['year']?.toString() ?? '2024';
+    final hub = widget.user?['hub']?.toString().toUpperCase() ?? 'ENGINEERING_QUAD';
+
+    // Vibe rating calculations
+    final double ratingVal = 0.85 + ((level * 3) % 15) / 100.0;
+    final ratingPercent = (ratingVal * 100).toStringAsFixed(1);
+    
+    String rank = 'ARCHMAGE';
+    if (level < 10) {
+      rank = 'INITIATE';
+    } else if (level < 25) {
+      rank = 'ACOLYTE';
+    } else if (level < 40) {
+      rank = 'WIZARD';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showFront = !_showFront;
+          });
+        },
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: _showFront ? 0 : 3.1415926535),
+          duration: const Duration(milliseconds: 600),
+          builder: (context, val, child) {
+            final isFront = val < 3.1415926535 / 2;
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.0012)
+                ..rotateY(val),
+              child: isFront
+                  ? _buildFront(avatar, level, name, dept, year, hub, ratingVal, ratingPercent, rank)
+                  : Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.identity()..rotateY(3.1415926535),
+                      child: _buildBack(name, level),
+                    ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFront(
+    String? avatar,
+    int level,
+    String name,
+    String dept,
+    String year,
+    String hub,
+    double ratingVal,
+    String ratingPercent,
+    String rank,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      height: 230,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceHigh : AppColors.lightSurfaceHigh,
+        border: Border.all(color: AppColors.outline, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+          const BoxShadow(
+            color: Colors.black,
+            offset: Offset(4, 4),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.nfc, color: AppColors.textMuted, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                'GVIBE STUDENT ID // FRONT_SIDE',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.textMuted,
+                  fontSize: 8,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'GRID_ACTIVE',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.primary,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.primary, width: 2),
+                      ),
+                      child: CutCornerAvatar(imageUrl: avatar, size: 76),
+                    ),
+                    Positioned(
+                      bottom: -8,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        color: AppColors.primary,
+                        child: Text(
+                          'LVL_$level',
+                          style: AppTextStyles.monoXs.copyWith(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '@$name',
+                              style: AppTextStyles.displaySm.copyWith(
+                                fontSize: 18,
+                                color: AppColors.textPrimary,
+                                letterSpacing: 0.5,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          _buildCardActionBtn(),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _detailRow('MAJOR:', dept),
+                      const SizedBox(height: 3),
+                      _detailRow('CLASS:', year),
+                      const SizedBox(height: 3),
+                      _detailRow('STATUS:', '📍 $hub'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'VIBE_RATING: $ratingPercent%',
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'RANK: $rank',
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                child: Container(
+                  height: 6,
+                  width: double.infinity,
+                  color: AppColors.outline,
+                  child: FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: ratingVal,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label ',
+          style: AppTextStyles.monoXs.copyWith(
+            color: AppColors.textMuted,
+            fontSize: 9,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTextStyles.monoSm.copyWith(
+              color: AppColors.textSecondary,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCardActionBtn() {
+    if (widget.isOwnProfile) {
+      return GestureDetector(
+        onTap: widget.onEdit,
+        child: Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.outline, width: 1),
+          ),
+          child: const Icon(Icons.edit_outlined, color: AppColors.textSecondary, size: 14),
+        ),
+      );
+    } else {
+      return GestureDetector(
+        onTap: widget.onToggleFollow,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: widget.isFollowing ? Colors.transparent : AppColors.accent,
+            border: Border.all(
+              color: widget.isFollowing ? AppColors.outline : AppColors.accent,
+              width: 1,
+            ),
+          ),
+          child: Text(
+            widget.isFollowing ? 'UNFOLLOW' : 'FOLLOW',
+            style: AppTextStyles.monoXs.copyWith(
+              color: widget.isFollowing ? AppColors.textPrimary : AppColors.accentDark,
+              fontSize: 8,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildBack(String name, int level) {
+    final sigHash = '0x${(name.hashCode.abs().toString() + 'FEED42').padRight(16, 'A').substring(0, 16).toUpperCase()}';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      height: 230,
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceHigh : AppColors.lightSurfaceHigh,
+        border: Border.all(color: AppColors.outline, width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+          const BoxShadow(
+            color: Colors.black,
+            offset: Offset(4, 4),
+            blurRadius: 0,
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.security, color: AppColors.textMuted, size: 14),
+              const SizedBox(width: 6),
+              Text(
+                'GVIBE STUDENT ID // BACK_SIDE',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.textMuted,
+                  fontSize: 8,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'NODE_SECURE',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: AppColors.primary,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            height: 28,
+            width: double.infinity,
+            color: isDark ? const Color(0xFF19201E) : const Color(0xFFE1EAE7),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Text(
+              'MAGNETIC_DATA_TRACK_02_SECURED',
+              style: AppTextStyles.monoXs.copyWith(color: AppColors.textMuted, fontSize: 8),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _detailRow('SIGNATURE:', sigHash),
+                      const SizedBox(height: 4),
+                      _detailRow('CIPHER:', 'AES_256_GCM'),
+                      const SizedBox(height: 4),
+                      _detailRow('VERIFY:', 'APPROVED'),
+                      const SizedBox(height: 4),
+                      _detailRow('EXPIRES:', '31_DEC_2026'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                _buildMockQRCode(),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'TAP CARD TO FLIP FRONT',
+              style: AppTextStyles.monoXs.copyWith(
+                color: AppColors.textMuted,
+                fontSize: 8,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMockQRCode() {
+    return Container(
+      width: 76,
+      height: 76,
+      color: Colors.white,
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(8, (r) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(8, (c) {
+              bool isCorner = (r < 3 && c < 3) || (r < 3 && c >= 5) || (r >= 5 && c < 3);
+              bool isInnerCorner = (r == 1 && c == 1) || (r == 1 && c == 6) || (r == 6 && c == 1);
+              bool isPixel = (isCorner && !isInnerCorner) || (!isCorner && ((r + c) % 3 == 0 || (r * c) % 2 == 0));
+              return Container(
+                width: 7,
+                height: 7,
+                color: isPixel ? Colors.black : Colors.white,
+              );
+            }),
+          );
+        }),
+      ),
+    );
   }
 }

@@ -41,7 +41,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
       }
     } on DioException catch (e) {
       setState(() {
-        _error = e.response?.data?['message'] ?? 'Failed to load following';
+        _error = ApiService.getErrorMessage(e);
         _loading = false;
       });
     }

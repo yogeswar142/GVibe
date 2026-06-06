@@ -41,7 +41,7 @@ class _FollowersScreenState extends State<FollowersScreen> {
       }
     } on DioException catch (e) {
       setState(() {
-        _error = e.response?.data?['message'] ?? 'Failed to load followers';
+        _error = ApiService.getErrorMessage(e);
         _loading = false;
       });
     }

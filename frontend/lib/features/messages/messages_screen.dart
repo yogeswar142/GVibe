@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/constants/app_theme_extension.dart';
+import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -10,159 +13,276 @@ class MessagesScreen extends StatefulWidget {
   State<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen> {
-  int _activeTab = 0; // 0 = DIRECT, 1 = COMMUNITIES
+class _MessagesScreenState extends State<MessagesScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  List<dynamic> _users = [];
+  bool _loading = true;
+  String? _error;
 
-  // Mock data matching the design mockup exactly
-  final List<Map<String, dynamic>> _directMessages = [
-    {
-      'name': 'NEO_WITCH',
-      'time': '12:45 PM',
-      'message': 'That set at the basement was wild...',
-      'isHighlighted': true,
-      'hasUnread': false,
-    },
-    {
-      'name': 'VIBE_CHECKER',
-      'time': '09:12 AM',
-      'message': 'Yo, did you get the community invite?',
-      'isHighlighted': false,
-      'hasUnread': true,
-    },
-    {
-      'name': 'LUNAR_ECHO',
-      'time': 'YESTERDAY',
-      'message': 'See you at the quad later.',
-      'isHighlighted': false,
-      'hasUnread': false,
-    },
-    {
-      'name': 'THE_LOUNGE',
-      'time': 'YESTERDAY',
-      'message': '#general: New event dropped!',
-      'isHighlighted': false,
-      'hasUnread': false,
-      'isCommunity': true,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchUsers();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response = await ApiService().dio.get('/users');
+      if (response.data['success'] == true) {
+        setState(() {
+          _users = response.data['data'] ?? [];
+          _loading = false;
+        });
+      }
+    } on DioException catch (e) {
+      setState(() {
+        _error = ApiService.getErrorMessage(e);
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: NoiseOverlay(
-        child: Column(
-          children: [
-            // Top bar
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-              color: AppColors.background,
-              child: Row(
-                children: [
-                  Text(
-                    'GVIBE',
-                    style: AppTextStyles.displaySm.copyWith(
-                      color: AppColors.accent,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.notifications_outlined,
-                      color: AppColors.textPrimary, size: 22),
-                ],
-              ),
-            ),
-            Container(height: 1, color: AppColors.outline),
-            // DIRECT / COMMUNITIES tab bar
-            _buildTabBar(),
-            // Message list
-            Expanded(
-              child: _activeTab == 0
-                  ? _buildDirectList()
-                  : _buildCommunitiesList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
 
-  Widget _buildTabBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(
+    return Scaffold(
+      backgroundColor: cs.surface,
+      body: Column(
         children: [
-          _tabButton('DIRECT', 0),
-          _tabButton('COMMUNITIES', 1),
+          _buildTopBar(context),
+          _buildOnlineRow(context),
+          _buildTabBar(context, ext),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDirectList(context),
+                _buildCommunitiesEmpty(context),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _tabButton(String label, int index) {
-    final isActive = _activeTab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _activeTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.accent : Colors.transparent,
-            border: isActive
-                ? null
-                : Border.all(color: AppColors.outline, width: 0.5),
+  Widget _buildTopBar(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
+      color: cs.surface,
+      child: Row(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Messages',
+                  style: AppTextStyles.displayMd.copyWith(color: cs.onSurface)),
+              Text(_loading ? 'Loading...' : '${_users.length} on campus',
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.w500,
+                  )),
+            ],
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: AppTextStyles.monoSm.copyWith(
-                color: isActive ? AppColors.accentDark : AppColors.textMuted,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-              ),
+          const Spacer(),
+          // Compose button
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: context.ext.primaryGradient,
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildDirectList() {
-    return ListView.builder(
+  Widget _buildOnlineRow(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: ext.outline, width: 0.5)),
+      ),
+      child: SizedBox(
+        height: 80,
+        child: _loading
+            ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+            : _users.isEmpty
+                ? Center(child: Text('No users online', style: AppTextStyles.bodyXs.copyWith(color: cs.onSurfaceVariant)))
+                : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _users.length,
+                    itemBuilder: (_, i) {
+                      final user = _users[i];
+                      final name = user['name']?.toString() ?? 'User';
+                      final avatar = user['avatar']?.toString();
+                      return Container(
+                        margin: const EdgeInsets.only(right: 16),
+                        child: Column(
+                          children: [
+                            Stack(
+                              children: [
+                                GVibeAvatar(
+                                  imageUrl: avatar,
+                                  initials: name.isNotEmpty ? name[0] : '?',
+                                  size: 48,
+                                  showGlow: true,
+                                ),
+                                Positioned(
+                                  right: 1,
+                                  bottom: 1,
+                                  child: Container(
+                                    width: 11,
+                                    height: 11,
+                                    decoration: BoxDecoration(
+                                      color: cs.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: cs.surface, width: 2),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              name.split(' ').first,
+                              style: AppTextStyles.bodyXs.copyWith(
+                                  color: cs.onSurfaceVariant),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+      ),
+    );
+  }
+
+  Widget _buildTabBar(BuildContext context, AppThemeExtension ext) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(bottom: BorderSide(color: ext.outline, width: 0.5)),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicatorColor: cs.primary,
+        indicatorWeight: 2,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelStyle: AppTextStyles.tabActive,
+        unselectedLabelStyle: AppTextStyles.tabInactive,
+        labelColor: cs.primary,
+        unselectedLabelColor: cs.onSurfaceVariant,
+        tabs: const [
+          Tab(text: 'Direct'),
+          Tab(text: 'Communities'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDirectList(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    if (_loading) {
+      return Center(child: CircularProgressIndicator(color: cs.primary));
+    }
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, style: AppTextStyles.bodyMd.copyWith(color: cs.error)),
+            const SizedBox(height: 16),
+            GVibeButton(label: 'Retry', onPressed: _fetchUsers),
+          ],
+        ),
+      );
+    }
+    if (_users.isEmpty) {
+      return Center(
+        child: Text('No users on campus yet.',
+            style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant)),
+      );
+    }
+    return ListView.separated(
       padding: EdgeInsets.zero,
-      itemCount: _directMessages.length,
-      itemBuilder: (context, index) {
-        final msg = _directMessages[index];
+      itemCount: _users.length,
+      separatorBuilder: (_, __) => Divider(
+        color: context.ext.outline,
+        height: 0.5,
+        indent: 82,
+      ),
+      itemBuilder: (_, i) {
+        final user = _users[i];
+        final name = user['name']?.toString() ?? 'User';
+        final bio = user['bio']?.toString() ?? 'Tap to start chatting';
+        final level = user['level'] ?? 1;
         return _ChatRow(
-          name: msg['name'],
-          time: msg['time'],
-          message: msg['message'],
-          isHighlighted: msg['isHighlighted'] ?? false,
-          hasUnread: msg['hasUnread'] ?? false,
-          isCommunity: msg['isCommunity'] ?? false,
+          name: name,
+          time: 'LVL $level',
+          message: bio,
+          hasUnread: false,
+          unreadCount: 0,
+          isOnline: true,
+          onTap: () => context.push('/chat/${user['_id']}'),
         );
       },
     );
   }
 
-  Widget _buildCommunitiesList() {
+  Widget _buildCommunitiesEmpty(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.group_outlined, color: AppColors.textMuted, size: 40),
-          const SizedBox(height: 16),
-          Text(
-            'NO COMMUNITIES YET',
-            style: AppTextStyles.monoMd.copyWith(color: AppColors.textMuted),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(Icons.group_rounded, color: cs.primary, size: 36),
           ),
+          const SizedBox(height: 20),
+          Text('No communities yet',
+              style: AppTextStyles.headlineMd.copyWith(color: cs.onSurface)),
           const SizedBox(height: 8),
-          Text(
-            'Join a community to start vibing',
-            style:
-                AppTextStyles.bodySm.copyWith(color: AppColors.textMuted),
+          Text('Join a community to start vibing',
+              style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant)),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48),
+            child: GVibeButton(
+              label: 'Browse Communities',
+              onPressed: () {},
+            ),
           ),
         ],
       ),
@@ -170,95 +290,133 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 }
 
+// ─── Chat Row ─────────────────────────────────────────────────────────────────
 class _ChatRow extends StatelessWidget {
   final String name;
   final String time;
   final String message;
-  final bool isHighlighted;
   final bool hasUnread;
-  final bool isCommunity;
+  final int unreadCount;
+  final bool isOnline;
+  final VoidCallback onTap;
 
   const _ChatRow({
     required this.name,
     required this.time,
     required this.message,
-    this.isHighlighted = false,
     this.hasUnread = false,
-    this.isCommunity = false,
+    this.unreadCount = 0,
+    this.isOnline = false,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      color: isHighlighted ? AppColors.accent : Colors.transparent,
-      child: Row(
-        children: [
-          // Unread dot
-          if (hasUnread && !isHighlighted)
-            Container(
-              width: 6,
-              height: 6,
-              margin: const EdgeInsets.only(right: 6),
-              color: AppColors.accent,
-            ),
-          // Avatar
-          isCommunity
-              ? Container(
-                  width: 52,
-                  height: 52,
-                  color: isHighlighted
-                      ? AppColors.accentDark.withValues(alpha: 0.2)
-                      : AppColors.surfaceHigh,
-                  child: Icon(
-                    Icons.groups,
-                    color: isHighlighted ? AppColors.accentDark : AppColors.accent,
-                    size: 24,
-                  ),
-                )
-              : CutCornerAvatar(size: 52),
-          const SizedBox(width: 14),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final cs = Theme.of(context).colorScheme;
+    final ext = context.ext;
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Stack(
               children: [
-                Text(
-                  name,
-                  style: AppTextStyles.displaySm.copyWith(
-                    fontSize: 16,
-                    color: isHighlighted
-                        ? AppColors.accentDark
-                        : AppColors.textPrimary,
-                  ),
+                GVibeAvatar(
+                  initials: name[0],
+                  size: 52,
+                  showGlow: isOnline,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: AppTextStyles.bodyMd.copyWith(
-                    fontSize: 13,
-                    color: isHighlighted
-                        ? AppColors.accentDark.withValues(alpha: 0.8)
-                        : AppColors.textSecondary,
+                if (isOnline)
+                  Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: cs.surface, width: 2),
+                      ),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          // Time
-          Text(
-            time,
-            style: AppTextStyles.monoXs.copyWith(
-              color: isHighlighted
-                  ? AppColors.accentDark.withValues(alpha: 0.7)
-                  : AppColors.textMuted,
-              letterSpacing: 0.5,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        name,
+                        style: AppTextStyles.headlineSm.copyWith(
+                          color: cs.onSurface,
+                          fontWeight: hasUnread
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        time,
+                        style: AppTextStyles.monoXs.copyWith(
+                          color: hasUnread ? cs.primary : cs.onSurfaceVariant,
+                          fontWeight: hasUnread
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          message,
+                          style: AppTextStyles.bodyMd.copyWith(
+                            fontSize: 13,
+                            color: hasUnread
+                                ? cs.onSurface
+                                : cs.onSurfaceVariant,
+                            fontWeight: hasUnread
+                                ? FontWeight.w500
+                                : FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (hasUnread && unreadCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: cs.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$unreadCount',
+                            style: AppTextStyles.monoXs.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

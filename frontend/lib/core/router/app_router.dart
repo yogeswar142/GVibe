@@ -8,6 +8,7 @@ import '../../features/profile/profile_screen.dart';
 import '../../features/profile/followers_screen.dart';
 import '../../features/profile/following_screen.dart';
 import '../../features/error/error_screen.dart';
+import '../../features/messages/chat_detail_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -72,6 +73,13 @@ class AppRouter {
             },
           ),
         ],
+      ),
+      GoRoute(
+        path: '/chat/:threadId',
+        builder: (context, state) {
+          final threadId = state.pathParameters['threadId']!;
+          return ChatDetailScreen(threadId: threadId);
+        },
       ),
       GoRoute(
         path: notFound,

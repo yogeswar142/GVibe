@@ -79,7 +79,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) context.go(AppRouter.home);
     } on DioException catch (e) {
       setState(() =>
-          _error = e.response?.data?['message'] ?? 'Failed to save profile');
+          _error = ApiService.getErrorMessage(e));
     } finally {
       if (mounted) setState(() => _saving = false);
     }

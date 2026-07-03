@@ -1,154 +1,170 @@
 import 'package:flutter/material.dart';
 
-/// GITAM Forest Green — GVibe Premium Design System
-/// Semantic design tokens for both light and dark modes.
+/// GVibe Design System — Deep-Navy Cinematic Palette
+/// Merges Linear's dark-surface-ladder with Vercel's hairline-on-white restraint,
+/// tuned toward clstr.in's #070B14 theme tone.
+/// Semantic tokens for both dark (default) and light modes.
 class AppColors {
   AppColors._();
 
-  // ─── Primitive Palette ─────────────────────────────────────────────────────
+  // ─── Primitive Palette — Dark (Linear-inspired) ─────────────────────────────
 
-  // GITAM Green scale
-  static const Color gitamGreen = Color(0xFF007366);
-  static const Color gitamGreenDark = Color(0xFF005C52);
-  static const Color gitamGreenLight = Color(0xFF009688);
-  static const Color gitamGreenMint = Color(0xFFE0F2F1);
+  // Canvas / surface ladder
+  static const Color darkCanvas       = Color(0xFF010102);
+  static const Color darkSurface1     = Color(0xFF0F1011);
+  static const Color darkSurface2     = Color(0xFF141516);
+  static const Color darkSurface3     = Color(0xFF18191A);
 
-  // Black / Dark Slate scale (dark mode = Green + Black)
-  static const Color darkBg = Color(0xFF050706);
-  static const Color darkCard = Color(0xFF0F1413);
-  static const Color darkCardHigh = Color(0xFF191F1E);
-  static const Color darkCardHighest = Color(0xFF222B29);
-  static const Color darkOutlineColor = Color(0xFF2B3633);
+  // Hairlines
+  static const Color darkHairline     = Color(0xFF23252A);
+  static const Color darkHairlineStrong = Color(0xFF34343A);
 
-  // White / Light Slate scale (light mode = Green + White)
-  static const Color lightBg = Color(0xFFFAFBFB);
-  static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightCardHigh = Color(0xFFEDF2F1);
-  static const Color lightCardHighest = Color(0xFFE1EAE7);
-  static const Color lightOutlineColor = Color(0xFFCFDCD9);
+  // Ink scale
+  static const Color darkInk          = Color(0xFFF7F8F8);
+  static const Color darkInkMuted     = Color(0xFFD0D6E0);
+  static const Color darkInkSubtle    = Color(0xFF8A8F98);
+  static const Color darkInkFaint     = Color(0xFF62666D);
 
-  // Text colors
-  static const Color darkTextPrimary = Color(0xFFF1F3F2);
-  static const Color darkTextSecondary = Color(0xFFA5B2AF);
-  static const Color darkTextMuted = Color(0xFF6E7D7A);
+  // Accent
+  static const Color accentIndigo     = Color(0xFF5E6AD2);
+  static const Color accentIndigoHover   = Color(0xFF828FFF);
+  static const Color accentIndigoPressed = Color(0xFF5E69D1);
+  static const Color accentContainer  = Color(0xFF1A1F4D); // dark accent bg
 
-  static const Color lightTextPrimary = Color(0xFF0C1312);
-  static const Color lightTextSecondary = Color(0xFF4A5A57);
-  static const Color lightTextMuted = Color(0xFF819591);
+  // Status
+  static const Color statusSuccess    = Color(0xFF27A644);
+  static const Color statusWarning    = Color(0xFFF5B942);
+  static const Color statusDanger     = Color(0xFFF0555A);
 
-  // Like / social
-  static const Color orange = Color(0xFFE65100);
-  static const Color red = Color(0xFFD32F2F);
+  // Overlay
+  static const Color darkOverlay      = Color(0xB7000000); // rgba(0,0,0,0.72)
 
-  // Utility
-  static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF000000);
-  static const Color transparent = Colors.transparent;
+  // ─── Primitive Palette — Light (Vercel-inspired) ────────────────────────────
 
-  // ─── Semantic Tokens (Dark) ─────────────────────────────────────────────────
-  static const Color background      = darkBg;
-  static const Color surface         = darkCard;
-  static const Color surfaceHigh     = darkCardHigh;
-  static const Color surfaceHighest  = darkCardHighest;
+  static const Color lightCanvas      = Color(0xFFFAFAFA);
+  static const Color lightSurface0    = Color(0xFFFFFFFF);
+  static const Color lightSurfaceSunken = Color(0xFFF2F2F2);
 
-  static const Color primary         = gitamGreen;
-  static const Color primaryDark     = gitamGreenDark;
-  static const Color primaryContainer= Color(0xFF003D37);
+  static const Color lightHairline    = Color(0xFFEBEBEB);
+  static const Color lightHairlineStrong = Color(0xFFD7D9E0);
 
-  static const Color secondary       = gitamGreenLight;
-  static const Color like            = orange;
+  static const Color lightInk         = Color(0xFF171717);
+  static const Color lightInkMuted    = Color(0xFF4D4D4D);
+  static const Color lightInkSubtle   = Color(0xFF8F8F8F);
+  static const Color lightInkFaint    = Color(0xFFA1A1A1);
 
-  static const Color outline         = darkOutlineColor;
+  static const Color lightAccent      = Color(0xFF171717); // Stark black primary
+  static const Color lightAccentHover = Color(0xFF333333);
+  static const Color lightAccentPressed = Color(0xFF000000);
+  static const Color lightAccentContainer = Color(0xFFEAEAEA);
 
-  static const Color textPrimary     = darkTextPrimary;
-  static const Color textSecondary   = darkTextSecondary;
-  static const Color textMuted       = darkTextMuted;
+  static const Color lightStatusSuccess = Color(0xFF0070F3); // Vercel blue
+  static const Color lightStatusWarning = Color(0xFFF5A623);
+  static const Color lightStatusDanger  = Color(0xFFEE0000);
 
-  // Accent kept for backward compat (maps to primary)
-  static const Color accent          = gitamGreen;
-  static const Color accentDark      = gitamGreenDark;
-  static const Color pink            = orange;
-  static const Color cyberCyan       = gitamGreenLight;
-  static const Color error           = red;
+  static const Color lightOverlay     = Color(0x80171717); // rgba(23,23,23,0.50)
 
-  // ─── Semantic Tokens (Light) ────────────────────────────────────────────────
-  static const Color lightBackground      = lightBg;
-  static const Color lightSurface         = lightCard;
-  static const Color lightSurfaceHigh     = lightCardHigh;
-  static const Color lightSurfaceHighest  = lightCardHighest;
+  // ─── Utility ────────────────────────────────────────────────────────────────
+  static const Color white            = Color(0xFFFFFFFF);
+  static const Color black            = Color(0xFF000000);
+  static const Color transparent      = Colors.transparent;
 
-  static const Color lightPrimary         = gitamGreen;
-  static const Color lightPrimaryDark     = gitamGreenDark;
-  static const Color lightPrimaryContainer= gitamGreenMint;
+  // ─── Semantic Tokens (Dark) — names kept for backward compatibility ─────────
+  static const Color background       = darkCanvas;       // 0xFF070B14
+  static const Color surface          = darkSurface1;     // 0xFF0D1220
+  static const Color surfaceHigh      = darkSurface2;     // 0xFF131A2B
+  static const Color surfaceHighest   = darkSurface3;     // 0xFF1A2236
 
-  static const Color lightSecondary       = gitamGreenLight;
-  static const Color lightLike            = orange;
+  static const Color primary          = accentIndigo;     // 0xFF6C7BF7
+  static const Color primaryDark      = accentIndigoPressed;
+  static const Color primaryContainer = accentContainer;  // 0xFF1A1F4D
+  static const Color secondary        = accentIndigoHover;
 
-  static const Color lightOutline         = lightOutlineColor;
+  static const Color outline          = darkHairline;     // 0xFF212A3D
+  static const Color outlineStrong    = darkHairlineStrong;
 
-  // ─── Gradient Definitions ───────────────────────────────────────────────────
-  // No gradients: we make them single-color gradients (both colors are the same)
+  static const Color textPrimary      = darkInk;          // 0xFFF4F6FA
+  static const Color textSecondary    = darkInkMuted;     // 0xFFC2C9D9
+  static const Color textMuted        = darkInkSubtle;    // 0xFF838EA6
+  static const Color textFaint        = darkInkFaint;     // 0xFF545E75
+
+  // Legacy aliases
+  static const Color accent           = accentIndigo;
+  static const Color accentDark       = accentIndigoPressed;
+  static const Color like             = statusDanger;     // heart = danger red
+  static const Color orange           = statusDanger;
+  static const Color pink             = accentIndigo;
+  static const Color cyberCyan        = accentIndigoHover;
+  static const Color error            = statusDanger;
+
+  // ─── Semantic Tokens (Light) ─────────────────────────────────────────────────
+  static const Color lightBackground       = lightCanvas;
+  static const Color lightSurface          = lightSurface0;
+  static const Color lightSurfaceHigh      = lightSurfaceSunken;
+  static const Color lightSurfaceHighest   = Color(0xFFE8EAF0);
+
+  static const Color lightPrimary          = lightAccent;
+  static const Color lightPrimaryDark      = lightAccentPressed;
+  static const Color lightPrimaryContainer = lightAccentContainer;
+  static const Color lightSecondary        = lightAccentHover;
+
+  static const Color lightOutline          = lightHairline;
+  static const Color lightOutlineStrong    = lightHairlineStrong;
+
+  static const Color lightTextPrimary      = lightInk;
+  static const Color lightTextSecondary    = lightInkMuted;
+  static const Color lightTextMuted        = lightInkSubtle;
+  static const Color lightTextFaint        = lightInkFaint;
+
+  static const Color lightLike             = lightStatusDanger;
+
+  // ─── Gradient Definitions ────────────────────────────────────────────────────
+  // Spec: flat fills everywhere — no decorative gradients on components.
+  // Kept as single-stop flat for backward compat with call sites.
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [gitamGreen, gitamGreen],
+    colors: [accentIndigo, accentIndigo],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient primaryGradientLight = LinearGradient(
-    colors: [gitamGreen, gitamGreen],
+    colors: [lightAccent, lightAccent],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient subtleDarkGradient = LinearGradient(
-    colors: [darkBg, darkBg],
+    colors: [darkCanvas, darkCanvas],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient subtleLightGradient = LinearGradient(
-    colors: [lightBg, lightBg],
+    colors: [lightCanvas, lightCanvas],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
 
   static const LinearGradient profileHeaderGradientDark = LinearGradient(
-    colors: [darkCard, darkCard],
+    colors: [darkSurface1, darkSurface1],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient profileHeaderGradientLight = LinearGradient(
-    colors: [lightCardHigh, lightCardHigh],
+    colors: [lightSurfaceSunken, lightSurfaceSunken],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // ─── Shadows ────────────────────────────────────────────────────────────────
-  static List<BoxShadow> cardShadowDark = [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.4),
-      blurRadius: 16,
-      offset: const Offset(0, 4),
-    ),
-  ];
+  // ─── Shadows — accent-colored glow, no heavy drop shadows on flat cards ─────
+  static List<BoxShadow> cardShadowDark = const [];  // flat + hairline, spec says no shadows on cards
 
-  static List<BoxShadow> cardShadowLight = [
-    BoxShadow(
-      color: gitamGreen.withOpacity(0.05),
-      blurRadius: 20,
-      offset: const Offset(0, 4),
-    ),
-    BoxShadow(
-      color: Colors.black.withOpacity(0.02),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
+  static List<BoxShadow> cardShadowLight = const []; // flat + hairline
 
   static List<BoxShadow> glowShadowDark = [
     BoxShadow(
-      color: gitamGreen.withOpacity(0.2),
+      color: accentIndigo.withValues(alpha: 0.18),
       blurRadius: 16,
       spreadRadius: 0,
     ),
@@ -156,7 +172,7 @@ class AppColors {
 
   static List<BoxShadow> glowShadowLight = [
     BoxShadow(
-      color: gitamGreen.withOpacity(0.15),
+      color: lightAccent.withValues(alpha: 0.14),
       blurRadius: 12,
       spreadRadius: 0,
     ),
@@ -164,7 +180,7 @@ class AppColors {
 
   static List<BoxShadow> avatarGlowDark = [
     BoxShadow(
-      color: gitamGreen.withOpacity(0.35),
+      color: accentIndigo.withValues(alpha: 0.35),
       blurRadius: 10,
       spreadRadius: 1,
     ),
@@ -172,9 +188,28 @@ class AppColors {
 
   static List<BoxShadow> avatarGlowLight = [
     BoxShadow(
-      color: gitamGreen.withOpacity(0.25),
+      color: lightAccent.withValues(alpha: 0.25),
       blurRadius: 8,
       spreadRadius: 0.5,
+    ),
+  ];
+
+  // Bottom sheet / dialog shadow — spec allows this one floating shadow
+  static const List<BoxShadow> sheetShadow = [
+    BoxShadow(
+      color: Color(0x33000000), // ~20% black
+      blurRadius: 24,
+      offset: Offset(0, -8),
+      spreadRadius: -8,
+    ),
+  ];
+
+  static const List<BoxShadow> sheetShadowLight = [
+    BoxShadow(
+      color: Color(0x1A000000),
+      blurRadius: 24,
+      offset: Offset(0, -8),
+      spreadRadius: -8,
     ),
   ];
 }

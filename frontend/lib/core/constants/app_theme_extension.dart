@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 /// Custom ThemeExtension holding semantic tokens beyond standard Material ColorScheme.
-/// Used for: outline, textMuted, like, surfaceHighest, gradients, shadows.
+/// Struct and field names unchanged — zero call-site impact.
+/// Updated values: navy/indigo palette + accent glow shadows.
 @immutable
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   const AppThemeExtension({
@@ -33,43 +34,38 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
 
   // ─── Dark Theme Extension ──────────────────────────────────────────────────
   static const AppThemeExtension dark = AppThemeExtension(
-    outline:              AppColors.outline,
-    textMuted:            AppColors.textMuted,
-    like:                 AppColors.like,
-    surfaceHighest:       AppColors.surfaceHighest,
-    primaryContainer:     AppColors.primaryContainer,
+    outline:              AppColors.outline,           // #212A3D
+    textMuted:            AppColors.textMuted,         // #838EA6 (ink-subtle)
+    like:                 AppColors.like,              // #F0555A
+    surfaceHighest:       AppColors.surfaceHighest,    // #1A2236
+    primaryContainer:     AppColors.primaryContainer,  // #1A1F4D
     primaryGradient:      AppColors.primaryGradient,
     profileHeaderGradient: AppColors.profileHeaderGradientDark,
-    cardShadow:           const [
-      BoxShadow(color: Color(0x59000000), blurRadius: 16, offset: Offset(0, 4)),
+    cardShadow:           [],                    // flat + hairline per spec
+    glowShadow:           [
+      BoxShadow(color: Color(0x2E6C7BF7), blurRadius: 20), // accent at ~18%
     ],
-    glowShadow:           const [
-      BoxShadow(color: Color(0x33007366), blurRadius: 20),
-    ],
-    avatarGlow:           const [
-      BoxShadow(color: Color(0x59007366), blurRadius: 12, spreadRadius: 2),
+    avatarGlow:           [
+      BoxShadow(color: Color(0x596C7BF7), blurRadius: 12, spreadRadius: 2), // accent at ~35%
     ],
     subtleBackground:     AppColors.subtleDarkGradient,
   );
 
   // ─── Light Theme Extension ─────────────────────────────────────────────────
   static const AppThemeExtension light = AppThemeExtension(
-    outline:              AppColors.lightOutline,
-    textMuted:            AppColors.lightTextMuted,
-    like:                 AppColors.lightLike,
+    outline:              AppColors.lightOutline,           // #E7E8EC
+    textMuted:            AppColors.lightTextMuted,         // #868B99
+    like:                 AppColors.lightLike,              // #D93A3F
     surfaceHighest:       AppColors.lightSurfaceHighest,
-    primaryContainer:     AppColors.lightPrimaryContainer,
+    primaryContainer:     AppColors.lightPrimaryContainer,  // #EBEBFD
     primaryGradient:      AppColors.primaryGradientLight,
     profileHeaderGradient: AppColors.profileHeaderGradientLight,
-    cardShadow:           const [
-      BoxShadow(color: Color(0x0F007366), blurRadius: 20, offset: Offset(0, 4)),
-      BoxShadow(color: Color(0x0A000000), blurRadius: 8,  offset: Offset(0, 2)),
+    cardShadow:           [],                         // flat + hairline per spec
+    glowShadow:           [
+      BoxShadow(color: Color(0x245B63F0), blurRadius: 16), // light accent ~14%
     ],
-    glowShadow:           const [
-      BoxShadow(color: Color(0x26007366), blurRadius: 16),
-    ],
-    avatarGlow:           const [
-      BoxShadow(color: Color(0x3D007366), blurRadius: 10, spreadRadius: 1),
+    avatarGlow:           [
+      BoxShadow(color: Color(0x3D5B63F0), blurRadius: 10, spreadRadius: 1), // ~24%
     ],
     subtleBackground:     AppColors.subtleLightGradient,
   );

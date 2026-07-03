@@ -76,7 +76,7 @@ class _FollowersScreenState extends State<FollowersScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
-                    color: AppColors.accent.withOpacity(0.1),
+                    color: AppColors.accent.withValues(alpha: 0.10),
                     child: Text(
                       '${_followers.length}',
                       style: AppTextStyles.monoMd

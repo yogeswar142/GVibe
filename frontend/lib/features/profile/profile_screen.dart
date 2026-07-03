@@ -2,24 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/app_theme_extension.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/providers/theme_provider.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   final String? userId;
   const ProfileScreen({super.key, this.userId});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _activeTab = 0;
   Map<String, dynamic>? _user;
   bool _loading = true;
@@ -106,34 +104,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildTopBar(),
           Expanded(
             child: _loading
                 ? Center(
-                    child: CircularProgressIndicator(color: cs.primary))
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation(primaryColor),
+                    ),
+                  )
                 : _error != null
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(_error!,
-                                style: AppTextStyles.bodyMd.copyWith(
-                                    color: cs.error)),
+                            Text(
+                              _error!,
+                              style: AppTextStyles.bodyMd.copyWith(color: errorColor),
+                            ),
                             const SizedBox(height: 16),
                             GVibeButton(
-                                label: 'Retry',
-                                onPressed: _loadProfile),
+                              label: 'Retry',
+                              onPressed: _loadProfile,
+                            ),
                           ],
                         ),
                       )
                     : RefreshIndicator(
                         onRefresh: _loadProfile,
-                        color: AppColors.primary,
+                        color: primaryColor,
                         child: ListView(
                           padding: EdgeInsets.zero,
                           children: [
@@ -143,13 +149,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               onEdit: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                        'Profile editing coming soon'),
-                                    backgroundColor: cs.primary,
+                                    content: const Text('Profile editing coming soon'),
+                                    backgroundColor: primaryColor,
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12)),
+                                      borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+                                    ),
                                   ),
                                 );
                               },
@@ -170,61 +175,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTopBar() {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final logoColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-      color: cs.surface,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
-          GradientText(
+          Text(
             'GVibe',
-            style: AppTextStyles.displaySm.copyWith(fontSize: 26),
+            style: AppTextStyles.displaySm.copyWith(
+              color: logoColor,
+              fontWeight: FontWeight.w700,
+              fontSize: 26,
+              letterSpacing: isDark ? -0.8 : -1.2,
+            ),
           ),
           const Spacer(),
-          Consumer(
-            builder: (context, ref, child) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return GestureDetector(
-                onTap: () => ref.read(themeModeProvider.notifier).toggle(),
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                    color: cs.onSurface,
-                    size: 20,
-                  ),
-                ),
-              );
-            },
+          _IconButton(
+            icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            onTap: () => ref.read(themeModeProvider.notifier).toggle(),
           ),
           if (_isOwnProfile) ...[          
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: _logout,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                 decoration: BoxDecoration(
-                  color: cs.error.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cs.error.withValues(alpha: 0.3)),
+                  color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+                    width: 1,
+                  ),
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.logout_rounded, color: cs.error, size: 15),
-                  const SizedBox(width: 6),
-                  Text('Logout', style: AppTextStyles.labelLg.copyWith(
-                      color: cs.error, fontSize: 12)),
-                ]),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.logout_rounded, color: errorColor, size: 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Logout',
+                      style: AppTextStyles.labelLg.copyWith(
+                        color: errorColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ] else ...[
-            const SizedBox(width: 12),
-            Icon(Icons.notifications_outlined, color: cs.onSurface, size: 22),
+            const SizedBox(width: 8),
+            _IconButton(
+              icon: Icons.notifications_outlined,
+              onTap: () {},
+            ),
           ],
         ],
       ),
@@ -232,7 +243,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildUserBio() {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bioColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
     final bio = _user?['bio']?.toString() ?? '';
     if (bio.isEmpty) return const SizedBox.shrink();
     return Padding(
@@ -240,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Text(
         bio,
         style: AppTextStyles.bodyMd.copyWith(
-          color: cs.onSurfaceVariant,
+          color: bioColor,
           height: 1.6,
         ),
       ),
@@ -248,20 +260,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildStatsGrid() {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _statCard('128', 'Posts', cs),
+          _statCard('128', 'Posts'),
           const SizedBox(width: 10),
-          _statCard(_formatCount(_followersCount), 'Followers', cs, onTap: () {
+          _statCard(_formatCount(_followersCount), 'Followers', onTap: () {
             final userId = widget.userId ?? _loggedInUserId;
             if (userId != null) context.push('/profile/$userId/followers');
           }),
           const SizedBox(width: 10),
-          _statCard(_formatCount(_followingCount), 'Following', cs, onTap: () {
+          _statCard(_formatCount(_followingCount), 'Following', onTap: () {
             final userId = widget.userId ?? _loggedInUserId;
             if (userId != null) context.push('/profile/$userId/following');
           }),
@@ -270,8 +280,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _statCard(String value, String label, ColorScheme cs,
-      {VoidCallback? onTap}) {
+  Widget _statCard(String value, String label, {VoidCallback? onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final valueColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
@@ -279,15 +292,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           child: Column(
             children: [
-              Text(value,
-                  style: AppTextStyles.displaySm.copyWith(
-                    color: cs.onSurface,
-                    fontSize: 22,
-                  )),
+              Text(
+                value,
+                style: AppTextStyles.displaySm.copyWith(
+                  color: valueColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(label,
-                  style: AppTextStyles.bodyXs.copyWith(
-                      color: cs.onSurfaceVariant)),
+              Text(
+                label,
+                style: AppTextStyles.bodyXs.copyWith(color: labelColor),
+              ),
             ],
           ),
         ),
@@ -296,13 +313,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildTabBar() {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final activeColor = isDark ? Colors.white : const Color(0xFF171717);
+    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final activeBorderColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+
     return Container(
       margin: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: ext.outline, width: 1),
+          bottom: BorderSide(color: borderColor, width: 1),
         ),
       ),
       child: Row(
@@ -317,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: isActive ? cs.primary : Colors.transparent,
+                      color: isActive ? activeBorderColor : Colors.transparent,
                       width: 2,
                     ),
                   ),
@@ -326,7 +347,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Text(
                     e.value,
                     style: AppTextStyles.label.copyWith(
-                      color: isActive ? cs.primary : cs.onSurfaceVariant,
+                      color: isActive ? activeColor : inactiveColor,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
@@ -364,13 +385,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Featured code snippet card — matches profile.png exactly
   Widget _buildCodeSnippetCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final editorBg = isDark ? const Color(0xFF070809) : const Color(0xFFF9F9FB);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceHigh,
-        border: Border.all(color: AppColors.outline, width: 0.5),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +408,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF0D0D14),
+            decoration: BoxDecoration(
+              color: editorBg,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(isDark ? 8 : 6),
+                topRight: Radius.circular(isDark ? 8 : 6),
+              ),
+              border: Border(
+                bottom: BorderSide(color: borderColor, width: 1),
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -387,25 +425,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Row(
                   children: [
                     Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                            color: AppColors.pink, shape: BoxShape.circle)),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFF5F56), // red dot
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     const SizedBox(width: 5),
                     Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                            color: AppColors.accent, shape: BoxShape.circle)),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFBD2E), // yellow dot
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     const SizedBox(width: 5),
                     Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                            color: AppColors.textMuted,
-                            shape: BoxShape.circle)),
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF27C93F), // green dot
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     const Spacer(),
-                    Icon(Icons.close, color: AppColors.textMuted, size: 12),
+                    Icon(Icons.close_rounded, color: labelColor, size: 14),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -413,7 +459,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   'CODE_TOTEM_HOME_01_+_FREQUENCY/FUNC&RESULT',
                   style: AppTextStyles.monoXs.copyWith(
-                    color: AppColors.textMuted,
+                    color: labelColor,
                     fontSize: 8,
                     letterSpacing: 0.5,
                   ),
@@ -431,15 +477,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.accent, width: 1),
+                    borderRadius: BorderRadius.circular(isDark ? 4 : 999),
+                    border: Border.all(color: accentColor, width: 1.2),
                   ),
                   child: Text(
                     'FEATURED',
                     style: AppTextStyles.monoXs.copyWith(
-                      color: AppColors.accent,
+                      color: accentColor,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
                     ),
@@ -448,7 +494,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'SYSTEM OVERRIDE V.01',
-                  style: AppTextStyles.displaySm.copyWith(fontSize: 22),
+                  style: AppTextStyles.displaySm.copyWith(
+                    fontSize: 22,
+                    color: titleColor,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),
@@ -459,6 +509,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   List<Widget> _buildCodeLines() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? const Color(0xFF4C566A) : const Color(0xFF9E9E9E);
+    
     final lines = [
       '  fn main() {',
       '    let system = Engine::new();',
@@ -480,7 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(
                 '${e.key + 1}',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.textMuted,
+                  color: labelColor,
                   fontSize: 10,
                 ),
               ),
@@ -501,14 +554,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Color _codeLineColor(String line) {
-    if (line.contains('fn ') || line.contains('let ')) return AppColors.secondary;
-    if (line.contains('"')) return AppColors.accent;
-    if (line.contains('42')) return const Color(0xFF80BFFF);
-    return AppColors.textSecondary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (line.contains('fn ') || line.contains('let ')) {
+      return isDark ? const Color(0xFFB48EAD) : const Color(0xFF800080);
+    }
+    if (line.contains('"')) {
+      return isDark ? const Color(0xFFA3BE8C) : const Color(0xFF032F62);
+    }
+    if (line.contains('42')) {
+      return isDark ? const Color(0xFF88C0D0) : const Color(0xFF005CC5);
+    }
+    return isDark ? const Color(0xFFD8DEE9) : const Color(0xFF24292E);
   }
 
-  // Image grid matching profile.png — 2x2 + wide CAMPUS LIFE tile
   Widget _buildImageGrid() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final tileColor = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -516,48 +579,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Row(
             children: [
               Expanded(
-                child: _gridTile(const Color(0xFF1A1A28), 180,
-                    icon: Icons.person_outline),
+                child: _gridTile(tileColor, 180, icon: Icons.person_outline),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               Expanded(
-                child: _gridTile(const Color(0xFF1C1C1C), 180,
-                    icon: Icons.radio),
+                child: _gridTile(tileColor, 180, icon: Icons.radio),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(width: 8, height: 8),
           Row(
             children: [
               Expanded(
-                child: _gridTile(const Color(0xFF181820), 180,
-                    icon: Icons.water_drop_outlined),
+                child: _gridTile(tileColor, 180, icon: Icons.water_drop_outlined),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               Expanded(
-                child: _gridTile(const Color(0xFF151518), 180,
-                    icon: Icons.waves),
+                child: _gridTile(tileColor, 180, icon: Icons.waves),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          // CAMUI LIFE green tile
+          const SizedBox(width: 8, height: 8),
+          // CAMPUS LIFE accent tile
           _gridTile(
-            AppColors.primary,
+            primaryColor,
             200,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('CAMUI',
-                    style: AppTextStyles.monoLg.copyWith(
-                        color: Colors.white,
-                        fontSize: 16,
-                        letterSpacing: 3)),
-                Text('LIFE',
-                    style: AppTextStyles.displayLg.copyWith(
-                        color: Colors.white,
-                        fontSize: 52,
-                        height: 1.0)),
+                Text(
+                  'CAMPUS',
+                  style: AppTextStyles.monoLg.copyWith(
+                    color: Colors.white,
+                    fontSize: 16,
+                    letterSpacing: 3,
+                  ),
+                ),
+                Text(
+                  'LIFE',
+                  style: AppTextStyles.displayLg.copyWith(
+                    color: Colors.white,
+                    fontSize: 52,
+                    height: 1.0,
+                  ),
+                ),
               ],
             ),
           ),
@@ -567,37 +632,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _gridTile(Color color, double height,
-      {IconData? icon, Widget? child}) {
+  Widget _gridTile(Color color, double height, {IconData? icon, Widget? child}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final iconColor = isDark ? const Color(0xFF4C566A) : const Color(0xFF9E9E9E);
+
     return Container(
       height: height,
       decoration: BoxDecoration(
         color: color,
-        border: Border.all(color: AppColors.outline, width: 0.5),
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1),
       ),
       child: child ??
           Center(
             child: icon != null
-                ? Icon(icon,
-                    color: AppColors.textMuted.withValues(alpha: 0.3), size: 32)
+                ? Icon(
+                    icon,
+                    color: iconColor.withValues(alpha: 0.4),
+                    size: 32,
+                  )
                 : null,
           ),
     );
   }
 
   Widget _buildEmptyTab(String label, IconData icon) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final textColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return Container(
       height: 200,
       alignment: Alignment.center,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: cs.onSurfaceVariant, size: 36),
+          Icon(icon, color: iconColor, size: 36),
           const SizedBox(height: 12),
-          Text('No $label yet',
-              style: AppTextStyles.bodyMd.copyWith(
-                  color: cs.onSurfaceVariant)),
+          Text(
+            'No $label yet',
+            style: AppTextStyles.bodyMd.copyWith(color: textColor),
+          ),
         ],
       ),
     );
@@ -702,22 +778,24 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
     String rank,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Container(
       width: double.infinity,
       height: 230,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceHigh : AppColors.lightSurfaceHigh,
-        border: Border.all(color: AppColors.outline, width: 1.5),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            blurRadius: 15,
-            spreadRadius: 2,
-          ),
-          const BoxShadow(
-            color: Colors.black,
-            offset: Offset(4, 4),
-            blurRadius: 0,
+            color: isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -727,12 +805,12 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
         children: [
           Row(
             children: [
-              const Icon(Icons.nfc, color: AppColors.textMuted, size: 14),
+              Icon(Icons.nfc, color: labelColor, size: 14),
               const SizedBox(width: 6),
               Text(
                 'GVIBE STUDENT ID // FRONT_SIDE',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.textMuted,
+                  color: labelColor,
                   fontSize: 8,
                   letterSpacing: 1.0,
                 ),
@@ -741,8 +819,8 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                decoration: BoxDecoration(
+                  color: accentColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -750,7 +828,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               Text(
                 'GRID_ACTIVE',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.primary,
+                  color: accentColor,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
                 ),
@@ -768,7 +846,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                     Container(
                       padding: const EdgeInsets.all(2.5),
                       decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.primary, width: 2),
+                        border: Border.all(color: accentColor, width: 2),
                       ),
                       child: CutCornerAvatar(imageUrl: avatar, size: 76),
                     ),
@@ -777,7 +855,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                       left: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        color: AppColors.primary,
+                        color: accentColor,
                         child: Text(
                           'LVL_$level',
                           style: AppTextStyles.monoXs.copyWith(
@@ -803,7 +881,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                               '@$name',
                               style: AppTextStyles.displaySm.copyWith(
                                 fontSize: 18,
-                                color: AppColors.textPrimary,
+                                color: textColor,
                                 letterSpacing: 0.5,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -834,14 +912,14 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                   Text(
                     'VIBE_RATING: $ratingPercent%',
                     style: AppTextStyles.monoXs.copyWith(
-                      color: AppColors.textSecondary,
+                      color: textColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     'RANK: $rank',
                     style: AppTextStyles.monoXs.copyWith(
-                      color: AppColors.accent,
+                      color: accentColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -849,16 +927,17 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               ),
               const SizedBox(height: 6),
               ClipRRect(
+                borderRadius: BorderRadius.circular(isDark ? 4 : 99),
                 child: Container(
                   height: 6,
                   width: double.infinity,
-                  color: AppColors.outline,
+                  color: isDark ? const Color(0xFF1A1B1F) : const Color(0xFFE7E8EC),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: ratingVal,
                     child: Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
+                      decoration: BoxDecoration(
+                        color: accentColor,
                       ),
                     ),
                   ),
@@ -872,13 +951,17 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   }
 
   Widget _detailRow(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final valueColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '$label ',
           style: AppTextStyles.monoXs.copyWith(
-            color: AppColors.textMuted,
+            color: labelColor,
             fontSize: 9,
           ),
         ),
@@ -886,7 +969,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
           child: Text(
             value,
             style: AppTextStyles.monoSm.copyWith(
-              color: AppColors.textSecondary,
+              color: valueColor,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -898,15 +981,21 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   }
 
   Widget _buildCardActionBtn() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+
     if (widget.isOwnProfile) {
       return GestureDetector(
         onTap: widget.onEdit,
         child: Container(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.outline, width: 1),
+            borderRadius: BorderRadius.circular(isDark ? 6 : 4),
+            border: Border.all(color: borderColor, width: 1),
           ),
-          child: const Icon(Icons.edit_outlined, color: AppColors.textSecondary, size: 14),
+          child: Icon(Icons.edit_outlined, color: textColor, size: 14),
         ),
       );
     } else {
@@ -915,16 +1004,17 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: widget.isFollowing ? Colors.transparent : AppColors.accent,
+            color: widget.isFollowing ? Colors.transparent : accentColor,
+            borderRadius: BorderRadius.circular(isDark ? 6 : 4),
             border: Border.all(
-              color: widget.isFollowing ? AppColors.outline : AppColors.accent,
+              color: widget.isFollowing ? borderColor : accentColor,
               width: 1,
             ),
           ),
           child: Text(
             widget.isFollowing ? 'UNFOLLOW' : 'FOLLOW',
             style: AppTextStyles.monoXs.copyWith(
-              color: widget.isFollowing ? AppColors.textPrimary : AppColors.accentDark,
+              color: widget.isFollowing ? textColor : Colors.white,
               fontSize: 8,
               fontWeight: FontWeight.bold,
             ),
@@ -935,25 +1025,25 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   }
 
   Widget _buildBack(String name, int level) {
-    final sigHash = '0x${(name.hashCode.abs().toString() + 'FEED42').padRight(16, 'A').substring(0, 16).toUpperCase()}';
+    final sigHash = '0x${('${name.hashCode.abs()}FEED42').padRight(16, 'A').substring(0, 16).toUpperCase()}';
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
     return Container(
       width: double.infinity,
       height: 230,
       decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceHigh : AppColors.lightSurfaceHigh,
-        border: Border.all(color: AppColors.outline, width: 1.5),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 15,
-            spreadRadius: 2,
-          ),
-          const BoxShadow(
-            color: Colors.black,
-            offset: Offset(4, 4),
-            blurRadius: 0,
+            color: isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -963,12 +1053,12 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
         children: [
           Row(
             children: [
-              const Icon(Icons.security, color: AppColors.textMuted, size: 14),
+              Icon(Icons.security, color: labelColor, size: 14),
               const SizedBox(width: 6),
               Text(
                 'GVIBE STUDENT ID // BACK_SIDE',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.textMuted,
+                  color: labelColor,
                   fontSize: 8,
                   letterSpacing: 1.0,
                 ),
@@ -977,7 +1067,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               Text(
                 'NODE_SECURE',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: AppColors.primary,
+                  color: accentColor,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
                 ),
@@ -988,12 +1078,15 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
           Container(
             height: 28,
             width: double.infinity,
-            color: isDark ? const Color(0xFF19201E) : const Color(0xFFE1EAE7),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF19201E) : const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(isDark ? 4 : 3),
+            ),
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               'MAGNETIC_DATA_TRACK_02_SECURED',
-              style: AppTextStyles.monoXs.copyWith(color: AppColors.textMuted, fontSize: 8),
+              style: AppTextStyles.monoXs.copyWith(color: labelColor, fontSize: 8),
             ),
           ),
           const SizedBox(height: 16),
@@ -1026,7 +1119,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
             child: Text(
               'TAP CARD TO FLIP FRONT',
               style: AppTextStyles.monoXs.copyWith(
-                color: AppColors.textMuted,
+                color: labelColor,
                 fontSize: 8,
                 letterSpacing: 1.5,
               ),
@@ -1038,10 +1131,17 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   }
 
   Widget _buildMockQRCode() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+
     return Container(
       width: 76,
       height: 76,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(isDark ? 6 : 4),
+        border: Border.all(color: borderColor, width: 1),
+      ),
       padding: const EdgeInsets.all(6),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1060,6 +1160,41 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
             }),
           );
         }),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconButton({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717),
+          size: 20,
+        ),
       ),
     );
   }

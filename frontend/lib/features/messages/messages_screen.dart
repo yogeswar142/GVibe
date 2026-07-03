@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/app_theme_extension.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import '../../core/providers/theme_provider.dart';
 
-class MessagesScreen extends StatefulWidget {
+class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
 
   @override
-  State<MessagesScreen> createState() => _MessagesScreenState();
+  ConsumerState<MessagesScreen> createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen>
+class _MessagesScreenState extends ConsumerState<MessagesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<dynamic> _users = [];
@@ -56,16 +57,13 @@ class _MessagesScreenState extends State<MessagesScreen>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
-
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildTopBar(context),
           _buildOnlineRow(context),
-          _buildTabBar(context, ext),
+          _buildTabBar(context),
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -81,34 +79,46 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final countColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-      color: cs.surface,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Messages',
-                  style: AppTextStyles.displayMd.copyWith(color: cs.onSurface)),
-              Text(_loading ? 'Loading...' : '${_users.length} on campus',
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w500,
-                  )),
+              Text(
+                'Messages',
+                style: AppTextStyles.displayMd.copyWith(
+                  color: nameColor,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: isDark ? -0.8 : -1.2,
+                ),
+              ),
+              Text(
+                _loading ? 'Loading...' : '${_users.length} on campus',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: countColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           const Spacer(),
-          // Compose button
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              gradient: context.ext.primaryGradient,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+          _IconButton(
+            icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            onTap: () => ref.read(themeModeProvider.notifier).toggle(),
+          ),
+          const SizedBox(width: 8),
+          _IconButton(
+            icon: Icons.edit_outlined,
+            onTap: () {
+              // Compose action
+            },
           ),
         ],
       ),
@@ -116,20 +126,39 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Widget _buildOnlineRow(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final subColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
       decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(bottom: BorderSide(color: ext.outline, width: 0.5)),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
       ),
       child: SizedBox(
         height: 80,
         child: _loading
-            ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+            ? Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(
+                      isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3),
+                    ),
+                  ),
+                ),
+              )
             : _users.isEmpty
-                ? Center(child: Text('No users online', style: AppTextStyles.bodyXs.copyWith(color: cs.onSurfaceVariant)))
+                ? Center(
+                    child: Text(
+                      'No users online',
+                      style: AppTextStyles.bodyXs.copyWith(color: subColor),
+                    ),
+                  )
                 : ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -157,9 +186,12 @@ class _MessagesScreenState extends State<MessagesScreen>
                                     width: 11,
                                     height: 11,
                                     decoration: BoxDecoration(
-                                      color: cs.primary,
+                                      color: const Color(0xFF34C77B), // success
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: cs.surface, width: 2),
+                                      border: Border.all(
+                                        color: Theme.of(context).scaffoldBackgroundColor,
+                                        width: 2,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -168,8 +200,7 @@ class _MessagesScreenState extends State<MessagesScreen>
                             const SizedBox(height: 6),
                             Text(
                               name.split(' ').first,
-                              style: AppTextStyles.bodyXs.copyWith(
-                                  color: cs.onSurfaceVariant),
+                              style: AppTextStyles.bodyXs.copyWith(color: textColor),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -182,22 +213,27 @@ class _MessagesScreenState extends State<MessagesScreen>
     );
   }
 
-  Widget _buildTabBar(BuildContext context, AppThemeExtension ext) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildTabBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final activeColor = isDark ? Colors.white : const Color(0xFF171717);
+    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final indicatorColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+
     return Container(
       decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(bottom: BorderSide(color: ext.outline, width: 0.5)),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
       ),
       child: TabBar(
         controller: _tabController,
-        indicatorColor: cs.primary,
+        indicatorColor: indicatorColor,
         indicatorWeight: 2,
         indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: AppTextStyles.tabActive,
+        labelStyle: AppTextStyles.tabActive.copyWith(fontWeight: FontWeight.w600),
         unselectedLabelStyle: AppTextStyles.tabInactive,
-        labelColor: cs.primary,
-        unselectedLabelColor: cs.onSurfaceVariant,
+        labelColor: activeColor,
+        unselectedLabelColor: inactiveColor,
         tabs: const [
           Tab(text: 'Direct'),
           Tab(text: 'Communities'),
@@ -207,16 +243,29 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Widget _buildDirectList(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final separatorColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final emptyColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     if (_loading) {
-      return Center(child: CircularProgressIndicator(color: cs.primary));
+      return Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation(accentColor),
+        ),
+      );
     }
     if (_error != null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_error!, style: AppTextStyles.bodyMd.copyWith(color: cs.error)),
+            Text(
+              _error!,
+              style: AppTextStyles.bodyMd.copyWith(
+                color: isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42),
+              ),
+            ),
             const SizedBox(height: 16),
             GVibeButton(label: 'Retry', onPressed: _fetchUsers),
           ],
@@ -225,15 +274,17 @@ class _MessagesScreenState extends State<MessagesScreen>
     }
     if (_users.isEmpty) {
       return Center(
-        child: Text('No users on campus yet.',
-            style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant)),
+        child: Text(
+          'No users on campus yet.',
+          style: AppTextStyles.bodyMd.copyWith(color: emptyColor),
+        ),
       );
     }
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: _users.length,
       separatorBuilder: (_, __) => Divider(
-        color: context.ext.outline,
+        color: separatorColor,
         height: 0.5,
         indent: 82,
       ),
@@ -256,7 +307,13 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Widget _buildCommunitiesEmpty(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    
+    final iconBg = isDark ? const Color(0xFF1A1F4D) : const Color(0xFFF3F4F6);
+    final iconColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -265,17 +322,24 @@ class _MessagesScreenState extends State<MessagesScreen>
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: cs.primaryContainer,
+              color: iconBg,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Icon(Icons.group_rounded, color: cs.primary, size: 36),
+            child: Icon(Icons.group_rounded, color: iconColor, size: 36),
           ),
           const SizedBox(height: 20),
-          Text('No communities yet',
-              style: AppTextStyles.headlineMd.copyWith(color: cs.onSurface)),
+          Text(
+            'No communities yet',
+            style: AppTextStyles.headlineMd.copyWith(
+              color: titleColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('Join a community to start vibing',
-              style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant)),
+          Text(
+            'Join a community to start vibing',
+            style: AppTextStyles.bodyMd.copyWith(color: subtitleColor),
+          ),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48),
@@ -312,8 +376,11 @@ class _ChatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final msgColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final timeColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final unreadBadgeBg = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
     return GestureDetector(
       onTap: onTap,
@@ -325,7 +392,7 @@ class _ChatRow extends StatelessWidget {
             Stack(
               children: [
                 GVibeAvatar(
-                  initials: name[0],
+                  initials: name.isNotEmpty ? name[0] : '?',
                   size: 52,
                   showGlow: isOnline,
                 ),
@@ -337,9 +404,12 @@ class _ChatRow extends StatelessWidget {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: cs.primary,
+                        color: const Color(0xFF34C77B), // success
                         shape: BoxShape.circle,
-                        border: Border.all(color: cs.surface, width: 2),
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -355,20 +425,16 @@ class _ChatRow extends StatelessWidget {
                       Text(
                         name,
                         style: AppTextStyles.headlineSm.copyWith(
-                          color: cs.onSurface,
-                          fontWeight: hasUnread
-                              ? FontWeight.w700
-                              : FontWeight.w600,
+                          color: nameColor,
+                          fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
                         ),
                       ),
                       const Spacer(),
                       Text(
                         time,
                         style: AppTextStyles.monoXs.copyWith(
-                          color: hasUnread ? cs.primary : cs.onSurfaceVariant,
-                          fontWeight: hasUnread
-                              ? FontWeight.w600
-                              : FontWeight.w400,
+                          color: hasUnread ? unreadBadgeBg : timeColor,
+                          fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
                         ),
                       ),
                     ],
@@ -381,12 +447,8 @@ class _ChatRow extends StatelessWidget {
                           message,
                           style: AppTextStyles.bodyMd.copyWith(
                             fontSize: 13,
-                            color: hasUnread
-                                ? cs.onSurface
-                                : cs.onSurfaceVariant,
-                            fontWeight: hasUnread
-                                ? FontWeight.w500
-                                : FontWeight.w400,
+                            color: hasUnread ? nameColor : msgColor,
+                            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -395,11 +457,10 @@ class _ChatRow extends StatelessWidget {
                       if (hasUnread && unreadCount > 0) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                           decoration: BoxDecoration(
-                            color: cs.primary,
-                            borderRadius: BorderRadius.circular(12),
+                            color: unreadBadgeBg,
+                            borderRadius: BorderRadius.circular(999), // pill
                           ),
                           child: Text(
                             '$unreadCount',
@@ -416,6 +477,39 @@ class _ChatRow extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF666666),
+          size: 19,
         ),
       ),
     );

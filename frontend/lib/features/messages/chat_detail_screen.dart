@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/app_theme_extension.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/services/api_service.dart';
 
@@ -144,27 +143,32 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final statusColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final iconColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
+    final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+
     final displayName = _recipientProfile?['name']?.toString() ?? 'Loading...';
     final avatarUrl = _recipientProfile?['avatar']?.toString();
 
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(76),
         child: Container(
           padding: const EdgeInsets.fromLTRB(8, 48, 16, 10),
           decoration: BoxDecoration(
-            color: cs.surface,
-            border: Border(bottom: BorderSide(color: ext.outline, width: 0.5)),
+            color: Theme.of(context).scaffoldBackgroundColor,
+            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
           ),
           child: Row(
             children: [
               IconButton(
                 icon: Icon(Icons.arrow_back_rounded,
-                    color: cs.onSurface, size: 22),
+                    color: nameColor, size: 22),
                 onPressed: () => context.pop(),
               ),
               GVibeAvatar(
@@ -180,43 +184,56 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   children: [
                     Text(
                       displayName,
-                      style: AppTextStyles.headlineMd
-                          .copyWith(color: cs.onSurface),
+                      style: AppTextStyles.headlineMd.copyWith(
+                        color: nameColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Row(
                       children: [
-                        Container(
+                        const SizedBox(
                           width: 6,
                           height: 6,
-                          margin: const EdgeInsets.only(right: 5),
-                          decoration: BoxDecoration(
-                            color: cs.primary,
-                            shape: BoxShape.circle,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Color(0xFF34C77B), // success
+                              shape: BoxShape.circle,
+                            ),
                           ),
                         ),
-                        Text('Online',
-                            style: AppTextStyles.bodyXs.copyWith(
-                              color: cs.primary,
-                              fontWeight: FontWeight.w500,
-                            )),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Online',
+                          style: AppTextStyles.bodyXs.copyWith(
+                            color: statusColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.more_vert_rounded, color: cs.onSurfaceVariant),
+              Icon(Icons.more_vert_rounded, color: iconColor),
             ],
           ),
         ),
       ),
       body: _loading
-          ? Center(child: CircularProgressIndicator(color: cs.primary))
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(statusColor),
+              ),
+            )
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_error!, style: AppTextStyles.bodyMd.copyWith(color: cs.error)),
+                      Text(
+                        _error!,
+                        style: AppTextStyles.bodyMd.copyWith(color: errorColor),
+                      ),
                       const SizedBox(height: 16),
                       GVibeButton(label: 'Retry', onPressed: _loadChatData),
                     ],
@@ -234,49 +251,57 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           if (msg['sender'] == 'system') {
                             return _buildSystemMarker(msg['text'], context);
                           }
-                          return _buildBubble(msg, context, ext);
+                          return _buildBubble(msg, context);
                         },
                       ),
                     ),
-                    _buildInputBar(context, ext),
+                    _buildInputBar(context),
                   ],
                 ),
     );
   }
 
   Widget _buildSystemMarker(String text, BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final textColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Expanded(child: Divider(color: ext.outline)),
+          Expanded(child: Divider(color: borderColor)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.lock_rounded, color: cs.onSurfaceVariant, size: 10),
+                Icon(Icons.lock_rounded, color: textColor, size: 10),
                 const SizedBox(width: 4),
                 Text(text,
-                    style: AppTextStyles.bodyXs
-                        .copyWith(color: cs.onSurfaceVariant)),
+                    style: AppTextStyles.bodyXs.copyWith(color: textColor)),
               ],
             ),
           ),
-          Expanded(child: Divider(color: ext.outline)),
+          Expanded(child: Divider(color: borderColor)),
         ],
       ),
     );
   }
 
-  Widget _buildBubble(Map<String, dynamic> msg, BuildContext context,
-      AppThemeExtension ext) {
+  Widget _buildBubble(Map<String, dynamic> msg, BuildContext context) {
     final isMe = msg['isMe'] as bool;
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final displayName = _recipientProfile?['name']?.toString() ?? '';
     final avatarUrl = _recipientProfile?['avatar']?.toString();
+
+    final double radius = isDark ? 8 : 16;
+    final sentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final recColor = isDark ? const Color(0xFF121315) : const Color(0xFFF3F4F6);
+    final recBorder = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final timeColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -305,19 +330,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: isMe ? ext.primaryGradient : null,
-                    color: isMe ? null : cs.surfaceContainerHighest,
+                    color: isMe ? sentColor : recColor,
+                    border: isMe ? null : Border.all(color: recBorder, width: 1),
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isMe ? 16 : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : 16),
+                      topLeft: Radius.circular(radius),
+                      topRight: Radius.circular(radius),
+                      bottomLeft: Radius.circular(isMe ? radius : 4),
+                      bottomRight: Radius.circular(isMe ? 4 : radius),
                     ),
                   ),
                   child: Text(
                     msg['text'],
                     style: AppTextStyles.bodyMd.copyWith(
-                      color: isMe ? Colors.white : cs.onSurface,
+                      color: isMe ? Colors.white : textColor,
                       fontSize: 14,
                     ),
                   ),
@@ -325,8 +350,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   msg['time'],
-                  style: AppTextStyles.monoXs
-                      .copyWith(color: cs.onSurfaceVariant),
+                  style: AppTextStyles.monoXs.copyWith(color: timeColor),
                 ),
               ],
             ),
@@ -337,14 +361,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildInputBar(BuildContext context, AppThemeExtension ext) {
-    final cs = Theme.of(context).colorScheme;
+  Widget _buildInputBar(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final inputBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final buttonBg = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final inputColor = isDark ? Colors.white : const Color(0xFF171717);
+    final hintColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
         decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border(top: BorderSide(color: ext.outline, width: 0.5)),
+          color: Theme.of(context).scaffoldBackgroundColor,
+          border: Border(top: BorderSide(color: borderColor, width: 1)),
         ),
         child: Row(
           children: [
@@ -353,11 +384,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                color: inputBg,
+                borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+                border: Border.all(color: borderColor, width: 1),
               ),
               child: Icon(Icons.add_rounded,
-                  color: cs.onSurfaceVariant, size: 20),
+                  color: hintColor, size: 20),
             ),
             const SizedBox(width: 10),
             // Input
@@ -366,18 +398,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 height: 44,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: ext.outline, width: 0.5),
+                  color: inputBg,
+                  borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+                  border: Border.all(color: borderColor, width: 1),
                 ),
                 child: TextField(
                   controller: _messageController,
                   onSubmitted: (_) => _sendMessage(),
-                  style: AppTextStyles.bodyMd.copyWith(color: cs.onSurface),
+                  style: AppTextStyles.bodyMd.copyWith(color: inputColor),
                   decoration: InputDecoration(
                     hintText: 'Send a message...',
-                    hintStyle: AppTextStyles.bodyMd
-                        .copyWith(color: cs.onSurfaceVariant),
+                    hintStyle: AppTextStyles.bodyMd.copyWith(color: hintColor),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
                     focusedBorder: InputBorder.none,
@@ -396,8 +427,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  gradient: ext.primaryGradient,
-                  borderRadius: BorderRadius.circular(12),
+                  color: buttonBg,
+                  borderRadius: BorderRadius.circular(isDark ? 8 : 6),
                 ),
                 child: const Icon(Icons.send_rounded,
                     color: Colors.white, size: 18),

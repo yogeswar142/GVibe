@@ -50,10 +50,8 @@ class _HomeFeedTabState extends State<HomeFeedTab>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildTopBar(context),
@@ -74,15 +72,22 @@ class _HomeFeedTabState extends State<HomeFeedTab>
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-      color: cs.background,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
-          GradientText(
+          Text(
             'GVibe',
-            style: AppTextStyles.displaySm.copyWith(fontSize: 26),
+            style: AppTextStyles.displaySm.copyWith(
+              color: titleColor,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              letterSpacing: isDark ? -0.8 : -1.2,
+            ),
           ),
           const Spacer(),
           Consumer(
@@ -104,22 +109,32 @@ class _HomeFeedTabState extends State<HomeFeedTab>
   }
 
   Widget _buildTabBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final indicatorColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+
     return Container(
       decoration: BoxDecoration(
-        color: cs.background,
-        border: Border(bottom: BorderSide(color: ext.outline, width: 1)),
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
       ),
       child: TabBar(
         controller: _tabController,
-        indicatorColor: cs.primary,
+        indicatorColor: indicatorColor,
         indicatorWeight: 2,
         indicatorSize: TabBarIndicatorSize.label,
-        labelStyle: AppTextStyles.tabActive,
-        unselectedLabelStyle: AppTextStyles.tabInactive,
-        labelColor: cs.primary,
-        unselectedLabelColor: cs.onSurfaceVariant,
+        labelStyle: AppTextStyles.tabActive.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+        unselectedLabelStyle: AppTextStyles.tabInactive.copyWith(
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.2,
+        ),
+        labelColor: activeColor,
+        unselectedLabelColor: inactiveColor,
         tabs: const [
           Tab(text: 'Posts'),
           Tab(text: 'Vibes'),
@@ -239,16 +254,33 @@ class _HomeFeedTabState extends State<HomeFeedTab>
   }
 
   Widget _buildFAB(BuildContext context) {
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fabColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final borderRadius = isDark ? BorderRadius.circular(14) : BorderRadius.circular(28);
+
     return GestureDetector(
       onTap: () => _showCreatePostSheet(context),
       child: Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: ext.primaryGradient,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: ext.glowShadow,
+          color: fabColor,
+          borderRadius: borderRadius,
+          boxShadow: isDark
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF5E6AD2).withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: const Color(0xFF0070F3).withValues(alpha: 0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
         ),
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ),
@@ -272,7 +304,7 @@ class _PostCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final ext = context.ext;
     final author = post['author'];
     final name = author?['name']?.toString() ?? 'Anonymous';
@@ -284,6 +316,11 @@ class _PostCard extends StatelessWidget {
     final createdAt = post['createdAt']?.toString() ?? '';
     final timeAgo = _timeAgo(createdAt);
     final isTrending = likes > 5;
+
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final contentColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final actionColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
 
     return GVibeCard(
       child: Padding(
@@ -309,14 +346,15 @@ class _PostCard extends StatelessWidget {
                       Text(
                         name,
                         style: AppTextStyles.headlineSm.copyWith(
-                          color: cs.onSurface,
+                          color: nameColor,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         timeAgo,
                         style: AppTextStyles.bodyXs.copyWith(
-                          color: cs.onSurfaceVariant,
+                          color: subtitleColor,
                         ),
                       ),
                     ],
@@ -327,7 +365,7 @@ class _PostCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: ext.like.withOpacity(0.12),
+                      color: ext.like.withValues(alpha: isDark ? 0.12 : 0.08),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -344,7 +382,11 @@ class _PostCard extends StatelessWidget {
             // Content
             Text(
               content,
-              style: AppTextStyles.bodyMd.copyWith(color: cs.onSurface),
+              style: AppTextStyles.bodyMd.copyWith(
+                color: contentColor,
+                height: 1.5,
+                letterSpacing: isDark ? 0.15 : 0.1,
+              ),
             ),
             const SizedBox(height: 14),
             // Actions
@@ -353,17 +395,18 @@ class _PostCard extends StatelessWidget {
                 AnimatedLikeButton(count: likes),
                 const SizedBox(width: 20),
                 Icon(Icons.chat_bubble_outline_rounded,
-                    color: cs.onSurfaceVariant, size: 17),
-                const SizedBox(width: 4),
+                    color: actionColor, size: 17),
+                const SizedBox(width: 5),
                 Text(
                   '$comments',
                   style: AppTextStyles.monoSm.copyWith(
-                    color: cs.onSurfaceVariant,
+                    color: actionColor,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const Spacer(),
                 Icon(Icons.share_outlined,
-                    color: cs.onSurfaceVariant, size: 17),
+                    color: actionColor, size: 17),
               ],
             ),
           ],
@@ -393,46 +436,58 @@ class _VibeTile extends StatelessWidget {
   final int index;
   const _VibeTile({required this.data, required this.index});
 
-  static const _gradients = [
-    LinearGradient(
-        colors: [Color(0xFF007366), Color(0xFF007366)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-    LinearGradient(
-        colors: [Color(0xFF005C52), Color(0xFF005C52)],
-        begin: Alignment.topRight, end: Alignment.bottomLeft),
-    LinearGradient(
-        colors: [Color(0xFF00897B), Color(0xFF00897B)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-    LinearGradient(
-        colors: [Color(0xFF004D40), Color(0xFF004D40)],
-        begin: Alignment.topRight, end: Alignment.bottomLeft),
-    LinearGradient(
-        colors: [Color(0xFF009688), Color(0xFF009688)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-    LinearGradient(
-        colors: [Color(0xFF00695C), Color(0xFF00695C)],
-        begin: Alignment.topRight, end: Alignment.bottomLeft),
+  // Linear dark backgrounds
+  static const _tileColorsDark = [
+    Color(0xFF0F1011),
+    Color(0xFF1A1F4D),
+    Color(0xFF121315),
+    Color(0xFF1F2560),
+    Color(0xFF0A0A0C),
+    Color(0xFF151936),
+  ];
+
+  // Vercel light backgrounds
+  static const _tileColorsLight = [
+    Color(0xFFFFFFFF),
+    Color(0xFFF9F9FB),
+    Color(0xFFF3F4F6),
+    Color(0xFFFFFFFF),
+    Color(0xFFF5F7FA),
+    Color(0xFFFAFAFA),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final gradient = _gradients[index % _gradients.length];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark
+        ? _tileColorsDark[index % _tileColorsDark.length]
+        : _tileColorsLight[index % _tileColorsLight.length];
+
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final handleBg = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : const Color(0xFF171717).withValues(alpha: 0.06);
+    final handleTextColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final captionColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF222222);
+    final actionsColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return Container(
       decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(16),
+        color: bg,
+        borderRadius: BorderRadius.circular(isDark ? 14 : 12),
+        border: Border.all(color: borderColor, width: 1),
+        boxShadow: isDark
+            ? const []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Stack(
         children: [
-          // Glass overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.black.withOpacity(0.15),
-              ),
-            ),
-          ),
           // Content
           Padding(
             padding: const EdgeInsets.all(14),
@@ -443,13 +498,13 @@ class _VibeTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: handleBg,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     '@${data['handle']}',
                     style: AppTextStyles.monoXs.copyWith(
-                      color: Colors.white,
+                      color: handleTextColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -458,22 +513,25 @@ class _VibeTile extends StatelessWidget {
                 Text(
                   data['caption'] ?? '',
                   style: AppTextStyles.bodyMd.copyWith(
-                    color: Colors.white,
+                    color: captionColor,
                     fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                    height: 1.4,
                   ),
-                  maxLines: 2,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.favorite_border_rounded,
-                        color: Colors.white70, size: 14),
+                    Icon(Icons.favorite_border_rounded,
+                        color: actionsColor, size: 14),
                     const SizedBox(width: 4),
                     Text(
                       '${(index + 1) * 12}',
                       style: AppTextStyles.monoXs.copyWith(
-                        color: Colors.white70,
+                        color: actionsColor,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -528,14 +586,25 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final inputColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    
+    final buttonBg = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final buttonRadius = isDark ? BorderRadius.circular(8) : BorderRadius.circular(100);
 
     return Container(
       margin: const EdgeInsets.only(top: 80),
       decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        border: Border(
+          top: BorderSide(color: borderColor, width: 1),
+        ),
       ),
       child: Column(
         children: [
@@ -545,7 +614,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: cs.outline,
+              color: borderColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -556,19 +625,22 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               children: [
                 Text(
                   'New Post',
-                  style: AppTextStyles.headlineLg.copyWith(color: cs.onSurface),
+                  style: AppTextStyles.headlineLg.copyWith(
+                    color: titleColor,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
                   child: Icon(Icons.close_rounded,
-                      color: cs.onSurfaceVariant, size: 22),
+                      color: subtitleColor, size: 22),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          Divider(color: ext.outline, height: 1),
+          Divider(color: borderColor, height: 1),
           // Composer
           Expanded(
             child: Padding(
@@ -583,11 +655,11 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                       controller: _contentController,
                       maxLines: null,
                       autofocus: true,
-                      style: AppTextStyles.bodyLg.copyWith(color: cs.onSurface),
+                      style: AppTextStyles.bodyLg.copyWith(color: inputColor),
                       decoration: InputDecoration(
                         hintText: "What's happening on campus?",
                         hintStyle: AppTextStyles.bodyLg.copyWith(
-                          color: cs.onSurfaceVariant,
+                          color: subtitleColor,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -608,22 +680,22 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               child: Row(
                 children: [
                   Icon(Icons.image_outlined,
-                      color: cs.onSurfaceVariant, size: 22),
+                      color: subtitleColor, size: 22),
                   const SizedBox(width: 16),
                   Icon(Icons.gif_box_outlined,
-                      color: cs.onSurfaceVariant, size: 22),
+                      color: subtitleColor, size: 22),
                   const SizedBox(width: 16),
                   Icon(Icons.location_on_outlined,
-                      color: cs.onSurfaceVariant, size: 22),
+                      color: subtitleColor, size: 22),
                   const Spacer(),
                   GestureDetector(
                     onTap: _posting ? null : _submitPost,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 10),
+                          horizontal: 22, vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: ext.primaryGradient,
-                        borderRadius: BorderRadius.circular(12),
+                        color: buttonBg,
+                        borderRadius: buttonRadius,
                       ),
                       child: _posting
                           ? const SizedBox(
@@ -636,6 +708,8 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                               'Post',
                               style: AppTextStyles.buttonPrimary.copyWith(
                                 fontSize: 13,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                     ),
@@ -659,17 +733,26 @@ class _IconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
+          color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
         ),
-        child: Icon(icon, color: cs.onSurface, size: 20),
+        child: Icon(
+          icon,
+          color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF666666),
+          size: 19,
+        ),
       ),
     );
   }

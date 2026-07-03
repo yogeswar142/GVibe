@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import '../../core/constants/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/app_theme_extension.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import '../../core/providers/theme_provider.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -57,10 +57,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: cs.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _fetchUsers,
-        color: AppColors.primary,
+        color: cs.primary,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildTopBar(context)),
@@ -92,23 +92,39 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
-      color: cs.surface,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
-          Text('Discover',
-              style: AppTextStyles.displayMd.copyWith(color: cs.onSurface)),
-          const Spacer(),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer,
-              borderRadius: BorderRadius.circular(10),
+          Text(
+            'Discover',
+            style: AppTextStyles.displaySm.copyWith(
+              color: titleColor,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              letterSpacing: isDark ? -0.8 : -1.2,
             ),
-            child: Icon(Icons.explore_rounded, color: cs.primary, size: 20),
+          ),
+          const Spacer(),
+          Consumer(
+            builder: (context, ref, child) {
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: _IconButton(
+                  icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  onTap: () => ref.read(themeModeProvider.notifier).toggle(),
+                ),
+              );
+            },
+          ),
+          _IconButton(
+            icon: Icons.explore_outlined,
+            onTap: () {},
           ),
         ],
       ),
@@ -116,30 +132,34 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   Widget _buildSearchBar(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final hintColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: ext.outline, width: 0.8),
+          color: bg,
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(color: borderColor, width: 1),
         ),
         child: Row(
           children: [
             const SizedBox(width: 14),
-            Icon(Icons.search_rounded, color: cs.onSurfaceVariant, size: 20),
+            Icon(Icons.search_rounded, color: hintColor, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: TextField(
                 controller: _searchController,
-                style: AppTextStyles.bodyMd.copyWith(color: cs.onSurface),
+                style: AppTextStyles.bodyMd.copyWith(color: textColor),
                 decoration: InputDecoration(
                   hintText: 'Search students, hubs...',
-                  hintStyle: AppTextStyles.bodyMd
-                      .copyWith(color: cs.onSurfaceVariant),
+                  hintStyle: AppTextStyles.bodyMd.copyWith(color: hintColor),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -155,7 +175,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   Widget _buildHubsSection(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final liveColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
@@ -165,7 +187,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             title: 'Campus Hubs',
             trailing: Text('Live',
                 style: AppTextStyles.bodyXs
-                    .copyWith(color: cs.primary, fontWeight: FontWeight.w600)),
+                    .copyWith(color: liveColor, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(height: 14),
           GridView.builder(
@@ -190,18 +212,17 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   Widget _buildTagsSection(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(title: 'Vibe Clusters'),
-          const SizedBox(height: 12),
+          SectionHeader(title: 'Vibe Clusters'),
+          SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: const [
+            children: [
               GVibeTag(label: '#coffee_run  14', isActive: false),
               GVibeTag(label: '#exam_crunch  98', isActive: true),
               GVibeTag(label: '#sunset_lounge  4', isActive: false),
@@ -222,8 +243,15 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   void _showHubSheet(BuildContext context, Map<String, dynamic> hub) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -231,9 +259,9 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       builder: (_) => Container(
         height: MediaQuery.of(context).size.height * 0.6,
         decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border(top: BorderSide(color: cs.primary, width: 2)),
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border(top: BorderSide(color: borderColor, width: 1)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +272,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: ext.outline,
+                  color: borderColor,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -254,28 +282,40 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(hub['name'],
-                      style: AppTextStyles.displaySm
-                          .copyWith(color: cs.onSurface)),
-                  const SizedBox(height: 4),
+                  Text(
+                    hub['name'],
+                    style: AppTextStyles.displaySm.copyWith(
+                      color: titleColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.bolt_rounded, color: cs.primary, size: 14),
+                      Icon(Icons.bolt_rounded, color: accentColor, size: 16),
                       const SizedBox(width: 4),
-                      Text('${hub['activity']}% activity · ${hub['status']}',
-                          style: AppTextStyles.bodySm
-                              .copyWith(color: cs.primary)),
+                      Text(
+                        '${hub['activity']}% activity · ${hub['status']}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: textColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: cs.primaryContainer,
+                          color: accentColor.withValues(alpha: isDark ? 0.12 : 0.08),
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(hub['tag'],
-                            style: AppTextStyles.monoXs
-                                .copyWith(color: cs.primary)),
+                        child: Text(
+                          hub['tag'],
+                          style: AppTextStyles.monoXs.copyWith(
+                            color: accentColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -283,32 +323,36 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Divider(color: ext.outline, height: 1),
+            Divider(color: borderColor, height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Text('Students here',
-                  style: AppTextStyles.label
-                      .copyWith(color: cs.onSurfaceVariant)),
+              child: Text(
+                'Students here',
+                style: AppTextStyles.label.copyWith(
+                  color: subtitleColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             SizedBox(
               height: 80,
               child: _loading
                   ? Center(
-                      child: CircularProgressIndicator(color: cs.primary))
+                      child: CircularProgressIndicator(color: accentColor))
                   : _users.isEmpty
                       ? Center(
-                          child: Text('No students present',
-                              style: AppTextStyles.bodySm
-                                  .copyWith(color: cs.onSurfaceVariant)))
+                          child: Text(
+                            'No students present',
+                            style: AppTextStyles.bodySm.copyWith(color: subtitleColor),
+                          ),
+                        )
                       : ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: _users.length,
                           itemBuilder: (_, i) {
                             final s = _users[i];
-                            final name =
-                                s['name']?.toString() ?? 'Anonymous';
+                            final name = s['name']?.toString() ?? 'Anonymous';
                             final userId = s['_id']?.toString() ?? '';
                             return GestureDetector(
                               onTap: () {
@@ -329,8 +373,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       name.split(' ').first,
-                                      style: AppTextStyles.bodyXs.copyWith(
-                                          color: cs.onSurfaceVariant),
+                                      style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -342,20 +385,24 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                         ),
             ),
             const SizedBox(height: 12),
-            Divider(color: ext.outline, height: 1),
+            Divider(color: borderColor, height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Text('Trending here',
-                  style: AppTextStyles.label
-                      .copyWith(color: cs.onSurfaceVariant)),
+              child: Text(
+                'Trending here',
+                style: AppTextStyles.label.copyWith(
+                  color: subtitleColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  _HubPostRow('neo.witch', 'Setting up the server 🔧', '10m', context),
-                  _HubPostRow('code.runner', 'Coffee machine refilled! ☕', '25m', context),
-                  _HubPostRow('grid.runner', 'Anyone up for code jam? 💻', '1h', context),
+                  _hubPostRow('neo.witch', 'Setting up the server 🔧', '10m', context),
+                  _hubPostRow('code.runner', 'Coffee machine refilled! ☕', '25m', context),
+                  _hubPostRow('grid.runner', 'Anyone up for code jam? 💻', '1h', context),
                 ],
               ),
             ),
@@ -365,10 +412,14 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     );
   }
 
-  Widget _HubPostRow(
+  Widget _hubPostRow(
       String handle, String text, String time, BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final contentColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
     return GVibeCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -380,20 +431,28 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('@$handle',
-                    style: AppTextStyles.headlineSm
-                        .copyWith(color: cs.onSurface, fontSize: 12)),
-                Text(text,
-                    style: AppTextStyles.bodyXs
-                        .copyWith(color: cs.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  '@$handle',
+                  style: AppTextStyles.headlineSm.copyWith(
+                    color: nameColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  style: AppTextStyles.bodyXs.copyWith(color: contentColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
-          Text(time,
-              style:
-                  AppTextStyles.monoXs.copyWith(color: cs.onSurfaceVariant)),
+          Text(
+            time,
+            style: AppTextStyles.monoXs.copyWith(color: subtitleColor),
+          ),
         ],
       ),
     );
@@ -415,15 +474,18 @@ class _HubCardState extends State<_HubCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulse;
 
-  static const _gradients = [
-    LinearGradient(colors: [Color(0xFF007366), Color(0xFF007366)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-    LinearGradient(colors: [Color(0xFF005C52), Color(0xFF005C52)],
-        begin: Alignment.topRight, end: Alignment.bottomLeft),
-    LinearGradient(colors: [Color(0xFF00897B), Color(0xFF00897B)],
-        begin: Alignment.topLeft, end: Alignment.bottomRight),
-    LinearGradient(colors: [Color(0xFF004D40), Color(0xFF004D40)],
-        begin: Alignment.topRight, end: Alignment.bottomLeft),
+  static const _tileColorsDark = [
+    Color(0xFF0F1011),
+    Color(0xFF1A1F4D),
+    Color(0xFF121315),
+    Color(0xFF1F2560),
+  ];
+
+  static const _tileColorsLight = [
+    Color(0xFFFFFFFF),
+    Color(0xFFF9F9FB),
+    Color(0xFFF3F4F6),
+    Color(0xFFFFFFFF),
   ];
 
   @override
@@ -443,7 +505,20 @@ class _HubCardState extends State<_HubCard>
 
   @override
   Widget build(BuildContext context) {
-    final gradient = _gradients[widget.index % _gradients.length];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark
+        ? _tileColorsDark[widget.index % _tileColorsDark.length]
+        : _tileColorsLight[widget.index % _tileColorsLight.length];
+
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final statusColor = isDark ? Colors.white70 : const Color(0xFF666666);
+    final titleColor = isDark ? Colors.white : const Color(0xFF171717);
+    final progressBg = isDark ? Colors.white24 : const Color(0xFFE2E4E9);
+    final progressColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final glowColor = isDark
+        ? const Color(0xFF5E6AD2).withValues(alpha: 0.15 + (_pulse.value * 0.1))
+        : const Color(0xFF0070F3).withValues(alpha: 0.04 + (_pulse.value * 0.04));
+
     final activity = widget.hub['activity'] as int;
 
     return GestureDetector(
@@ -453,12 +528,13 @@ class _HubCardState extends State<_HubCard>
         builder: (_, __) => Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
+            color: bg,
+            borderRadius: BorderRadius.circular(isDark ? 8 : 12),
+            border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: const Color(0x507C6FFF),
-                blurRadius: 8 + (_pulse.value * 8),
+                color: glowColor,
+                blurRadius: isDark ? 8 + (_pulse.value * 8) : 6 + (_pulse.value * 4),
                 spreadRadius: 0,
               ),
             ],
@@ -470,10 +546,10 @@ class _HubCardState extends State<_HubCard>
               Row(
                 children: [
                   Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.white70,
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -481,7 +557,7 @@ class _HubCardState extends State<_HubCard>
                   Text(
                     widget.hub['status'],
                     style: AppTextStyles.bodyXs.copyWith(
-                      color: Colors.white70,
+                      color: statusColor,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -493,8 +569,9 @@ class _HubCardState extends State<_HubCard>
                   Text(
                     widget.hub['name'],
                     style: AppTextStyles.headlineSm.copyWith(
-                      color: Colors.white,
+                      color: titleColor,
                       fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
                     maxLines: 2,
                   ),
@@ -506,8 +583,8 @@ class _HubCardState extends State<_HubCard>
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: activity / 100,
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation(Colors.white),
+                            backgroundColor: progressBg,
+                            valueColor: AlwaysStoppedAnimation(progressColor),
                             minHeight: 3,
                           ),
                         ),
@@ -516,7 +593,7 @@ class _HubCardState extends State<_HubCard>
                       Text(
                         '$activity%',
                         style: AppTextStyles.monoXs.copyWith(
-                          color: Colors.white,
+                          color: titleColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -539,7 +616,12 @@ class _UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final bioColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+
     final name = user['name']?.toString() ?? 'Anonymous';
     final dept = user['dept']?.toString() ?? '';
     final year = user['year']?.toString() ?? '';
@@ -566,11 +648,15 @@ class _UserCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    style: AppTextStyles.headlineSm
-                        .copyWith(color: cs.onSurface)),
+                Text(
+                  name,
+                  style: AppTextStyles.headlineSm.copyWith(
+                    color: nameColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (dept.isNotEmpty || year.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 5),
                   Wrap(
                     spacing: 6,
                     children: [
@@ -582,18 +668,18 @@ class _UserCard extends StatelessWidget {
                   ),
                 ],
                 if (bio.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(bio,
-                      style: AppTextStyles.bodyXs
-                          .copyWith(color: cs.onSurfaceVariant),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 5),
+                  Text(
+                    bio,
+                    style: AppTextStyles.bodyXs.copyWith(color: bioColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
                 const SizedBox(height: 4),
                 Text(
                   '$followers followers',
-                  style: AppTextStyles.monoXs
-                      .copyWith(color: cs.onSurfaceVariant),
+                  style: AppTextStyles.monoXs.copyWith(color: subtitleColor),
                 ),
               ],
             ),
@@ -613,16 +699,22 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext ctx) {
-    final cs = Theme.of(ctx).colorScheme;
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: cs.primaryContainer,
-        borderRadius: BorderRadius.circular(6),
+        color: accentColor.withValues(alpha: isDark ? 0.12 : 0.08),
+        borderRadius: BorderRadius.circular(999), // pill
       ),
-      child: Text(label,
-          style: AppTextStyles.bodyXs
-              .copyWith(color: cs.primary, fontWeight: FontWeight.w500)),
+      child: Text(
+        label,
+        style: AppTextStyles.bodyXs.copyWith(
+          color: accentColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
@@ -640,26 +732,29 @@ class _FollowButtonState extends State<_FollowButton> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final double radius = isDark ? 8 : 999;
+    final Color buttonColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final Color borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final Color textColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
+
     return GestureDetector(
       onTap: () => setState(() => _following = !_following),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: _following ? null : ext.primaryGradient,
-          color: _following ? cs.surfaceContainerHighest : null,
-          borderRadius: BorderRadius.circular(10),
-          border: _following
-              ? Border.all(color: cs.outline, width: 1)
-              : null,
+          color: _following ? Colors.transparent : buttonColor,
+          borderRadius: BorderRadius.circular(radius),
+          border: _following ? Border.all(color: borderColor, width: 1) : null,
         ),
         child: Text(
           _following ? 'Following' : 'Follow',
           style: AppTextStyles.labelLg.copyWith(
-            color: _following ? cs.onSurfaceVariant : Colors.white,
+            color: _following ? textColor : Colors.white,
             fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -673,16 +768,16 @@ class _UserCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GVibeCard(
-      padding: const EdgeInsets.all(14),
+    return const GVibeCard(
+      padding: EdgeInsets.all(14),
       child: Row(
         children: [
-          const SkeletonBox(width: 52, height: 52, borderRadius: 26),
-          const SizedBox(width: 14),
+          SkeletonBox(width: 52, height: 52, borderRadius: 26),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 SkeletonBox(width: 130, height: 14),
                 SizedBox(height: 8),
                 SkeletonBox(width: 90, height: 10),
@@ -692,6 +787,39 @@ class _UserCardSkeleton extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _IconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF666666),
+          size: 19,
+        ),
       ),
     );
   }

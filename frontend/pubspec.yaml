@@ -35,12 +35,13 @@ flutter:
     - .env
 
 flutter_native_splash:
-  color: "#0A0A0F"
-  image: "assets/splash_screen.png"
+  color: "#FAFAFA"
+  color_dark: "#010102"
+  image: "assets/splash_light.png"
+  image_dark: "assets/splash_dark.png"
   fullscreen: true
-  android_gravity: fill
-  ios_content_mode: scaleAspectFill
   android_12:
-    image: "assets/splash_screen.png"
-    icon_background_color: "#0A0A0F"
-    color: "#0A0A0F"
+    image: "assets/splash_light.png"
+    image_dark: "assets/splash_dark.png"
+    color: "#FAFAFA"
+    color_dark: "#010102"

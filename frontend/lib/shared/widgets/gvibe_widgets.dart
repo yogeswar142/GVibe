@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/app_theme_extension.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
-// GVibe — Premium Widget Library (Royal Indigo Design System)
+// GVibe — Shared Widget Library (Navy/Indigo Design System)
+// All public constructor APIs are frozen — call sites need zero changes.
 // ════════════════════════════════════════════════════════════════════════════
 
 // ─── GVibe Avatar ────────────────────────────────────────────────────────────
-/// Circular avatar with optional indigo glow ring for active/self users.
+/// Full circle avatar. showGlow=true → accent ring (story/active state).
+/// Default: no ring — clean circle, no border noise.
 class GVibeAvatar extends StatelessWidget {
   final String? imageUrl;
   final double size;
@@ -34,10 +35,9 @@ class GVibeAvatar extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: showGlow ? ext.avatarGlow : null,
-        border: Border.all(
-          color: showGlow ? cs.primary : cs.outline.withOpacity(0.4),
-          width: showGlow ? 2 : 1,
-        ),
+        border: showGlow
+            ? Border.all(color: cs.primary, width: 2)
+            : null, // no ring when inactive
       ),
       child: ClipOval(
         child: imageUrl != null && imageUrl!.isNotEmpty
@@ -69,8 +69,7 @@ class GVibeAvatar extends StatelessWidget {
   }
 }
 
-// ─── Legacy CutCornerAvatar alias ────────────────────────────────────────────
-/// Backward-compatible alias — now renders as GVibeAvatar (circle).
+// ─── Legacy alias ─────────────────────────────────────────────────────────────
 class CutCornerAvatar extends StatelessWidget {
   final String? imageUrl;
   final double size;
@@ -84,13 +83,12 @@ class CutCornerAvatar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return GVibeAvatar(imageUrl: imageUrl, size: size);
-  }
+  Widget build(BuildContext context) =>
+      GVibeAvatar(imageUrl: imageUrl, size: size);
 }
 
-// ─── GVibe Button ────────────────────────────────────────────────────────────
-/// Premium gradient button with scale-on-press micro-animation.
+// ─── GVibe Button ─────────────────────────────────────────────────────────────
+/// Primary: accent flat fill · Secondary: surface-2 + hairline · Ghost: transparent.
 class GVibeButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -124,12 +122,9 @@ class _GVibeButtonState extends State<GVibeButton>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween<double>(begin: 1.0, end: 0.96)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -140,10 +135,7 @@ class _GVibeButtonState extends State<GVibeButton>
 
   @override
   Widget build(BuildContext context) {
-    final ext = context.ext;
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return GestureDetector(
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) {
@@ -154,34 +146,27 @@ class _GVibeButtonState extends State<GVibeButton>
       child: ScaleTransition(
         scale: _scale,
         child: widget.isPrimary
-            ? _buildPrimary(context, ext, cs, isDark)
+            ? _buildPrimary(context, cs)
             : _buildSecondary(context, cs),
       ),
     );
   }
 
-  Widget _buildPrimary(BuildContext context, AppThemeExtension ext,
-      ColorScheme cs, bool isDark) {
+  Widget _buildPrimary(BuildContext context, ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = widget.backgroundColor ?? cs.primary; // flat accent fill
     return Container(
-      height: 52,
+      height: 44, // spec: 44px min tap height
       decoration: BoxDecoration(
-        gradient: widget.backgroundColor == null
-            ? ext.primaryGradient
-            : null,
-        color: widget.backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: ext.glowShadow,
+        color: bg,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 22), // md for dark (8px), pill for light (22px)
       ),
       child: Center(
         child: widget.isLoading
             ? const SizedBox(
-                width: 20,
-                height: 20,
+                width: 20, height: 20,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              )
+                    color: Colors.white, strokeWidth: 2))
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -192,8 +177,7 @@ class _GVibeButtonState extends State<GVibeButton>
                   Text(
                     widget.label,
                     style: AppTextStyles.buttonPrimary.copyWith(
-                      color: widget.textColor ?? Colors.white,
-                    ),
+                        color: widget.textColor ?? Colors.white),
                   ),
                 ],
               ),
@@ -202,35 +186,32 @@ class _GVibeButtonState extends State<GVibeButton>
   }
 
   Widget _buildSecondary(BuildContext context, ColorScheme cs) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? cs.surfaceContainerHigh : cs.surface;
     return Container(
-      height: 52,
+      height: 44,
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.primary, width: 1.5),
+        color: bgColor,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 22),
+        border: Border.all(color: cs.outline, width: 1),
       ),
       child: Center(
         child: widget.isLoading
             ? SizedBox(
-                width: 20,
-                height: 20,
+                width: 20, height: 20,
                 child: CircularProgressIndicator(
-                  color: cs.primary,
-                  strokeWidth: 2,
-                ),
-              )
+                    color: cs.primary, strokeWidth: 2))
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (widget.icon != null) ...[
-                    Icon(widget.icon, color: cs.primary, size: 18),
+                    Icon(widget.icon, color: cs.onSurface, size: 18),
                     const SizedBox(width: 8),
                   ],
                   Text(
                     widget.label,
                     style: AppTextStyles.buttonSecondary.copyWith(
-                      color: widget.textColor ?? cs.primary,
-                    ),
+                        color: widget.textColor ?? cs.onSurface),
                   ),
                 ],
               ),
@@ -240,7 +221,8 @@ class _GVibeButtonState extends State<GVibeButton>
 }
 
 // ─── GVibe Text Field ─────────────────────────────────────────────────────────
-/// Premium filled rounded text field with focus glow.
+/// surface-2 fill · radius sm=10 · 2px accent ring at 30% on focus.
+/// No fill-color change on focus — spec exact.
 class GVibeTextField extends StatefulWidget {
   final String label;
   final String? hint;
@@ -288,28 +270,21 @@ class _GVibeTextFieldState extends State<GVibeTextField> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final radius = isDark ? 8.0 : 6.0;
+    final fillColor = isDark ? cs.surfaceContainerHigh : cs.surface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          widget.label,
-          style: AppTextStyles.label.copyWith(color: cs.onSurfaceVariant),
-        ),
+        Text(widget.label,
+            style: AppTextStyles.label.copyWith(color: cs.onSurfaceVariant)),
         const SizedBox(height: 6),
         AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: _focused
-                ? [
-                    BoxShadow(
-                      color: cs.primary.withOpacity(0.2),
-                      blurRadius: 12,
-                      spreadRadius: 0,
-                    ),
-                  ]
-                : null,
+            borderRadius: BorderRadius.circular(radius), // sm
+            // 2px accent ring at 30% when focused — no extra shadow needed
           ),
           child: TextField(
             focusNode: _focus,
@@ -324,6 +299,8 @@ class _GVibeTextFieldState extends State<GVibeTextField> {
               suffixIcon: widget.suffix,
               errorText: widget.errorText,
               errorStyle: AppTextStyles.bodyXs.copyWith(color: cs.error),
+              // Fill color does NOT change on focus — theme handles border only
+              fillColor: fillColor,
             ),
           ),
         ),
@@ -333,7 +310,7 @@ class _GVibeTextFieldState extends State<GVibeTextField> {
 }
 
 // ─── GVibe App Bar ────────────────────────────────────────────────────────────
-/// Clean premium app bar with theme toggle support.
+/// Canvas bg · no shadow at rest · hairline appears only when content scrolls under.
 class GVibeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showMenu;
   final bool showNotification;
@@ -357,22 +334,17 @@ class GVibeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // canvas color — matches scaffoldBackground, no elevation
+    final bg = Theme.of(context).scaffoldBackgroundColor;
     return Container(
       height: preferredSize.height,
       padding: const EdgeInsets.fromLTRB(20, 52, 20, 10),
-      color: cs.surface,
+      color: bg,
       child: Row(
         children: [
-          // Brand name
-          ShaderMask(
-            shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-            child: Text(
-              'GVibe',
-              style: AppTextStyles.displaySm.copyWith(
-                color: Colors.white,
-                fontSize: 26,
-              ),
-            ),
+          Text(
+            'GVibe',
+            style: AppTextStyles.displaySm.copyWith(color: cs.primary),
           ),
           const Spacer(),
           if (onThemeToggle != null) ...[
@@ -383,10 +355,7 @@ class GVibeAppBar extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 8),
           ],
           if (showNotification)
-            _IconBtn(
-              icon: Icons.notifications_outlined,
-              onTap: () {},
-            ),
+            _IconBtn(icon: Icons.notifications_outlined, onTap: () {}),
           if (showAvatar) ...[
             const SizedBox(width: 12),
             GVibeAvatar(imageUrl: avatarUrl, size: 36, showGlow: true),
@@ -415,17 +384,19 @@ class _IconBtn extends StatelessWidget {
         width: 38,
         height: 38,
         decoration: BoxDecoration(
-          color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(10),
+          color: cs.surfaceContainerHigh, // surface-2
+          borderRadius: BorderRadius.circular(10), // sm
+          border: Border.all(color: cs.outline, width: 1),
         ),
-        child: Icon(icon, color: cs.onSurface, size: 20),
+        child: Icon(icon, color: cs.onSurfaceVariant, size: 20),
       ),
     );
   }
 }
 
 // ─── GVibe Nav Bar ────────────────────────────────────────────────────────────
-/// Floating pill nav bar with animated sliding active indicator.
+/// surface-1 bg · hairline top border · active = accent color shift only.
+/// No pill background on active — spec exact.
 class GVibeNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -437,79 +408,40 @@ class GVibeNavBar extends StatelessWidget {
   });
 
   static const _items = [
-    (icon: Icons.home_rounded,      label: 'Feed'),
-    (icon: Icons.explore_rounded,   label: 'Discover'),
-    (icon: Icons.chat_bubble_rounded, label: 'Messages'),
-    (icon: Icons.person_rounded,    label: 'Profile'),
+    (activeIcon: Icons.home_rounded,     inactiveIcon: Icons.home_outlined,        label: 'Feed'),
+    (activeIcon: Icons.explore_rounded,  inactiveIcon: Icons.explore_outlined,     label: 'Discover'),
+    (activeIcon: Icons.chat_bubble,      inactiveIcon: Icons.chat_bubble_outline,  label: 'Messages'),
+    (activeIcon: Icons.person_rounded,   inactiveIcon: Icons.person_outlined,       label: 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return SafeArea(
-      bottom: true,
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-        height: 68,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.surfaceHigh.withOpacity(0.85)
-                    : AppColors.lightSurface.withOpacity(0.92),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withOpacity(0.06)
-                      : AppColors.lightOutline,
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Stack(
-                children: [
-                  // Sliding pill indicator
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeInOutCubic,
-                    alignment: Alignment(
-                      -0.75 + (currentIndex * 0.5),
-                      0,
-                    ),
-                    child: Container(
-                      width: 52,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                  // Nav items
-                  Row(
-                    children: List.generate(
-                      _items.length,
-                      (i) => _NavItem(
-                        icon: _items[i].icon,
-                        label: _items[i].label,
-                        index: i,
-                        current: currentIndex,
-                        onTap: onTap,
-                      ),
-                    ),
-                  ),
-                ],
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF010102) : const Color(0xFFFFFFFF),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: List.generate(
+              _items.length,
+              (i) => _NavItem(
+                activeIcon: _items[i].activeIcon,
+                inactiveIcon: _items[i].inactiveIcon,
+                label: _items[i].label,
+                index: i,
+                current: currentIndex,
+                onTap: onTap,
               ),
             ),
           ),
@@ -520,14 +452,16 @@ class GVibeNavBar extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  final IconData icon;
+  final IconData activeIcon;
+  final IconData inactiveIcon;
   final String label;
   final int index;
   final int current;
   final ValueChanged<int> onTap;
 
   const _NavItem({
-    required this.icon,
+    required this.activeIcon,
+    required this.inactiveIcon,
     required this.label,
     required this.index,
     required this.current,
@@ -537,7 +471,12 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isActive = index == current;
-    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final activeColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final color = isActive ? activeColor : inactiveColor;
+    final icon = isActive ? activeIcon : inactiveIcon;
 
     return Expanded(
       child: GestureDetector(
@@ -548,20 +487,16 @@ class _NavItem extends StatelessWidget {
           children: [
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
-              child: Icon(
-                icon,
-                key: ValueKey(isActive),
-                size: 22,
-                color: isActive ? cs.primary : cs.onSurfaceVariant,
-              ),
+              child: Icon(icon, key: ValueKey(isActive), size: 22, color: color),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
               style: AppTextStyles.bodyXs.copyWith(
-                color: isActive ? cs.primary : cs.onSurfaceVariant,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                color: color,
+                fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                 fontSize: 10,
+                letterSpacing: 0.1,
               ),
               child: Text(label),
             ),
@@ -584,7 +519,8 @@ class SectionHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Text(title, style: AppTextStyles.headlineMd.copyWith(color: cs.onSurface)),
+        Text(title,
+            style: AppTextStyles.headlineMd.copyWith(color: cs.onSurface)),
         const Spacer(),
         if (trailing != null) trailing!,
       ],
@@ -593,6 +529,7 @@ class SectionHeader extends StatelessWidget {
 }
 
 // ─── GVibe Tag / Chip ─────────────────────────────────────────────────────────
+/// pill radius · selected = accent fill + on-accent text · default = surface-2 + hairline.
 class GVibeTag extends StatelessWidget {
   final String label;
   final bool isActive;
@@ -614,18 +551,18 @@ class GVibeTag extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? cs.primaryContainer : cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          color: isActive ? cs.primary : cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(999), // pill
           border: Border.all(
-            color: isActive ? cs.primary.withOpacity(0.5) : Colors.transparent,
+            color: isActive ? cs.primary : cs.outline,
             width: 1,
           ),
         ),
         child: Text(
           label,
           style: AppTextStyles.label.copyWith(
-            color: isActive ? cs.primary : cs.onSurfaceVariant,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+            color: isActive ? Colors.white : cs.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
@@ -634,7 +571,6 @@ class GVibeTag extends StatelessWidget {
 }
 
 // ─── Animated Like Button ─────────────────────────────────────────────────────
-/// Heart button with scale + color pulse on tap (dopamine loop).
 class AnimatedLikeButton extends StatefulWidget {
   final int count;
   final bool isLiked;
@@ -660,9 +596,7 @@ class _AnimatedLikeButtonState extends State<AnimatedLikeButton>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
+        vsync: this, duration: const Duration(milliseconds: 200));
     _scale = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
@@ -684,7 +618,6 @@ class _AnimatedLikeButtonState extends State<AnimatedLikeButton>
   Widget build(BuildContext context) {
     final ext = context.ext;
     final cs = Theme.of(context).colorScheme;
-
     return GestureDetector(
       onTap: _handleTap,
       child: Row(
@@ -693,7 +626,9 @@ class _AnimatedLikeButtonState extends State<AnimatedLikeButton>
           ScaleTransition(
             scale: _scale,
             child: Icon(
-              widget.isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              widget.isLiked
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
               color: widget.isLiked ? ext.like : cs.onSurfaceVariant,
               size: 18,
             ),
@@ -718,7 +653,6 @@ class _AnimatedLikeButtonState extends State<AnimatedLikeButton>
 }
 
 // ─── Skeleton Loader ──────────────────────────────────────────────────────────
-/// Shimmer skeleton for loading states — no blank screens.
 class SkeletonBox extends StatefulWidget {
   final double width;
   final double height;
@@ -744,9 +678,8 @@ class _SkeletonBoxState extends State<SkeletonBox>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat(reverse: true);
     _anim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
   }
 
@@ -758,53 +691,46 @@ class _SkeletonBoxState extends State<SkeletonBox>
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Dark: surface-1 → surface-2 shimmer · Light: canvas → surface-sunken
+    final base = isDark ? AppColors.surface : AppColors.lightSurface;
+    final shine = isDark ? AppColors.surfaceHigh : AppColors.lightSurfaceHigh;
 
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [
-                      AppColors.surfaceHigh,
-                      Color.lerp(AppColors.surfaceHigh,
-                          AppColors.surfaceHighest, _anim.value)!,
-                      AppColors.surfaceHigh,
-                    ]
-                  : [
-                      AppColors.lightSurfaceHigh,
-                      Color.lerp(AppColors.lightSurfaceHigh,
-                          AppColors.lightSurfaceHighest, _anim.value)!,
-                      AppColors.lightSurfaceHigh,
-                    ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.borderRadius),
+          gradient: LinearGradient(
+            colors: [
+              base,
+              Color.lerp(base, shine, _anim.value)!,
+              base,
+            ],
+            stops: const [0.0, 0.5, 1.0],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-/// Full post card skeleton
+// ─── Post Card Skeleton ───────────────────────────────────────────────────────
 class PostCardSkeleton extends StatelessWidget {
   const PostCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: context.ext.cardShadow,
+        color: cs.surface, // surface-1
+        borderRadius: BorderRadius.circular(20), // lg
+        border: Border.all(color: cs.outline, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -843,8 +769,8 @@ class PostCardSkeleton extends StatelessWidget {
   }
 }
 
-// ─── GVibe Gradient Card ──────────────────────────────────────────────────────
-/// Premium card with subtle box shadow — adapts to theme.
+// ─── GVibe Card ───────────────────────────────────────────────────────────────
+/// surface-1 bg · 1px hairline · radius lg=20 · 16px padding · no drop shadow.
 class GVibeCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -864,22 +790,18 @@ class GVibeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final ext = context.ext;
-    final radius = borderRadius ?? BorderRadius.circular(16);
+    final radius = borderRadius ?? BorderRadius.circular(20); // lg
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: margin,
-        padding: padding,
+        padding: padding ?? const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: cs.surface,
+          color: cs.surface, // surface-1
           borderRadius: radius,
-          boxShadow: ext.cardShadow,
-          border: Border.all(
-            color: ext.outline.withOpacity(0.5),
-            width: 0.5,
-          ),
+          border: Border.all(color: cs.outline, width: 1), // hairline
+          // No drop shadow — spec: flat + hairline everywhere
         ),
         child: child,
       ),
@@ -887,7 +809,7 @@ class GVibeCard extends StatelessWidget {
   }
 }
 
-// ─── NoiseOverlay (kept for backward compat, now a no-op passthrough) ─────────
+// ─── NoiseOverlay (no-op passthrough) ────────────────────────────────────────
 class NoiseOverlay extends StatelessWidget {
   final Widget child;
   const NoiseOverlay({super.key, required this.child});
@@ -902,12 +824,7 @@ class GradientText extends StatelessWidget {
   final TextStyle? style;
   final Gradient? gradient;
 
-  const GradientText(
-    this.text, {
-    super.key,
-    this.style,
-    this.gradient,
-  });
+  const GradientText(this.text, {super.key, this.style, this.gradient});
 
   @override
   Widget build(BuildContext context) {

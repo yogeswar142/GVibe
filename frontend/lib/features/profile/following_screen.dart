@@ -75,7 +75,7 @@ class _FollowingScreenState extends State<FollowingScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 4),
-                    color: AppColors.accent.withOpacity(0.1),
+                    color: AppColors.accent.withValues(alpha: 0.10),
                     child: Text(
                       '${_following.length}',
                       style: AppTextStyles.monoMd

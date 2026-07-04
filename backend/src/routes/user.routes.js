@@ -22,6 +22,8 @@ router.route('/profile')
   .get(getProfile)
   .put(updateProfile);
 
+router.put('/profile/temp', require('../controllers/user.controller').saveTempProfile);
+
 // Public profile by ID
 router.get('/:id', getUserById);
 

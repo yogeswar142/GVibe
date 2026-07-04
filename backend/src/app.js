@@ -35,6 +35,10 @@ app.get('/', (req, res) => {
   res.json({ message: 'Welcome to GVibe API 🎉' });
 });
 
+app.get('/api', (req, res) => {
+  res.json({ success: true, message: 'Welcome to GVibe API 🎉' });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

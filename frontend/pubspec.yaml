@@ -19,6 +19,7 @@ dependencies:
   shared_preferences: ^2.2.3
   cached_network_image: ^3.3.1
   flutter_dotenv: ^6.0.0
+  google_sign_in: ^7.2.0
 
 dev_dependencies:
   flutter_test:
@@ -35,7 +36,7 @@ flutter:
     - .env
 
 flutter_native_splash:
-  color: "#FAFAFA"
+  color: "#FEFEFE"
   color_dark: "#010102"
   image: "assets/splash_light.png"
   image_dark: "assets/splash_dark.png"
@@ -43,5 +44,5 @@ flutter_native_splash:
   android_12:
     image: "assets/splash_light.png"
     image_dark: "assets/splash_dark.png"
-    color: "#FAFAFA"
+    color: "#FEFEFE"
     color_dark: "#010102"

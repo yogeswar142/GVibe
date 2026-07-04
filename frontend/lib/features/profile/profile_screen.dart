@@ -716,10 +716,11 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   Widget build(BuildContext context) {
     final avatar = widget.user?['avatar']?.toString();
     final level = widget.user?['level'] ?? 42;
-    final name = widget.user?['name']?.toString().toUpperCase().replaceAll(' ', '_') ?? 'USER_NAME';
-    final dept = widget.user?['dept']?.toString().toUpperCase() ?? 'COMPUTER_SCIENCE';
+    final name = widget.user?['name']?.toString() ?? 'User Name';
+    final username = widget.user?['username']?.toString() ?? name.toLowerCase().replaceAll(' ', '_');
+    final dept = widget.user?['dept']?.toString() ?? 'Computer Science';
     final year = widget.user?['year']?.toString() ?? '2024';
-    final hub = widget.user?['hub']?.toString().toUpperCase() ?? 'ENGINEERING_QUAD';
+    final hub = widget.user?['hub']?.toString() ?? 'Engineering Quad';
 
     // Vibe rating calculations
     final double ratingVal = 0.85 + ((level * 3) % 15) / 100.0;
@@ -753,7 +754,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                 ..setEntry(3, 2, 0.0012)
                 ..rotateY(val),
               child: isFront
-                  ? _buildFront(avatar, level, name, dept, year, hub, ratingVal, ratingPercent, rank)
+                  ? _buildFront(avatar, level, name, username, dept, year, hub, ratingVal, ratingPercent, rank)
                   : Transform(
                       alignment: Alignment.center,
                       transform: Matrix4.identity()..rotateY(3.1415926535),
@@ -770,6 +771,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
     String? avatar,
     int level,
     String name,
+    String username,
     String dept,
     String year,
     String hub,
@@ -808,11 +810,12 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               Icon(Icons.nfc, color: labelColor, size: 14),
               const SizedBox(width: 6),
               Text(
-                'GVIBE STUDENT ID // FRONT_SIDE',
+                'Student ID Card',
                 style: AppTextStyles.monoXs.copyWith(
                   color: labelColor,
-                  fontSize: 8,
-                  letterSpacing: 1.0,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const Spacer(),
@@ -826,10 +829,10 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               ),
               const SizedBox(width: 6),
               Text(
-                'GRID_ACTIVE',
+                'Active',
                 style: AppTextStyles.monoXs.copyWith(
                   color: accentColor,
-                  fontSize: 8,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -857,10 +860,10 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         color: accentColor,
                         child: Text(
-                          'LVL_$level',
+                          'Level $level',
                           style: AppTextStyles.monoXs.copyWith(
                             color: Colors.white,
-                            fontSize: 8,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -878,7 +881,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                         children: [
                           Expanded(
                             child: Text(
-                              '@$name',
+                              name,
                               style: AppTextStyles.displaySm.copyWith(
                                 fontSize: 18,
                                 color: textColor,
@@ -890,12 +893,21 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                           _buildCardActionBtn(),
                         ],
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '@$username',
+                        style: AppTextStyles.monoXs.copyWith(
+                          color: labelColor,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      _detailRow('MAJOR:', dept),
+                      _detailRow('Major:', dept),
                       const SizedBox(height: 3),
-                      _detailRow('CLASS:', year),
+                      _detailRow('Class:', year),
                       const SizedBox(height: 3),
-                      _detailRow('STATUS:', '📍 $hub'),
+                      _detailRow('Status:', '📍 $hub'),
                     ],
                   ),
                 ),
@@ -910,14 +922,14 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'VIBE_RATING: $ratingPercent%',
+                    'Vibe Rating: $ratingPercent%',
                     style: AppTextStyles.monoXs.copyWith(
                       color: textColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    'RANK: $rank',
+                    'Rank: $rank',
                     style: AppTextStyles.monoXs.copyWith(
                       color: accentColor,
                       fontWeight: FontWeight.bold,
@@ -1056,19 +1068,20 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               Icon(Icons.security, color: labelColor, size: 14),
               const SizedBox(width: 6),
               Text(
-                'GVIBE STUDENT ID // BACK_SIDE',
+                'Security Details',
                 style: AppTextStyles.monoXs.copyWith(
                   color: labelColor,
-                  fontSize: 8,
-                  letterSpacing: 1.0,
+                  fontSize: 9,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const Spacer(),
               Text(
-                'NODE_SECURE',
+                'Verified',
                 style: AppTextStyles.monoXs.copyWith(
                   color: accentColor,
-                  fontSize: 8,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -1085,7 +1098,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
-              'MAGNETIC_DATA_TRACK_02_SECURED',
+              'Encrypted Security Track',
               style: AppTextStyles.monoXs.copyWith(color: labelColor, fontSize: 8),
             ),
           ),
@@ -1099,13 +1112,13 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _detailRow('SIGNATURE:', sigHash),
+                      _detailRow('Signature:', sigHash),
                       const SizedBox(height: 4),
-                      _detailRow('CIPHER:', 'AES_256_GCM'),
+                      _detailRow('Cipher:', 'AES-256 GCM'),
                       const SizedBox(height: 4),
-                      _detailRow('VERIFY:', 'APPROVED'),
+                      _detailRow('Verification:', 'Approved'),
                       const SizedBox(height: 4),
-                      _detailRow('EXPIRES:', '31_DEC_2026'),
+                      _detailRow('Expires:', '31 Dec 2026'),
                     ],
                   ),
                 ),
@@ -1117,11 +1130,11 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
           const SizedBox(height: 8),
           Center(
             child: Text(
-              'TAP CARD TO FLIP FRONT',
+              'Tap card to flip',
               style: AppTextStyles.monoXs.copyWith(
                 color: labelColor,
-                fontSize: 8,
-                letterSpacing: 1.5,
+                fontSize: 9,
+                letterSpacing: 1.0,
               ),
             ),
           ),

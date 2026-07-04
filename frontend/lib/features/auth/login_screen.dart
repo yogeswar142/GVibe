@@ -23,6 +23,20 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
 
   @override
+  void initState() {
+    super.initState();
+    _checkBackendStatus();
+  }
+
+  Future<void> _checkBackendStatus() async {
+    final isOnline = await ApiService().checkConnection();
+    if (!mounted) return;
+    if (!isOnline) {
+      context.go(AppRouter.backendDown);
+    }
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -317,7 +331,29 @@ class _LoginScreenState extends State<LoginScreen> {
                               label: 'Google Account',
                               isPrimary: false,
                               icon: Icons.g_mobiledata_rounded,
-                              onPressed: () {},
+                              onPressed: () async {
+                                setState(() {
+                                  _error = null;
+                                });
+                                final response = await AuthService.triggerGoogleAuth(
+                                  context: context,
+                                  action: 'login',
+                                );
+                                if (response != null && response['success'] == true) {
+                                  final data = response['data'];
+                                  await AuthService.saveToken(data['token']);
+                                  await AuthService.saveUser(data);
+                                  if (mounted) {
+                                    if (data['profileComplete'] == true) {
+                                      context.go(AppRouter.home);
+                                    } else {
+                                      context.go(AppRouter.onboarding);
+                                    }
+                                  }
+                                } else if (response != null) {
+                                  setState(() => _error = response['message'] ?? 'Google login failed');
+                                }
+                              },
                             ),
                           ],
                         ),

@@ -36,10 +36,27 @@ exports.updateProfile = async (req, res) => {
     }
 
     user.name = req.body.name || user.name;
-    user.dept = req.body.dept || user.dept;
-    user.year = req.body.year || user.year;
+    user.username = req.body.username || user.username;
+    user.dept = req.body.branch || req.body.dept || user.dept;
+    user.year = req.body.academicLevel || req.body.year || user.year;
     user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
     user.avatar = req.body.avatar || user.avatar;
+
+    // Save extra fields
+    user.registrationNumber = req.body.registrationNumber || user.registrationNumber;
+    user.dob = req.body.dob || user.dob;
+    user.branch = req.body.branch || user.branch;
+    user.academicLevel = req.body.academicLevel || user.academicLevel;
+    user.interests = req.body.interests || user.interests;
+    
+    if (req.body.isVerified !== undefined) {
+      user.isVerified = req.body.isVerified;
+    }
+
+    // Set profile as complete and clear temp state
+    user.profileComplete = true;
+    user.tempProfileData = null;
+    user.tempProfileUpdatedAt = null;
 
     if (req.body.password) {
       user.password = req.body.password;
@@ -52,15 +69,45 @@ exports.updateProfile = async (req, res) => {
       data: {
         _id: updatedUser._id,
         name: updatedUser.name,
+        username: updatedUser.username,
         email: updatedUser.email,
         dept: updatedUser.dept,
         year: updatedUser.year,
         bio: updatedUser.bio,
         avatar: updatedUser.avatar,
         level: updatedUser.level,
+        registrationNumber: updatedUser.registrationNumber,
+        dob: updatedUser.dob,
+        branch: updatedUser.branch,
+        academicLevel: updatedUser.academicLevel,
+        interests: updatedUser.interests,
+        profileComplete: updatedUser.profileComplete,
+        isVerified: updatedUser.isVerified,
       }
     });
 
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// PUT /api/users/profile/temp — save temporary profile progress
+exports.saveTempProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.tempProfileData = req.body.tempProfileData;
+    user.tempProfileUpdatedAt = new Date();
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Temporary profile progress saved successfully'
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -105,7 +105,23 @@ The frontend is a Flutter application.
 
 ---
 
-## 4. The Future: Production Stage 🚀
+## 4. Key Workflows & Custom Features 🔄
+
+### Google Authentication
+* **Web Client ID Integration**: The app uses Google Sign-In with a Web Client ID configured under `serverClientId` (rather than a native Android Client ID). This enables token-based secure authentication with the Node.js backend.
+* **Domain Restrictions**: Registration is strictly limited to `@student.gitam.edu` domains. Personal Gmail accounts are automatically rejected by the backend with a clean validation error message.
+
+### Dual Login Options (Username or Email)
+* **Completing Profile**: During the onboarding details step, users choose a custom username handle and create a secure password.
+* **Authentication**: Users can log in using either their **Email** or their **Username handle** along with their password.
+
+### Dynamic Maintenance Mode
+* **Auto-redirection**: The frontend utilizes a global Dio interceptor that monitors all outgoing API requests. If the backend is shut down (causing connection errors, gateway timeouts like `502`/`503`/`504`, or returning Ngrok's offline HTML error pages), the app automatically routes the user to the `/backend-down` screen.
+* **Retry Engine**: The maintenance screen features a pulse-animated status badge and a "Try Again" retry button that performs async connection checks to automatically restore access to the app as soon as services come back online.
+
+---
+
+## 5. The Future: Production Stage 🚀
 
 Right now, we are relying on our personal computers to host the database and the Node.js API. 
 

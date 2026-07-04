@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:go_router/go_router.dart';
-import '../../core/constants/app_text_styles.dart';
 import '../../core/router/app_router.dart';
 import '../../core/services/auth_service.dart';
-import '../../shared/widgets/gvibe_widgets.dart';
+import '../../core/services/api_service.dart';
+import '../../core/constants/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,36 +16,56 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnim;
-  late Animation<double> _scaleAnim;
+  late Animation<double> _progressAnim;
+  late Future<bool> _connectionCheck;
 
   @override
   void initState() {
     super.initState();
+    
+    // Start backend connection check in parallel with animation
+    _connectionCheck = ApiService().checkConnection();
+
+    // 2.5 second total duration — matches the loading bar sweep
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 2500),
     );
+
+    // Fade in during first 600ms
     _fadeAnim = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.35, curve: Curves.easeOut),
     );
-    _scaleAnim = Tween<double>(begin: 0.94, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
-      ),
+
+    // Progress bar fills from 0 → 1 over the full duration
+    _progressAnim = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
     );
 
     _controller.forward();
 
-    // Quick responsive transition (800ms transition time)
-    Future.delayed(const Duration(milliseconds: 1100), () {
-      _checkAuthAndNavigate();
+    // Navigate after animation completes
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _checkAuthAndNavigate();
+      }
     });
   }
 
   Future<void> _checkAuthAndNavigate() async {
     if (!mounted) return;
+    
+    // Await the connection check running in parallel
+    final isOnline = await _connectionCheck;
+    if (!mounted) return;
+
+    if (!isOnline) {
+      context.go(AppRouter.backendDown);
+      return;
+    }
+
     final token = await AuthService.getToken();
     if (!mounted) return;
     if (token != null) {
@@ -62,182 +81,76 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  Widget _buildBackground(BuildContext context, bool isDark) {
-    if (isDark) {
-      // Linear dark theme: deep black + subtle center lavender glow
-      return Stack(
-        children: [
-          Container(color: const Color(0xFF010102)),
-          Center(
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x1F5E6AD2), // ~12% opacity lavender-blue
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 90.0, sigmaY: 90.0),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-        ],
-      );
-    } else {
-      // Vercel light theme: soft blooming multi-stop mesh gradient
-      return Stack(
-        children: [
-          Container(color: const Color(0xFFFAFAFA)),
-          Positioned(
-            top: -40,
-            left: -40,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x2200DFD8), // Cyan
-              ),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            right: -60,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x1FFF0080), // Magenta
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: 40,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x1F7928CA), // Purple
-              ),
-            ),
-          ),
-          Positioned(
-            top: 250,
-            left: -100,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0x18FAF089), // Soft amber/yellow
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 85.0, sigmaY: 85.0),
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-        ],
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717);
+    final imagePath = isDark ? 'assets/splash_dark.png' : 'assets/splash_light.png';
+    final bgColor = isDark ? AppColors.darkCanvas : const Color(0xFFFEFEFE);
+    final progressBgColor = isDark ? const Color(0xFF1A1D22) : const Color(0xFFEBEBEB);
+    final progressValColor = isDark ? AppColors.accentIndigo : AppColors.lightAccent;
+    final textColor = isDark ? const Color(0xFF62666D) : const Color(0xFFA1A1A1);
 
     return Scaffold(
-      body: NoiseOverlay(
-        child: Stack(
-          children: [
-            // Background gradient/glow
-            Positioned.fill(
-              child: _buildBackground(context, isDark),
-            ),
-            // Centered logo content
-            Center(
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: ScaleTransition(
-                  scale: _scaleAnim,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'GVIBE',
-                        style: AppTextStyles.displayXl.copyWith(
-                          fontSize: 64, // Sleeker typography
-                          color: textColor,
-                          letterSpacing: -2.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'YOUR CAMPUS · YOUR PEOPLE · YOUR VIBE',
-                        style: AppTextStyles.monoXs.copyWith(
-                          color: isDark ? const Color(0xFF8A8F98) : const Color(0xFF8F8F8F),
-                          letterSpacing: 2.0,
-                          fontSize: 9,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+      backgroundColor: bgColor,
+      body: Stack(
+        children: [
+          // Centered splash logo image matching native splash
+          Center(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Image.asset(
+                imagePath,
+                width: 200,
+                height: 200,
+                fit: BoxFit.contain,
               ),
             ),
-            // Loading and connection status
-            Positioned(
-              bottom: 60,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: FadeTransition(
-                  opacity: _fadeAnim,
-                  child: Column(
+          ),
+          // Animated loading bar at the bottom
+          Positioned(
+            bottom: 64,
+            left: 0,
+            right: 0,
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: AnimatedBuilder(
+                animation: _progressAnim,
+                builder: (context, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 120,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 80),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(2),
                           child: LinearProgressIndicator(
-                            backgroundColor: isDark
-                                ? const Color(0xFF141516)
-                                : const Color(0xFFEBEBEB),
+                            value: _progressAnim.value,
+                            backgroundColor: progressBgColor,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              isDark
-                                  ? const Color(0xFF5E6AD2)
-                                  : const Color(0xFF171717),
+                              progressValColor,
                             ),
-                            minHeight: 1.5,
+                            minHeight: 2.5,
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'CONNECTING TO CAMPUS_NET',
-                        style: AppTextStyles.monoXs.copyWith(
-                          color: isDark ? const Color(0xFF62666D) : const Color(0xFFA1A1A1),
-                          letterSpacing: 1.5,
+                        style: TextStyle(
+                          fontFamily: 'monospace',
                           fontSize: 8,
+                          letterSpacing: 1.5,
+                          color: textColor,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
-                  ),
-                ),
+                  );
+                },
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

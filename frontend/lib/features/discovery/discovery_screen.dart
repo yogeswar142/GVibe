@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
@@ -15,42 +16,99 @@ class DiscoveryScreen extends StatefulWidget {
 }
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
-  List<dynamic> _users = [];
-  bool _loading = true;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _debounce;
 
-  final List<Map<String, dynamic>> _hubs = [
-    {'name': 'Engineering Quad', 'activity': 89, 'status': 'High Vibe', 'tag': '#tech-grind'},
-    {'name': 'Central Library', 'activity': 32, 'status': 'Calm', 'tag': '#prep'},
-    {'name': 'Student Union', 'activity': 65, 'status': 'Active', 'tag': '#lounge'},
-    {'name': 'Athletics Dome', 'activity': 18, 'status': 'Quiet', 'tag': '#cardio'},
-  ];
+  // States
+  List<dynamic> _people = [];
+  List<dynamic> _communities = [];
+  List<dynamic> _tags = [];
+  bool _loading = true;
+
+  // Search Results
+  bool _isSearching = false;
+  List<dynamic> _searchPeople = [];
+  List<dynamic> _searchCommunities = [];
+  bool _searchLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
+    _fetchDiscoveryData();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
-  Future<void> _fetchUsers() async {
+  Future<void> _fetchDiscoveryData() async {
     setState(() => _loading = true);
     try {
-      final response = await ApiService().dio.get('/users');
-      if (response.data['success'] == true) {
+      final futures = await Future.wait([
+        ApiService().dio.get('/discovery/people'),
+        ApiService().dio.get('/discovery/communities'),
+        ApiService().dio.get('/discovery/tags/trending'),
+      ]);
+
+      if (mounted) {
         setState(() {
-          _users = response.data['data'] ?? [];
+          _people = futures[0].data['success'] == true ? futures[0].data['data'] ?? [] : [];
+          _communities = futures[1].data['success'] == true ? futures[1].data['data'] ?? [] : [];
+          _tags = futures[2].data['success'] == true ? futures[2].data['data'] ?? [] : [];
           _loading = false;
         });
       }
-    } on DioException catch (_) {
-      setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (query.trim().isEmpty) {
+        setState(() {
+          _isSearching = false;
+          _searchPeople = [];
+          _searchCommunities = [];
+        });
+        return;
+      }
+      _executeSearch(query.trim());
+    });
+  }
+
+  Future<void> _executeSearch(String query) async {
+    setState(() {
+      _isSearching = true;
+      _searchLoading = true;
+    });
+
+    try {
+      final r = await ApiService().dio.get('/discovery/search', queryParameters: {'q': query});
+      if (r.data['success'] == true && mounted) {
+        final data = r.data['data'];
+        setState(() {
+          _searchPeople = data['users'] ?? [];
+          _searchCommunities = data['communities'] ?? [];
+          _searchLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _searchLoading = false);
+    }
+  }
+
+  void _showTagPosts(String tag) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _TagPostsSheet(tag: tag),
+    );
   }
 
   @override
@@ -59,31 +117,100 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
-        onRefresh: _fetchUsers,
+        onRefresh: _fetchDiscoveryData,
         color: cs.primary,
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(child: _buildTopBar(context)),
             SliverToBoxAdapter(child: _buildSearchBar(context)),
-            SliverToBoxAdapter(child: _buildHubsSection(context)),
-            SliverToBoxAdapter(child: _buildTagsSection(context)),
-            SliverToBoxAdapter(child: _buildPeopleHeader(context)),
-            _loading
-                ? SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: _UserCardSkeleton(),
-                      ),
-                      childCount: 4,
-                    ),
-                  )
-                : SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) => _UserCard(user: _users[i]),
-                      childCount: _users.length,
+            if (_isSearching) ...[
+              if (_searchLoading)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                )
+              else ...[
+                // Search Results Sections
+                if (_searchCommunities.isNotEmpty) ...[
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: SectionHeader(title: 'Matching Communities'),
                     ),
                   ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final c = _searchCommunities[i];
+                        return _CommunitySearchCard(community: c);
+                      },
+                      childCount: _searchCommunities.length,
+                    ),
+                  ),
+                ],
+                if (_searchPeople.isNotEmpty) ...[
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      child: SectionHeader(title: 'Matching People'),
+                    ),
+                  ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) => _UserCard(user: _searchPeople[i]),
+                      childCount: _searchPeople.length,
+                    ),
+                  ),
+                ],
+                if (_searchPeople.isEmpty && _searchCommunities.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Center(
+                        child: Text(
+                          'No results found for "${_searchController.text}"',
+                          style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ] else ...[
+              // Standard Discovery sections
+              SliverToBoxAdapter(child: _buildCommunitiesSection(context)),
+              SliverToBoxAdapter(child: _buildTagsSection(context)),
+              SliverToBoxAdapter(child: _buildPeopleHeader(context)),
+              _loading
+                  ? SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (_, i) => const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: _UserCardSkeleton(),
+                        ),
+                        childCount: 4,
+                      ),
+                    )
+                  : _people.isEmpty
+                      ? SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40.0),
+                            child: Center(
+                              child: Text(
+                                'No people discovered yet.',
+                                style: AppTextStyles.bodyMd.copyWith(color: cs.onSurfaceVariant),
+                              ),
+                            ),
+                          ),
+                        )
+                      : SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (_, i) => _UserCard(user: _people[i]),
+                            childCount: _people.length,
+                          ),
+                        ),
+            ],
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
@@ -133,7 +260,6 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
 
   Widget _buildSearchBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     final bg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
     final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
     final hintColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
@@ -156,9 +282,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             Expanded(
               child: TextField(
                 controller: _searchController,
+                onChanged: _onSearchChanged,
                 style: AppTextStyles.bodyMd.copyWith(color: textColor),
                 decoration: InputDecoration(
-                  hintText: 'Search students, hubs...',
+                  hintText: 'Search students, communities...',
                   hintStyle: AppTextStyles.bodyMd.copyWith(color: hintColor),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
@@ -168,13 +295,21 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 ),
               ),
             ),
+            if (_searchController.text.isNotEmpty)
+              IconButton(
+                icon: Icon(Icons.clear_rounded, color: hintColor, size: 18),
+                onPressed: () {
+                  _searchController.clear();
+                  _onSearchChanged('');
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHubsSection(BuildContext context) {
+  Widget _buildCommunitiesSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final liveColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
@@ -184,52 +319,79 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionHeader(
-            title: 'Campus Hubs',
+            title: 'Campus Communities',
             trailing: Text('Live',
                 style: AppTextStyles.bodyXs
                     .copyWith(color: liveColor, fontWeight: FontWeight.w600)),
           ),
           const SizedBox(height: 14),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.3,
-            ),
-            itemCount: _hubs.length,
-            itemBuilder: (_, i) => _HubCard(
-              hub: _hubs[i],
-              index: i,
-              onTap: () => _showHubSheet(context, _hubs[i]),
-            ),
-          ),
+          _loading
+              ? const SizedBox(
+                  height: 100,
+                  child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                )
+              : _communities.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Text(
+                          'No communities created yet.',
+                          style: AppTextStyles.bodySm.copyWith(color: liveColor),
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.3,
+                      ),
+                      itemCount: _communities.length > 4 ? 4 : _communities.length,
+                      itemBuilder: (_, i) => _CommunityCard(
+                        community: _communities[i],
+                        index: i,
+                        onTap: () {
+                          final c = _communities[i];
+                          context.push('/community/${c['_id']}', extra: c['name']);
+                        },
+                      ),
+                    ),
         ],
       ),
     );
   }
 
   Widget _buildTagsSection(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(16, 0, 16, 20),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final subColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: 'Vibe Clusters'),
-          SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              GVibeTag(label: '#coffee_run  14', isActive: false),
-              GVibeTag(label: '#exam_crunch  98', isActive: true),
-              GVibeTag(label: '#sunset_lounge  4', isActive: false),
-              GVibeTag(label: '#synth_jam  8', isActive: false),
-              GVibeTag(label: '#night_grind  32', isActive: false),
-            ],
-          ),
+          const SectionHeader(title: 'Top Trending Tags'),
+          const SizedBox(height: 12),
+          _tags.isEmpty
+              ? Text(
+                  'No tags trending yet. Post with #tag to start.',
+                  style: AppTextStyles.bodyXs.copyWith(color: subColor),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _tags.map((t) {
+                    final tagText = t['tag']?.toString() ?? '';
+                    final count = t['count'] ?? 0;
+                    return GestureDetector(
+                      onTap: () => _showTagPosts(tagText),
+                      child: GVibeTag(label: '#$tagText ($count)', isActive: true),
+                    );
+                  }).toList(),
+                ),
         ],
       ),
     );
@@ -241,236 +403,19 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       child: SectionHeader(title: 'Campus People'),
     );
   }
-
-  void _showHubSheet(BuildContext context, Map<String, dynamic> hub) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final bg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          border: Border(top: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 12, bottom: 8),
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: borderColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hub['name'],
-                    style: AppTextStyles.displaySm.copyWith(
-                      color: titleColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Icon(Icons.bolt_rounded, color: accentColor, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${hub['activity']}% activity · ${hub['status']}',
-                        style: AppTextStyles.bodySm.copyWith(
-                          color: textColor,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          hub['tag'],
-                          style: AppTextStyles.monoXs.copyWith(
-                            color: accentColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(color: borderColor, height: 1),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Text(
-                'Students here',
-                style: AppTextStyles.label.copyWith(
-                  color: subtitleColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 80,
-              child: _loading
-                  ? Center(
-                      child: CircularProgressIndicator(color: accentColor))
-                  : _users.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No students present',
-                            style: AppTextStyles.bodySm.copyWith(color: subtitleColor),
-                          ),
-                        )
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: _users.length,
-                          itemBuilder: (_, i) {
-                            final s = _users[i];
-                            final name = s['name']?.toString() ?? 'Anonymous';
-                            final userId = s['_id']?.toString() ?? '';
-                            return GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                                if (userId.isNotEmpty) {
-                                  context.push('/profile/$userId');
-                                }
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.only(right: 16),
-                                child: Column(
-                                  children: [
-                                    GVibeAvatar(
-                                      imageUrl: s['avatar'],
-                                      size: 46,
-                                      initials: name[0],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      name.split(' ').first,
-                                      style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-            ),
-            const SizedBox(height: 12),
-            Divider(color: borderColor, height: 1),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-              child: Text(
-                'Trending here',
-                style: AppTextStyles.label.copyWith(
-                  color: subtitleColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _hubPostRow('neo.witch', 'Setting up the server 🔧', '10m', context),
-                  _hubPostRow('code.runner', 'Coffee machine refilled! ☕', '25m', context),
-                  _hubPostRow('grid.runner', 'Anyone up for code jam? 💻', '1h', context),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _hubPostRow(
-      String handle, String text, String time, BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final contentColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
-    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-
-    return GVibeCard(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          GVibeAvatar(size: 32, initials: handle[0].toUpperCase()),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '@$handle',
-                  style: AppTextStyles.headlineSm.copyWith(
-                    color: nameColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  text,
-                  style: AppTextStyles.bodyXs.copyWith(color: contentColor),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            time,
-            style: AppTextStyles.monoXs.copyWith(color: subtitleColor),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-// ─── Hub Card ─────────────────────────────────────────────────────────────────
-class _HubCard extends StatefulWidget {
-  final Map<String, dynamic> hub;
+class _CommunityCard extends StatefulWidget {
+  final Map<String, dynamic> community;
   final int index;
   final VoidCallback onTap;
-  const _HubCard({required this.hub, required this.index, required this.onTap});
+  const _CommunityCard({required this.community, required this.index, required this.onTap});
 
   @override
-  State<_HubCard> createState() => _HubCardState();
+  State<_CommunityCard> createState() => _CommunityCardState();
 }
 
-class _HubCardState extends State<_HubCard>
+class _CommunityCardState extends State<_CommunityCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulse;
 
@@ -511,105 +456,123 @@ class _HubCardState extends State<_HubCard>
         : _tileColorsLight[widget.index % _tileColorsLight.length];
 
     final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final statusColor = isDark ? Colors.white70 : const Color(0xFF666666);
     final titleColor = isDark ? Colors.white : const Color(0xFF171717);
-    final progressBg = isDark ? Colors.white24 : const Color(0xFFE2E4E9);
-    final progressColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final glowColor = isDark
-        ? const Color(0xFF5E6AD2).withValues(alpha: 0.15 + (_pulse.value * 0.1))
-        : const Color(0xFF0070F3).withValues(alpha: 0.04 + (_pulse.value * 0.04));
-
-    final activity = widget.hub['activity'] as int;
+    final count = widget.community['memberCount'] ?? 0;
+    final description = widget.community['description']?.toString() ?? 'Tap to chat';
 
     return GestureDetector(
       onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _pulse,
-        builder: (_, __) => Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(isDark ? 8 : 12),
-            border: Border.all(color: borderColor, width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: glowColor,
-                blurRadius: isDark ? 8 + (_pulse.value * 8) : 6 + (_pulse.value * 4),
-                spreadRadius: 0,
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3),
-                      shape: BoxShape.circle,
-                    ),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(isDark ? 8 : 12),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.groups_rounded, color: isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '$count members',
+                  style: AppTextStyles.bodyXs.copyWith(
+                    color: isDark ? Colors.white70 : const Color(0xFF666666),
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget.hub['status'],
-                    style: AppTextStyles.bodyXs.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.community['name']?.toString() ?? '',
+                  style: AppTextStyles.headlineSm.copyWith(
+                    color: titleColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.hub['name'],
-                    style: AppTextStyles.headlineSm.copyWith(
-                      color: titleColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: AppTextStyles.bodyXs.copyWith(
+                    color: isDark ? const Color(0xFF838EA6) : const Color(0xFF888888),
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: activity / 100,
-                            backgroundColor: progressBg,
-                            valueColor: AlwaysStoppedAnimation(progressColor),
-                            minHeight: 3,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$activity%',
-                        style: AppTextStyles.monoXs.copyWith(
-                          color: titleColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ─── User Card ────────────────────────────────────────────────────────────────
+class _CommunitySearchCard extends StatelessWidget {
+  final Map<String, dynamic> community;
+
+  const _CommunitySearchCard({required this.community});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFF9F9FB);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+
+    final name = community['name']?.toString() ?? '';
+    final desc = community['description']?.toString() ?? 'Tap to chat';
+    final memberCount = community['memberCount'] ?? 0;
+
+    return GVibeCard(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.all(14),
+      onTap: () {
+        context.push('/community/${community['_id']}', extra: name);
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Center(
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '#',
+                style: AppTextStyles.headlineMd.copyWith(color: accentColor, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: AppTextStyles.headlineSm.copyWith(color: nameColor, fontWeight: FontWeight.w700)),
+                Text(desc, style: AppTextStyles.bodyXs.copyWith(color: subColor), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('$memberCount members', style: AppTextStyles.bodyXs.copyWith(color: subColor)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _UserCard extends StatelessWidget {
   final Map<String, dynamic> user;
   const _UserCard({required this.user});
@@ -617,7 +580,6 @@ class _UserCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
     final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
     final bioColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
@@ -627,7 +589,7 @@ class _UserCard extends StatelessWidget {
     final year = user['year']?.toString() ?? '';
     final bio = user['bio']?.toString() ?? '';
     final avatar = user['avatar']?.toString();
-    final followers = (user['followers'] as List?)?.length ?? 0;
+    final followers = user['followersCount'] ?? (user['followers'] as List?)?.length ?? 0;
     final userId = user['_id']?.toString() ?? '';
 
     return GVibeCard(
@@ -684,8 +646,6 @@ class _UserCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
-          _FollowButton(userId: userId),
         ],
       ),
     );
@@ -706,7 +666,7 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: accentColor.withValues(alpha: isDark ? 0.12 : 0.08),
-        borderRadius: BorderRadius.circular(999), // pill
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
@@ -719,50 +679,6 @@ class _Chip extends StatelessWidget {
   }
 }
 
-class _FollowButton extends StatefulWidget {
-  final String userId;
-  const _FollowButton({required this.userId});
-
-  @override
-  State<_FollowButton> createState() => _FollowButtonState();
-}
-
-class _FollowButtonState extends State<_FollowButton> {
-  bool _following = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final double radius = isDark ? 8 : 999;
-    final Color buttonColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
-    final Color borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final Color textColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
-
-    return GestureDetector(
-      onTap: () => setState(() => _following = !_following),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: _following ? Colors.transparent : buttonColor,
-          borderRadius: BorderRadius.circular(radius),
-          border: _following ? Border.all(color: borderColor, width: 1) : null,
-        ),
-        child: Text(
-          _following ? 'Following' : 'Follow',
-          style: AppTextStyles.labelLg.copyWith(
-            color: _following ? textColor : Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── User Card Skeleton ────────────────────────────────────────────────────────
 class _UserCardSkeleton extends StatelessWidget {
   const _UserCardSkeleton();
 
@@ -819,6 +735,204 @@ class _IconButton extends StatelessWidget {
           icon,
           color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF666666),
           size: 19,
+        ),
+      ),
+    );
+  }
+}
+
+class _TagPostsSheet extends StatefulWidget {
+  final String tag;
+  const _TagPostsSheet({required this.tag});
+
+  @override
+  State<_TagPostsSheet> createState() => _TagPostsSheetState();
+}
+
+class _TagPostsSheetState extends State<_TagPostsSheet> {
+  List<dynamic> _posts = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPosts();
+  }
+
+  Future<void> _fetchPosts() async {
+    try {
+      final r = await ApiService().dio.get('/discovery/tags/${widget.tag}/posts');
+      if (r.data['success'] == true && mounted) {
+        setState(() {
+          _posts = r.data['data'] ?? [];
+          _loading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF0C0D0F) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, scrollController) => Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border(top: BorderSide(color: borderColor, width: 1)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: borderColor,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text(
+                    '#${widget.tag}',
+                    style: AppTextStyles.headlineMd.copyWith(
+                      color: nameColor, fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Icon(Icons.close_rounded, color: nameColor, size: 22),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _posts.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No posts found with #${widget.tag}',
+                            style: AppTextStyles.bodyMd.copyWith(color: nameColor),
+                          ),
+                        )
+                      : ListView.separated(
+                          controller: scrollController,
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                          itemCount: _posts.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, i) => _TagPostCard(post: _posts[i]),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TagPostCard extends StatelessWidget {
+  final Map<String, dynamic> post;
+  const _TagPostCard({required this.post});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final author = post['author'];
+    final name = author?['name']?.toString() ?? 'Anonymous';
+    final avatar = author?['avatar']?.toString();
+    final initials = name.isNotEmpty ? name[0] : '?';
+    final content = post['content']?.toString() ?? '';
+    final likes = (post['likes'] as List?)?.length ?? 0;
+    final comments = (post['comments'] as List?)?.length ?? 0;
+
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final contentColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final actionColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
+    return GVibeCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GVibeAvatar(
+                  imageUrl: avatar,
+                  size: 40,
+                  initials: initials,
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTextStyles.headlineSm.copyWith(
+                        color: nameColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Post details',
+                      style: AppTextStyles.bodyXs.copyWith(
+                        color: subtitleColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              content,
+              style: AppTextStyles.bodyMd.copyWith(
+                color: contentColor,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.favorite_border_rounded, color: actionColor, size: 17),
+                const SizedBox(width: 5),
+                Text(
+                  '$likes',
+                  style: AppTextStyles.monoSm.copyWith(
+                    color: actionColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Icon(Icons.chat_bubble_outline_rounded, color: actionColor, size: 17),
+                const SizedBox(width: 5),
+                Text(
+                  '$comments',
+                  style: AppTextStyles.monoSm.copyWith(
+                    color: actionColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

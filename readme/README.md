@@ -107,9 +107,10 @@ The frontend is a Flutter application.
 
 ## 4. Key Workflows & Custom Features 🔄
 
-### Google Authentication
+### Google Authentication & Account Switch
 * **Web Client ID Integration**: The app uses Google Sign-In with a Web Client ID configured under `serverClientId` (rather than a native Android Client ID). This enables token-based secure authentication with the Node.js backend.
 * **Domain Restrictions**: Registration is strictly limited to `@student.gitam.edu` domains. Personal Gmail accounts are automatically rejected by the backend with a clean validation error message.
+* **Account Selector & Token Disconnection**: The login flow explicitly clears session selections via `disconnect()` on logout, guaranteeing the Google Account Chooser displays when switching accounts.
 
 ### Dual Login Options (Username or Email)
 * **Completing Profile**: During the onboarding details step, users choose a custom username handle and create a secure password.
@@ -118,6 +119,23 @@ The frontend is a Flutter application.
 ### Dynamic Maintenance Mode
 * **Auto-redirection**: The frontend utilizes a global Dio interceptor that monitors all outgoing API requests. If the backend is shut down (causing connection errors, gateway timeouts like `502`/`503`/`504`, or returning Ngrok's offline HTML error pages), the app automatically routes the user to the `/backend-down` screen.
 * **Retry Engine**: The maintenance screen features a pulse-animated status badge and a "Try Again" retry button that performs async connection checks to automatically restore access to the app as soon as services come back online.
+
+### End-to-End Encrypted (E2EE) Direct Messaging
+* **ECDH + AES-GCM-256 Protocol**: Direct messages are fully encrypted on-device. The server stores only opaque metadata (ciphertext, nonce, mac).
+* **Hardware Key Storage**: Private keys are kept strictly on-device inside secure storage (`flutter_secure_storage`).
+
+### Explore & Campus Recommendation Engine
+* **Scored Campus Recommendations**: Rebuilt Explore screen to dynamically recommend campus users based on mutual interest tags, follower counts (popularity), and real-time online status.
+* **Trending Hashtags & Feeds**: Aggregates hashtags from campus posts to render top trending topics. Clicking any tag opens a bottom sheet showing all associated posts.
+
+### Community Management
+* **Role Badges & Administration**: Owners can promote members to moderators or kick them from the community member list page.
+* **Invite Codes & Popups**: Displays copyable invite codes for private communities. Tapping a member's name opens an interactive detail card containing follow/unfollow and relationship status indicators (e.g. Friends vs. Fan).
+
+### Settings & Profile Privacy
+* **Privacy Toggle**: A settings gear on the profile page allows toggling between Public and Private account types.
+* **Inbox Sorting**: If an account is set to Private, direct chat messages from mutual friends are automatically sorted to the top of the chat listing.
+
 
 ---
 

@@ -24,10 +24,13 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Post content is required' });
     }
 
+    const tags = (content.match(/#\w+/g) || []).map(tag => tag.substring(1).toLowerCase());
+
     const post = await Post.create({
       author: req.user.id,
       content: content.trim(),
       type: type || 'text',
+      tags,
     });
 
     const populatedPost = await Post.findById(post._id)

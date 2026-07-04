@@ -1,12 +1,38 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/socket_service.dart';
+import '../../core/services/encryption_service.dart';
+
+// ── Local message model ───────────────────────────────────────────────────────
+
+class _ChatMsg {
+  final String? id;
+  final bool isMe;
+  final bool isSystem;
+  final String text;         // decrypted plaintext (or system label)
+  final String time;
+  final bool decryptFailed;
+
+  const _ChatMsg({
+    this.id,
+    required this.isMe,
+    this.isSystem = false,
+    required this.text,
+    required this.time,
+    this.decryptFailed = false,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class ChatDetailScreen extends StatefulWidget {
-  final String threadId;
+  final String threadId; // recipient's userId
   const ChatDetailScreen({super.key, required this.threadId});
 
   @override
@@ -14,145 +40,371 @@ class ChatDetailScreen extends StatefulWidget {
 }
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  final List<Map<String, dynamic>> _messages = [];
+  final _msgCtrl    = TextEditingController();
+  final _scrollCtrl = ScrollController();
+
+  final List<_ChatMsg> _messages = [];
   Map<String, dynamic>? _recipientProfile;
-  bool _loading = true;
+  String? _recipientPublicKey; // Base64 X25519 key for encrypting outbound msgs
+  String? _myId;
+
+  bool _loading      = true;
+  bool _sending      = false;
+  bool _isTyping     = false;   // recipient is typing
+  bool _isOnline     = false;
+  bool _hasMore      = false;
+  bool _loadingMore  = false;
+  String? _oldestId;            // cursor for pagination
   String? _error;
+
+  // Subscriptions
+  StreamSubscription<DmMessage>?   _dmSub;
+  StreamSubscription<TypingEvent>? _typingSub;
+  StreamSubscription<String>?      _readSub;
+  StreamSubscription<String>?      _onlineSub;
+  StreamSubscription<String>?      _offlineSub;
+
+  Timer? _typingTimer;          // debounce "stopped typing"
+  Timer? _typingClearTimer;     // hide "... is typing" after 3 s
 
   @override
   void initState() {
     super.initState();
-    _loadChatData();
+    _init();
+    _scrollCtrl.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _messageController.dispose();
-    _scrollController.dispose();
+    _msgCtrl.dispose();
+    _scrollCtrl.dispose();
+    _dmSub?.cancel();
+    _typingSub?.cancel();
+    _readSub?.cancel();
+    _onlineSub?.cancel();
+    _offlineSub?.cancel();
+    _typingTimer?.cancel();
+    _typingClearTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadChatData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  // ── Initialise ────────────────────────────────────────────────────────────
+
+  Future<void> _init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _myId = prefs.getString('user_id');
+
+    await Future.wait([
+      _loadProfile(),
+      _loadHistory(),
+      _fetchRecipientPublicKey(),
+      _uploadMyPublicKey(),
+    ]);
+
+    _subscribeToSocket();
+    // Send read receipt once we open the conversation
+    SocketService.instance.sendReadAck(widget.threadId);
+  }
+
+  // ── Scroll → load older messages ─────────────────────────────────────────
+
+  void _onScroll() {
+    if (_scrollCtrl.position.pixels <= 50 && _hasMore && !_loadingMore) {
+      _loadMore();
+    }
+  }
+
+  // ── API calls ─────────────────────────────────────────────────────────────
+
+  Future<void> _loadProfile() async {
     try {
-      final profileRes = await ApiService().dio.get('/users/${widget.threadId}');
-      final messagesRes = await ApiService().dio.get('/messages/dms/${widget.threadId}');
-      
-      if (profileRes.data['success'] == true && messagesRes.data['success'] == true) {
-        final profile = profileRes.data['data'];
-        final List<dynamic> rawMsgs = messagesRes.data['data'] ?? [];
-        
+      final r = await ApiService().dio.get('/users/${widget.threadId}');
+      if (r.data['success'] == true) {
+        final p = r.data['data'];
+        setState(() => _recipientProfile = p);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchRecipientPublicKey() async {
+    try {
+      final r = await ApiService().dio.get('/messages/keys/${widget.threadId}');
+      if (r.data['success'] == true) {
+        _recipientPublicKey = r.data['data']?['x25519']?.toString();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _uploadMyPublicKey() async {
+    try {
+      final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
+      await ApiService().dio.put('/messages/keys/public', data: {'x25519': myPub});
+    } catch (_) {}
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final r = await ApiService().dio.get('/messages/dms/${widget.threadId}');
+      if (r.data['success'] == true) {
+        final rawMsgs = List<Map<String, dynamic>>.from(r.data['data'] ?? []);
+        _hasMore  = r.data['hasMore'] == true;
+        _oldestId = rawMsgs.isNotEmpty ? rawMsgs.first['_id']?.toString() : null;
+
+        final built = await _buildMessages(rawMsgs);
         setState(() {
-          _recipientProfile = profile;
-          _messages.clear();
-          
-          _messages.add({
-            'sender': 'system',
-            'text': 'Encryption enabled · messages are private',
-            'time': '',
-            'isMe': false
-          });
-          
-          for (final m in rawMsgs) {
-            final senderId = m['sender'] is Map ? m['sender']['_id'] : m['sender'];
-            final isMe = senderId != widget.threadId;
-            final dateStr = m['createdAt']?.toString() ?? '';
-            _messages.add({
-              'sender': isMe ? 'me' : widget.threadId,
-              'text': m['content'] ?? '',
-              'time': _formatTime(dateStr),
-              'isMe': isMe,
-            });
-          }
+          _messages
+            ..clear()
+            ..add(const _ChatMsg(isMe: false, isSystem: true, text: 'End-to-end encrypted · only you can read these messages', time: ''))
+            ..addAll(built);
           _loading = false;
         });
-        
         _scrollToBottom();
       }
     } on DioException catch (e) {
-      setState(() {
-        _error = ApiService.getErrorMessage(e);
-        _loading = false;
+      setState(() { _error = ApiService.getErrorMessage(e); _loading = false; });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _oldestId == null) return;
+    setState(() => _loadingMore = true);
+    try {
+      final r = await ApiService().dio.get(
+        '/messages/dms/${widget.threadId}',
+        queryParameters: {'before': _oldestId},
+      );
+      if (r.data['success'] == true) {
+        final rawMsgs = List<Map<String, dynamic>>.from(r.data['data'] ?? []);
+        _hasMore  = r.data['hasMore'] == true;
+        if (rawMsgs.isNotEmpty) _oldestId = rawMsgs.first['_id']?.toString();
+
+        final built = await _buildMessages(rawMsgs);
+        final prevLen = _messages.length;
+        setState(() {
+          _messages.insertAll(1, built); // after system marker
+          _loadingMore = false;
+        });
+        // Keep scroll position stable after prepend
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final added = _messages.length - prevLen;
+          if (_scrollCtrl.hasClients && added > 0) {
+            _scrollCtrl.jumpTo(_scrollCtrl.offset + (added * 72.0));
+          }
+        });
+      }
+    } catch (_) {
+      setState(() => _loadingMore = false);
+    }
+  }
+
+  /// Decrypts a batch of raw messages from the API.
+  Future<List<_ChatMsg>> _buildMessages(List<Map<String, dynamic>> rawMsgs) async {
+    final results = <_ChatMsg>[];
+    for (final m in rawMsgs) {
+      final senderId = (m['sender'] is Map ? m['sender']['_id'] : m['sender'])?.toString() ?? '';
+      final isMe     = senderId == _myId;
+      final time     = _formatTime(m['createdAt']?.toString() ?? '');
+
+      // E2EE message
+      if (m['ciphertext'] != null) {
+        String text;
+        bool failed = false;
+
+        if (_recipientPublicKey == null) {
+          text   = '🔒 Cannot decrypt (missing key)';
+          failed = true;
+        } else {
+          final decrypted = await EncryptionService.instance.decrypt(
+            ciphertextBase64:      m['ciphertext'].toString(),
+            nonceBase64:           m['nonce'].toString(),
+            macBase64:             m['mac'].toString(),
+            senderPublicKeyBase64: _recipientPublicKey!,
+          );
+          text   = decrypted ?? '🔒 Could not decrypt';
+          failed = decrypted == null;
+        }
+
+        results.add(_ChatMsg(id: m['_id']?.toString(), isMe: isMe, text: text, time: time, decryptFailed: failed));
+      } else {
+        // Legacy plaintext (before E2EE was active)
+        results.add(_ChatMsg(id: m['_id']?.toString(), isMe: isMe, text: m['content']?.toString() ?? '', time: time));
+      }
+    }
+    return results;
+  }
+
+  // ── Socket Subscriptions ──────────────────────────────────────────────────
+
+  void _subscribeToSocket() {
+    _dmSub = SocketService.instance.dmStream.listen((dm) async {
+      if (dm.senderId != widget.threadId && dm.receiverId != widget.threadId) return;
+
+      final isMe = dm.senderId == _myId;
+      if (_recipientPublicKey == null) {
+        await _fetchRecipientPublicKey();
+      }
+
+      final decoded = _recipientPublicKey == null ? null : await EncryptionService.instance.decrypt(
+        ciphertextBase64:      dm.ciphertext,
+        nonceBase64:           dm.nonce,
+        macBase64:             dm.mac,
+        senderPublicKeyBase64: _recipientPublicKey!,
+      );
+
+      final msg = _ChatMsg(
+        id:             dm.id,
+        isMe:           isMe,
+        text:           decoded ?? '🔒 Could not decrypt',
+        time:           _formatTime(dm.createdAt.toString()),
+        decryptFailed:  decoded == null,
+      );
+
+      if (mounted) setState(() => _messages.add(msg));
+      _scrollToBottom();
+
+      // Auto read receipt if the message is from them
+      if (!isMe) SocketService.instance.sendReadAck(widget.threadId);
+    });
+
+    _typingSub = SocketService.instance.dmTypingStream.listen((t) {
+      if (t.senderId != widget.threadId) return;
+      _typingClearTimer?.cancel();
+      if (mounted) setState(() => _isTyping = t.isTyping);
+      if (t.isTyping) {
+        _typingClearTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _isTyping = false);
+        });
+      }
+    });
+
+    _readSub = SocketService.instance.readAckStream.listen((readBy) {
+      if (readBy != widget.threadId) return;
+      // Could mark messages as read here — kept simple for MVP
+    });
+
+    _onlineSub = SocketService.instance.onlineStream.listen((uid) {
+      if (uid == widget.threadId && mounted) setState(() => _isOnline = true);
+    });
+
+    _offlineSub = SocketService.instance.offlineStream.listen((uid) {
+      if (uid == widget.threadId && mounted) setState(() => _isOnline = false);
+    });
+  }
+
+  // ── Send ──────────────────────────────────────────────────────────────────
+
+  Future<void> _sendMessage() async {
+    final text = _msgCtrl.text.trim();
+    if (text.isEmpty || _sending) return;
+
+    if (_recipientPublicKey == null) {
+      await _fetchRecipientPublicKey();
+    }
+
+    if (_recipientPublicKey == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Recipient's encryption key not found. Try again.")),
+      );
+      return;
+    }
+
+    setState(() => _sending = true);
+    _msgCtrl.clear();
+    _typingTimer?.cancel();
+    SocketService.instance.sendDmTyping(widget.threadId, isTyping: false);
+
+    try {
+      final encrypted = await EncryptionService.instance.encrypt(
+        plaintext:                text,
+        recipientPublicKeyBase64: _recipientPublicKey!,
+      );
+
+      final ok = await SocketService.instance.sendDM(
+        receiverId: widget.threadId,
+        ciphertext: encrypted['ciphertext']!,
+        nonce:      encrypted['nonce']!,
+        mac:        encrypted['mac']!,
+      );
+
+      if (ok) {
+        final newMsg = _ChatMsg(
+          id:             null,
+          isMe:           true,
+          text:           text,
+          time:           _formatTime(DateTime.now().toLocal().toString()),
+          decryptFailed:  false,
+        );
+        if (mounted) {
+          setState(() {
+            _messages.add(newMsg);
+          });
+          _scrollToBottom();
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send — please retry')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  void _onTextChanged(String value) {
+    // Debounce typing indicator: emit "typing" immediately, then "stopped" after 1.5 s
+    SocketService.instance.sendDmTyping(widget.threadId, isTyping: value.isNotEmpty);
+    _typingTimer?.cancel();
+    if (value.isNotEmpty) {
+      _typingTimer = Timer(const Duration(milliseconds: 1500), () {
+        SocketService.instance.sendDmTyping(widget.threadId, isTyping: false);
       });
     }
   }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _formatTime(String dateStr) {
     if (dateStr.isEmpty) return '';
     try {
       final dt = DateTime.parse(dateStr).toLocal();
-      final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-      final m = dt.minute.toString().padLeft(2, '0');
-      final ampm = dt.hour >= 12 ? 'PM' : 'AM';
-      return '$h:$m $ampm';
-    } catch (_) {
-      return '';
-    }
+      final h  = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+      final m  = dt.minute.toString().padLeft(2, '0');
+      return '$h:$m ${dt.hour >= 12 ? 'PM' : 'AM'}';
+    } catch (_) { return ''; }
   }
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (_scrollCtrl.hasClients) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 280),
           curve: Curves.easeOut,
         );
       }
     });
   }
 
-  Future<void> _sendMessage() async {
-    final text = _messageController.text.trim();
-    if (text.isEmpty) return;
-    
-    _messageController.clear();
-    
-    try {
-      final response = await ApiService().dio.post('/messages/send', data: {
-        'receiverId': widget.threadId,
-        'content': text,
-      });
-      
-      if (response.data['success'] == true) {
-        final m = response.data['data'];
-        final dateStr = m['createdAt']?.toString() ?? '';
-        setState(() {
-          _messages.add({
-            'sender': 'me',
-            'text': m['content'] ?? '',
-            'time': _formatTime(dateStr),
-            'isMe': true,
-          });
-        });
-        _scrollToBottom();
-      }
-    } on DioException catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to send message')),
-        );
-      }
-    }
-  }
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final statusColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final iconColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
-    final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
+    final nameColor    = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final statusColor  = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final borderColor  = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final iconColor    = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
+    final errorColor   = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
 
     final displayName = _recipientProfile?['name']?.toString() ?? 'Loading...';
-    final avatarUrl = _recipientProfile?['avatar']?.toString();
+    final avatarUrl   = _recipientProfile?['avatar']?.toString();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -167,45 +419,42 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           child: Row(
             children: [
               IconButton(
-                icon: Icon(Icons.arrow_back_rounded,
-                    color: nameColor, size: 22),
+                icon: Icon(Icons.arrow_back_rounded, color: nameColor, size: 22),
                 onPressed: () => context.pop(),
               ),
               GVibeAvatar(
-                  imageUrl: avatarUrl,
-                  initials: displayName.isNotEmpty ? displayName[0] : '?',
-                  size: 40,
-                  showGlow: true),
+                imageUrl: avatarUrl,
+                initials: displayName.isNotEmpty ? displayName[0] : '?',
+                size: 40,
+                showGlow: true,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      displayName,
+                    Text(displayName,
                       style: AppTextStyles.headlineMd.copyWith(
-                        color: nameColor,
-                        fontWeight: FontWeight.w600,
+                        color: nameColor, fontWeight: FontWeight.w600,
                       ),
                     ),
                     Row(
                       children: [
-                        const SizedBox(
-                          width: 6,
-                          height: 6,
+                        SizedBox(
+                          width: 6, height: 6,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              color: Color(0xFF34C77B), // success
+                              color: _isOnline ? const Color(0xFF34C77B) : const Color(0xFF888888),
                               shape: BoxShape.circle,
                             ),
                           ),
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          'Online',
+                          _isTyping ? 'typing...' : (_isOnline ? 'Online' : 'Offline'),
                           style: AppTextStyles.bodyXs.copyWith(
-                            color: statusColor,
+                            color: _isTyping ? statusColor : (_isOnline ? statusColor : iconColor),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -220,37 +469,35 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
       ),
       body: _loading
-          ? Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(statusColor),
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation(statusColor)))
           : _error != null
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        _error!,
-                        style: AppTextStyles.bodyMd.copyWith(color: errorColor),
-                      ),
+                      Text(_error!, style: AppTextStyles.bodyMd.copyWith(color: errorColor)),
                       const SizedBox(height: 16),
-                      GVibeButton(label: 'Retry', onPressed: _loadChatData),
+                      GVibeButton(label: 'Retry', onPressed: _loadHistory),
                     ],
                   ),
                 )
               : Column(
                   children: [
+                    if (_loadingMore)
+                      LinearProgressIndicator(
+                        color: statusColor,
+                        backgroundColor: borderColor,
+                        minHeight: 2,
+                      ),
                     Expanded(
                       child: ListView.builder(
-                        controller: _scrollController,
+                        controller: _scrollCtrl,
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                         itemCount: _messages.length,
                         itemBuilder: (_, i) {
                           final msg = _messages[i];
-                          if (msg['sender'] == 'system') {
-                            return _buildSystemMarker(msg['text'], context);
-                          }
+                          if (msg.isSystem) return _buildSystemMarker(msg.text, context);
                           return _buildBubble(msg, context);
                         },
                       ),
@@ -262,9 +509,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildSystemMarker(String text, BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final textColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final textColor   = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -278,8 +525,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               children: [
                 Icon(Icons.lock_rounded, color: textColor, size: 10),
                 const SizedBox(width: 4),
-                Text(text,
-                    style: AppTextStyles.bodyXs.copyWith(color: textColor)),
+                Text(text, style: AppTextStyles.bodyXs.copyWith(color: textColor)),
               ],
             ),
           ),
@@ -289,86 +535,77 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildBubble(Map<String, dynamic> msg, BuildContext context) {
-    final isMe = msg['isMe'] as bool;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+  Widget _buildBubble(_ChatMsg msg, BuildContext context) {
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
     final displayName = _recipientProfile?['name']?.toString() ?? '';
-    final avatarUrl = _recipientProfile?['avatar']?.toString();
+    final avatarUrl   = _recipientProfile?['avatar']?.toString();
 
     final double radius = isDark ? 8 : 16;
     final sentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final recColor = isDark ? const Color(0xFF121315) : const Color(0xFFF3F4F6);
+    final recColor  = isDark ? const Color(0xFF121315) : const Color(0xFFF3F4F6);
     final recBorder = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
     final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
     final timeColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final failColor = isDark ? const Color(0xFF838EA6) : const Color(0xFFAAAAAA);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: msg.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isMe) ...[
+          if (!msg.isMe) ...[
             GVibeAvatar(
-                imageUrl: avatarUrl,
-                initials: displayName.isNotEmpty ? displayName[0] : '?',
-                size: 30),
+              imageUrl: avatarUrl,
+              initials: displayName.isNotEmpty ? displayName[0] : '?',
+              size: 30,
+            ),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Column(
-              crossAxisAlignment: isMe
-                  ? CrossAxisAlignment.end
-                  : CrossAxisAlignment.start,
+              crossAxisAlignment: msg.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.68,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                  constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.68),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isMe ? sentColor : recColor,
-                    border: isMe ? null : Border.all(color: recBorder, width: 1),
+                    color: msg.isMe ? sentColor : recColor,
+                    border: msg.isMe ? null : Border.all(color: recBorder, width: 1),
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(radius),
-                      topRight: Radius.circular(radius),
-                      bottomLeft: Radius.circular(isMe ? radius : 4),
-                      bottomRight: Radius.circular(isMe ? 4 : radius),
+                      topLeft:     Radius.circular(radius),
+                      topRight:    Radius.circular(radius),
+                      bottomLeft:  Radius.circular(msg.isMe ? radius : 4),
+                      bottomRight: Radius.circular(msg.isMe ? 4 : radius),
                     ),
                   ),
                   child: Text(
-                    msg['text'],
+                    msg.text,
                     style: AppTextStyles.bodyMd.copyWith(
-                      color: isMe ? Colors.white : textColor,
+                      color: msg.decryptFailed ? failColor : (msg.isMe ? Colors.white : textColor),
                       fontSize: 14,
+                      fontStyle: msg.decryptFailed ? FontStyle.italic : FontStyle.normal,
                     ),
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  msg['time'],
-                  style: AppTextStyles.monoXs.copyWith(color: timeColor),
-                ),
+                Text(msg.time, style: AppTextStyles.monoXs.copyWith(color: timeColor)),
               ],
             ),
           ),
-          if (isMe) const SizedBox(width: 8),
+          if (msg.isMe) const SizedBox(width: 8),
         ],
       ),
     );
   }
 
   Widget _buildInputBar(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+    final isDark      = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final inputBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-    final buttonBg = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final inputColor = isDark ? Colors.white : const Color(0xFF171717);
-    final hintColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final inputBg     = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final buttonBg    = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final inputColor  = isDark ? Colors.white : const Color(0xFF171717);
+    final hintColor   = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
 
     return SafeArea(
       child: Container(
@@ -379,20 +616,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         child: Row(
           children: [
-            // Attachment
+            // Attachment placeholder
             Container(
-              width: 44,
-              height: 44,
+              width: 44, height: 44,
               decoration: BoxDecoration(
                 color: inputBg,
                 borderRadius: BorderRadius.circular(isDark ? 8 : 6),
                 border: Border.all(color: borderColor, width: 1),
               ),
-              child: Icon(Icons.add_rounded,
-                  color: hintColor, size: 20),
+              child: Icon(Icons.add_rounded, color: hintColor, size: 20),
             ),
             const SizedBox(width: 10),
-            // Input
             Expanded(
               child: Container(
                 height: 44,
@@ -403,7 +637,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   border: Border.all(color: borderColor, width: 1),
                 ),
                 child: TextField(
-                  controller: _messageController,
+                  controller: _msgCtrl,
+                  onChanged: _onTextChanged,
                   onSubmitted: (_) => _sendMessage(),
                   style: AppTextStyles.bodyMd.copyWith(color: inputColor),
                   decoration: InputDecoration(
@@ -420,18 +655,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            // Send
             GestureDetector(
-              onTap: _sendMessage,
+              onTap: _sending ? null : _sendMessage,
               child: Container(
-                width: 44,
-                height: 44,
+                width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: buttonBg,
+                  color: _sending ? buttonBg.withValues(alpha: 0.5) : buttonBg,
                   borderRadius: BorderRadius.circular(isDark ? 8 : 6),
                 ),
-                child: const Icon(Icons.send_rounded,
-                    color: Colors.white, size: 18),
+                child: _sending
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
               ),
             ),
           ],

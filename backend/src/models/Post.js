@@ -35,6 +35,11 @@ const postSchema = new mongoose.Schema({
       default: Date.now,
     }
   }],
+  tags: [{
+    type: String,
+    lowercase: true,
+    trim: true
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Post', postSchema);

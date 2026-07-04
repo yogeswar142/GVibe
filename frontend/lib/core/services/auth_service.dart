@@ -4,15 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:dio/dio.dart';
 import 'api_service.dart';
+import 'socket_service.dart';
+import 'encryption_service.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
-  static const String _userKey = 'user_data';
+  static const String _userKey  = 'user_data';
+  static const String _userIdKey = 'user_id';
 
-  // Save JWT token
+  // Save JWT token and connect Socket.io
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
+    // Connect socket immediately so DMs arrive without delay
+    SocketService.instance.connect(token);
   }
 
   // Get JWT token
@@ -27,10 +32,21 @@ class AuthService {
     return token != null && token.isNotEmpty;
   }
 
-  // Save user data as JSON
+  // Save user data as JSON (also persists userId for socket DM routing)
   static Future<void> saveUser(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Check if the user is switching accounts to clear key cache
+    final existingUid = prefs.getString(_userIdKey);
+    final newUid = userData['_id']?.toString() ?? userData['id']?.toString();
+    if (existingUid != null && existingUid != newUid) {
+      EncryptionService.instance.clearCache();
+      await EncryptionService.instance.clearSecureKeys();
+    }
+    
     await prefs.setString(_userKey, jsonEncode(userData));
+    // Persist userId separately for quick access without full JSON decode
+    if (newUid != null) await prefs.setString(_userIdKey, newUid);
   }
 
   // Get cached user data
@@ -48,6 +64,14 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
+    await prefs.remove(_userIdKey);
+    // Disconnect socket and clear in-memory E2EE key pair + secure storage E2EE keys
+    SocketService.instance.disconnect();
+    EncryptionService.instance.clearCache();
+    await EncryptionService.instance.clearSecureKeys();
+    try {
+      await GoogleSignIn.instance.disconnect();
+    } catch (_) {}
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}

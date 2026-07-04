@@ -141,7 +141,7 @@ class _BackendDownScreenState extends State<BackendDownScreen>
               ),
               
               // Lower the image by adding space below the status bar
-              const SizedBox(height: 80),
+              const SizedBox(height: 140),
 
               // ── Hero Image fitted to width ─────────────────
               Image.asset(

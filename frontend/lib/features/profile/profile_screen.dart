@@ -102,6 +102,97 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (mounted) context.go(AppRouter.login);
   }
 
+  Future<void> _showPrivacySettingsDialog() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF0F1011) : Colors.white;
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
+    String currentPrivacy = _user?['privacy']?.toString() ?? 'public';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor, width: 1.5),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Privacy Settings',
+                  style: AppTextStyles.headlineMd.copyWith(color: nameColor, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                RadioListTile<String>(
+                  title: Text('Public Profile', style: TextStyle(color: nameColor)),
+                  subtitle: const Text('Anyone can message you and see your campus activity', style: TextStyle(fontSize: 11)),
+                  value: 'public',
+                  groupValue: currentPrivacy,
+                  activeColor: accentColor,
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => currentPrivacy = val);
+                  },
+                ),
+                RadioListTile<String>(
+                  title: Text('Private Profile', style: TextStyle(color: nameColor)),
+                  subtitle: const Text('New or non-friend messages will be filtered and sorted separately', style: TextStyle(fontSize: 11)),
+                  value: 'private',
+                  groupValue: currentPrivacy,
+                  activeColor: accentColor,
+                  onChanged: (val) {
+                    if (val != null) setDialogState(() => currentPrivacy = val);
+                  },
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel', style: TextStyle(color: accentColor)),
+                    ),
+                    const SizedBox(width: 8),
+                    GVibeButton(
+                      label: 'Save',
+                      onPressed: () async {
+                        try {
+                          final response = await ApiService().dio.put(
+                            '/users/profile',
+                            data: {'privacy': currentPrivacy},
+                          );
+                          if (response.data['success'] == true) {
+                            if (mounted) {
+                              setState(() {
+                                _user = response.data['data'];
+                              });
+                            }
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Privacy settings updated successfully')),
+                            );
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -181,12 +272,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
+      padding: EdgeInsets.fromLTRB(_isOwnProfile ? 20 : 8, 52, 20, 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
+          if (!_isOwnProfile) ...[
+            IconButton(
+              icon: Icon(Icons.arrow_back_rounded, color: logoColor, size: 22),
+              onPressed: () => context.pop(),
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
-            'GVibe',
+            _isOwnProfile ? 'GVibe' : 'Profile',
             style: AppTextStyles.displaySm.copyWith(
               color: logoColor,
               fontWeight: FontWeight.w700,
@@ -200,6 +298,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onTap: () => ref.read(themeModeProvider.notifier).toggle(),
           ),
           if (_isOwnProfile) ...[          
+            const SizedBox(width: 8),
+            _IconButton(
+              icon: Icons.settings_outlined,
+              onTap: _showPrivacySettingsDialog,
+            ),
             const SizedBox(width: 8),
             GestureDetector(
               onTap: _logout,

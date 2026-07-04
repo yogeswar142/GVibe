@@ -11,6 +11,7 @@ import '../../features/profile/following_screen.dart';
 import '../../features/error/error_screen.dart';
 import '../../features/error/backend_down_screen.dart';
 import '../../features/messages/chat_detail_screen.dart';
+import '../../features/messages/community_chat_screen.dart';
 
 // Slide-up from bottom transition (used for auth pages)
 CustomTransitionPage<void> _slideUpTransition({
@@ -135,6 +136,17 @@ class AppRouter {
         builder: (context, state) {
           final threadId = state.pathParameters['threadId']!;
           return ChatDetailScreen(threadId: threadId);
+        },
+      ),
+      GoRoute(
+        path: '/community/:communityId',
+        builder: (context, state) {
+          final communityId   = state.pathParameters['communityId']!;
+          final communityName = (state.extra as String?) ?? 'Community';
+          return CommunityChatScreen(
+            communityId:   communityId,
+            communityName: communityName,
+          );
         },
       ),
       GoRoute(

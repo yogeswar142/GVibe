@@ -3,7 +3,21 @@ const User = require('../models/User');
 // GET /api/users — list all users (for discovery)
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ _id: { $ne: req.user.id } })
+    const currentUser = await User.findById(req.user.id).select('followers following');
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const connectedUserIds = [
+      ...currentUser.followers.map(id => id.toString()),
+      ...currentUser.following.map(id => id.toString())
+    ];
+    // De-duplicate and cast to ObjectIds
+    const uniqueConnectedUserIds = [...new Set(connectedUserIds)].map(id => new (require('mongoose')).Types.ObjectId(id));
+
+    const users = await User.find({ 
+      _id: { $in: uniqueConnectedUserIds } 
+    })
       .select('name avatar dept year bio level followers following')
       .sort({ createdAt: -1 })
       .limit(50);
@@ -41,6 +55,9 @@ exports.updateProfile = async (req, res) => {
     user.year = req.body.academicLevel || req.body.year || user.year;
     user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
     user.avatar = req.body.avatar || user.avatar;
+    if (req.body.privacy !== undefined) {
+      user.privacy = req.body.privacy;
+    }
 
     // Save extra fields
     user.registrationNumber = req.body.registrationNumber || user.registrationNumber;
@@ -83,6 +100,7 @@ exports.updateProfile = async (req, res) => {
         interests: updatedUser.interests,
         profileComplete: updatedUser.profileComplete,
         isVerified: updatedUser.isVerified,
+        privacy: updatedUser.privacy,
       }
     });
 

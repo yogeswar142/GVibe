@@ -6,6 +6,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/providers/theme_provider.dart';
+import 'community_sheet.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -17,15 +18,19 @@ class MessagesScreen extends ConsumerStatefulWidget {
 class _MessagesScreenState extends ConsumerState<MessagesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<dynamic> _users = [];
-  bool _loading = true;
+  List<dynamic> _users       = [];
+  List<dynamic> _communities = [];
+  bool _loading          = true;
+  bool _commLoading      = true;
   String? _error;
+  String? _commError;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _fetchUsers();
+    _fetchCommunities();
   }
 
   @override
@@ -35,23 +40,26 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   }
 
   Future<void> _fetchUsers() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
     try {
       final response = await ApiService().dio.get('/users');
       if (response.data['success'] == true) {
-        setState(() {
-          _users = response.data['data'] ?? [];
-          _loading = false;
-        });
+        setState(() { _users = response.data['data'] ?? []; _loading = false; });
       }
     } on DioException catch (e) {
-      setState(() {
-        _error = ApiService.getErrorMessage(e);
-        _loading = false;
-      });
+      setState(() { _error = ApiService.getErrorMessage(e); _loading = false; });
+    }
+  }
+
+  Future<void> _fetchCommunities() async {
+    setState(() { _commLoading = true; _commError = null; });
+    try {
+      final r = await ApiService().dio.get('/messages/communities');
+      if (r.data['success'] == true) {
+        setState(() { _communities = r.data['data'] ?? []; _commLoading = false; });
+      }
+    } on DioException catch (e) {
+      setState(() { _commError = ApiService.getErrorMessage(e); _commLoading = false; });
     }
   }
 
@@ -69,7 +77,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
               controller: _tabController,
               children: [
                 _buildDirectList(context),
-                _buildCommunitiesEmpty(context),
+                _buildCommunitiesList(context),
               ],
             ),
           ),
@@ -116,8 +124,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
           const SizedBox(width: 8),
           _IconButton(
             icon: Icons.edit_outlined,
-            onTap: () {
-              // Compose action
+            onTap: () async {
+              final result = await showCommunitySheet(context);
+              if (result != null) _fetchCommunities();
             },
           ),
         ],
@@ -306,49 +315,77 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     );
   }
 
-  Widget _buildCommunitiesEmpty(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    
-    final iconBg = isDark ? const Color(0xFF1A1F4D) : const Color(0xFFF3F4F6);
-    final iconColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+  Widget _buildCommunitiesList(BuildContext context) {
+    final isDark       = Theme.of(context).brightness == Brightness.dark;
+    final accentColor  = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final errorColor   = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+    final separatorColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final emptyColor   = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final titleColor   = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final iconBg       = isDark ? const Color(0xFF1A1F4D) : const Color(0xFFF3F4F6);
 
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    if (_commLoading) {
+      return Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(accentColor)));
+    }
+    if (_commError != null) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text(_commError!, style: AppTextStyles.bodyMd.copyWith(color: errorColor)),
+          const SizedBox(height: 16),
+          GVibeButton(label: 'Retry', onPressed: _fetchCommunities),
+        ]),
+      );
+    }
+    if (_communities.isEmpty) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(Icons.group_rounded, color: iconColor, size: 36),
+            width: 72, height: 72,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(20)),
+            child: Icon(Icons.group_rounded, color: accentColor, size: 36),
           ),
           const SizedBox(height: 20),
-          Text(
-            'No communities yet',
-            style: AppTextStyles.headlineMd.copyWith(
-              color: titleColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          Text('No communities yet', style: AppTextStyles.headlineMd.copyWith(color: titleColor, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Text(
-            'Join a community to start vibing',
-            style: AppTextStyles.bodyMd.copyWith(color: subtitleColor),
-          ),
+          Text('Join a community to start vibing', style: AppTextStyles.bodyMd.copyWith(color: emptyColor)),
           const SizedBox(height: 24),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: GVibeButton(
               label: 'Browse Communities',
-              onPressed: () {},
+              onPressed: () async {
+                final result = await showCommunitySheet(context);
+                if (result != null) _fetchCommunities();
+              },
             ),
           ),
-        ],
+        ]),
+      );
+    }
+    return RefreshIndicator(
+      color: accentColor,
+      onRefresh: _fetchCommunities,
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: _communities.length,
+        separatorBuilder: (_, __) => Divider(color: separatorColor, height: 0.5, indent: 82),
+        itemBuilder: (_, i) {
+          final c = _communities[i];
+          final name        = c['name']?.toString() ?? 'Community';
+          final desc        = c['description']?.toString() ?? '';
+          final memberCount = c['memberCount'] ?? 0;
+          final isPrivate   = c['isPrivate'] == true;
+          final id          = c['_id']?.toString() ?? '';
+          return _ChatRow(
+            name: name,
+            time: '$memberCount members',
+            message: isPrivate ? '🔒 Private · $desc' : desc.isEmpty ? 'Tap to open chat' : desc,
+            hasUnread: false,
+            unreadCount: 0,
+            isOnline: false,
+            onTap: () => context.push('/community/$id', extra: name),
+          );
+        },
       ),
     );
   }

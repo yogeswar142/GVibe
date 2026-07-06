@@ -246,6 +246,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (dm.senderId != widget.threadId && dm.receiverId != widget.threadId) return;
 
       final isMe = dm.senderId == _myId;
+
+      // If we are the sender, check if we already have an optimistic message in the list
+      if (isMe) {
+        final optIndex = _messages.indexWhere((m) => m.isMe && m.id == null);
+        if (optIndex != -1) {
+          if (mounted) {
+            setState(() {
+              _messages[optIndex] = _ChatMsg(
+                id:             dm.id,
+                isMe:           true,
+                text:           _messages[optIndex].text, // Keep already decrypted text
+                time:           _formatTime(dm.createdAt.toString()),
+                decryptFailed:  false,
+              );
+            });
+          }
+          return;
+        }
+      }
+
       if (_recipientPublicKey == null) {
         await _fetchRecipientPublicKey();
       }

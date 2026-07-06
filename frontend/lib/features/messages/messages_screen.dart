@@ -23,6 +23,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   late TabController _tabController;
   List<dynamic> _convos       = []; // real DM conversations (inbox)
   List<dynamic> _communities  = [];
+  List<dynamic> _following    = []; // users this user is following
   bool _loading               = true;
   bool _commLoading           = true;
   String? _error;
@@ -57,6 +58,19 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
       _myId = prefs.getString('user_id');
     });
     _subscribeToSockets();
+    _fetchFollowing();
+  }
+
+  Future<void> _fetchFollowing() async {
+    if (_myId == null) return;
+    try {
+      final r = await ApiService().dio.get('/users/$_myId/following');
+      if (r.data['success'] == true) {
+        setState(() {
+          _following = r.data['data'] ?? [];
+        });
+      }
+    } catch (_) {}
   }
 
   void _subscribeToSockets() {
@@ -107,6 +121,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         'nonce': dm.nonce,
         'mac': dm.mac,
         'createdAt': dm.createdAt.toIso8601String(),
+        'read': false, // Socket message starts as unread
       };
 
       if (index != -1) {
@@ -137,6 +152,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
           } else {
             convo['sender'] = updatedPartner;
           }
+        }
+      }
+
+      for (var i = 0; i < _following.length; i++) {
+        final user = _following[i];
+        if (user['_id']?.toString() == userId) {
+          final updatedUser = Map<String, dynamic>.from(user);
+          updatedUser['lastSeen'] = isOnline ? null : DateTime.now().toIso8601String();
+          _following[i] = updatedUser;
         }
       }
     });
@@ -238,9 +262,95 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     );
   }
 
-  // BUG-05 fix: online row now removed — the conversations list shows
-  // real last-seen data per partner so a separate strip is redundant.
-  Widget _buildOnlineRow(BuildContext context) => const SizedBox.shrink();
+  Widget _buildOnlineRow(BuildContext context) {
+    if (_following.isEmpty) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nameColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final titleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
+
+    return Container(
+      height: 104,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC), width: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+            child: Text(
+              'DIRECT CHATS',
+              style: AppTextStyles.monoXs.copyWith(color: titleColor, letterSpacing: 0.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: _following.length,
+              itemBuilder: (context, index) {
+                final user = _following[index];
+                final name = user['name']?.toString() ?? '';
+                final avatar = user['avatar']?.toString();
+                final uid = user['_id']?.toString() ?? '';
+                final isOnline = user['lastSeen'] == null;
+                final firstName = name.split(' ').first;
+
+                return GestureDetector(
+                  onTap: () => context.push('/chat/$uid'),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Stack(
+                          children: [
+                            GVibeAvatar(
+                              imageUrl: avatar,
+                              initials: name.isNotEmpty ? name[0] : '?',
+                              size: 40,
+                              showGlow: isOnline,
+                            ),
+                            if (isOnline)
+                              Positioned(
+                                right: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF34C77B),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(context).scaffoldBackgroundColor,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          firstName,
+                          style: AppTextStyles.bodyXs.copyWith(color: nameColor, fontSize: 11, fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTabBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -376,13 +486,18 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
             } catch (_) {}
           }
 
+          final senderIdStr = sender is Map ? sender['_id']?.toString() : sender?.toString();
+          final isLastMessageFromPartner = senderIdStr != _myId;
+          final isUnread = convo['read'] == false;
+          final hasUnread = isLastMessageFromPartner && isUnread;
+
           return _ChatRow(
             name:       name,
             avatarUrl:  avatar,
             time:       timeLabel,
             message:    lastPreview,
-            hasUnread:  false, // TODO: wire up real unread count
-            unreadCount: 0,
+            hasUnread:  hasUnread,
+            unreadCount: hasUnread ? 1 : 0,
             isOnline:   isOnline,
             onTap: () => context.push('/chat/$partnerId'),
           );
@@ -570,20 +685,14 @@ class _ChatRow extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (hasUnread && unreadCount > 0) ...[
+                      if (hasUnread) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: unreadBadgeBg,
-                            borderRadius: BorderRadius.circular(999), // pill
-                          ),
-                          child: Text(
-                            '$unreadCount',
-                            style: AppTextStyles.monoXs.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE5484D), // Red dot indicator
+                            shape: BoxShape.circle,
                           ),
                         ),
                       ],

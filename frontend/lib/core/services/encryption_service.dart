@@ -38,13 +38,23 @@ class EncryptionService {
   final _x25519 = X25519();
   final _aes    = AesGcm.with256bits();
 
+  String? _cachedUserId;
   SimpleKeyPair? _cachedKeyPair;
 
   // ── Key Management ─────────────────────────────────────────────────────────
 
   /// Returns the local key pair, loading from secure storage or generating fresh.
   Future<SimpleKeyPair> _getOrCreateKeyPair() async {
-    if (_cachedKeyPair != null) return _cachedKeyPair!;
+    final prefs = await SharedPreferences.getInstance();
+    final uid = prefs.getString('user_id') ?? 'default';
+
+    if (_cachedKeyPair != null && _cachedUserId == uid) {
+      return _cachedKeyPair!;
+    }
+
+    // Cache mismatch or empty: clear and reload under active user namespace
+    _cachedKeyPair = null;
+    _cachedUserId = uid;
 
     final privateKeyKey = await _getPrivateKeyStorageKey();
     final publicKeyKey = await _getPublicKeyStorageKey();
@@ -181,7 +191,10 @@ class EncryptionService {
   }
 
   /// Wipes the cached key pair from memory (call on logout).
-  void clearCache() => _cachedKeyPair = null;
+  void clearCache() {
+    _cachedKeyPair = null;
+    _cachedUserId = null;
+  }
 
   /// Wipes public and private keys from secure storage (call on logout).
   Future<void> clearSecureKeys() async {

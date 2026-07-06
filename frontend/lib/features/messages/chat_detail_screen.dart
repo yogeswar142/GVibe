@@ -466,6 +466,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       style: AppTextStyles.headlineMd.copyWith(
                         color: nameColor, fontWeight: FontWeight.w600,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       children: [
@@ -546,17 +548,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       child: Row(
         children: [
           Expanded(child: Divider(color: borderColor)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+          const SizedBox(width: 8),
+          Flexible(
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.lock_rounded, color: textColor, size: 10),
                 const SizedBox(width: 4),
-                Text(text, style: AppTextStyles.bodyXs.copyWith(color: textColor)),
+                Flexible(
+                  child: Text(
+                    text,
+                    style: AppTextStyles.bodyXs.copyWith(color: textColor),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(child: Divider(color: borderColor)),
         ],
       ),

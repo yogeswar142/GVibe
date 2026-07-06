@@ -18,6 +18,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'api_service.dart';
 
 // ── Event data models ────────────────────────────────────────────────────────
 
@@ -140,8 +141,7 @@ class SocketService {
     _currentToken = jwtToken;
 
     final socketUrl = dotenv.env['SOCKET_URL']
-        ?? dotenv.env['API_BASE_URL']?.replaceAll('/api', '')
-        ?? 'http://10.0.2.2:5000';
+        ?? ApiService.baseUrl.replaceAll('/api', '');
 
     _socket = io.io(socketUrl, io.OptionBuilder()
       .setTransports(['websocket'])

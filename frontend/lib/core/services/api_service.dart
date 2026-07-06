@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:go_router/go_router.dart';
 import '../router/app_router.dart';
 
@@ -14,8 +16,18 @@ class ApiService {
   // Navigator key linked to GoRouter's navigatorKey
   static GlobalKey<NavigatorState> get navigatorKey => AppRouter.navigatorKey;
 
-  // Retrieve the base URL from the .env file.
-  static final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:5000/api';
+  static String? _resolvedBaseUrl;
+
+  // Retrieve the base URL from the .env file with platform-specific adjustments.
+  static String get baseUrl {
+    if (_resolvedBaseUrl != null) return _resolvedBaseUrl!;
+    
+    String url = dotenv.env['API_BASE_URL'] ?? 'http://localhost:5000/api';
+    if (!kIsWeb && Platform.isAndroid) {
+      url = url.replaceAll('localhost', '10.0.2.2').replaceAll('127.0.0.1', '10.0.2.2');
+    }
+    return url;
+  }
 
   ApiService._internal() {
     dio = Dio(BaseOptions(
@@ -89,43 +101,63 @@ class ApiService {
   }
 
   /// Fast connectivity check to determine if the backend is reachable.
+  /// Dynamically tests candidate URLs (configured, emulator local, and static Ngrok tunnel)
+  /// and locks onto the first responding URL.
   Future<bool> checkConnection() async {
-    try {
-      final response = await dio.get(
-        '/',
-        options: Options(
-          connectTimeout: const Duration(milliseconds: 2500),
-          receiveTimeout: const Duration(milliseconds: 2500),
-        ),
-      );
-      
-      // If response body is HTML (like Ngrok's gateway error page), the backend is offline
-      final data = response.data;
-      if (data is String && (data.contains('<!DOCTYPE html>') || data.contains('<html>'))) {
-        return false;
+    final configuredUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:5000/api';
+    final candidates = <String>[];
+
+    // 1. Configured URL
+    candidates.add(configuredUrl);
+
+    // 2. Android emulator translation if configured is localhost
+    if (!kIsWeb && Platform.isAndroid) {
+      if (configuredUrl.contains('localhost') || configuredUrl.contains('127.0.0.1')) {
+        final emuUrl = configuredUrl.replaceAll('localhost', '10.0.2.2').replaceAll('127.0.0.1', '10.0.2.2');
+        if (!candidates.contains(emuUrl)) {
+          candidates.add(emuUrl);
+        }
       }
-      return true;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      // 502 Bad Gateway / 503 Service Unavailable / 504 Gateway Timeout mean backend is offline
-      if (status == 502 || status == 503 || status == 504 || status == 500) {
-        return false;
-      }
-      if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.connectionTimeout ||
-          e.message?.contains('Connection refused') == true ||
-          e.message?.contains('SocketException') == true) {
-        return false;
-      }
-      // Check if error response body is HTML
-      final data = e.response?.data;
-      if (data is String && (data.contains('<!DOCTYPE html>') || data.contains('<html>'))) {
-        return false;
-      }
-      return true;
-    } catch (_) {
-      return false;
     }
+
+    // 3. Static Ngrok tunnel URL
+    const ngrokUrl = 'https://levitative-unpresumptuously-claire.ngrok-free.dev/api';
+    if (!candidates.contains(ngrokUrl)) {
+      candidates.add(ngrokUrl);
+    }
+
+    // If we already successfully resolved one, test it first
+    if (_resolvedBaseUrl != null) {
+      candidates.remove(_resolvedBaseUrl!);
+      candidates.insert(0, _resolvedBaseUrl!);
+    }
+
+    debugPrint('🔍 Testing backend candidate URLs: $candidates');
+
+    for (final candidate in candidates) {
+      try {
+        final testDio = Dio(BaseOptions(
+          baseUrl: candidate,
+          connectTimeout: const Duration(milliseconds: 2000),
+          receiveTimeout: const Duration(milliseconds: 2000),
+        ));
+        final response = await testDio.get('/');
+        final data = response.data;
+        
+        // Ngrok returns standard HTML page if the tunnel is down/uninitialized/error
+        final isHtml = data is String && (data.contains('<!DOCTYPE html>') || data.contains('<html>'));
+        if (!isHtml) {
+          _resolvedBaseUrl = candidate;
+          dio.options.baseUrl = candidate;
+          debugPrint('🔌 GVibe successfully locked onto backend URL: $candidate');
+          return true;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Candidate URL $candidate unreachable: $e');
+      }
+    }
+
+    return false;
   }
 
   static String getErrorMessage(dynamic error) {

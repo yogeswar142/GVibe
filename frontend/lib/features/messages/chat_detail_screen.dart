@@ -94,10 +94,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final prefs = await SharedPreferences.getInstance();
     _myId = prefs.getString('user_id');
 
+    // Fetch recipient's public key FIRST so it is guaranteed available for decryption
+    await _fetchRecipientPublicKey();
+
     await Future.wait([
       _loadProfile(),
       _loadHistory(),
-      _fetchRecipientPublicKey(),
       _uploadMyPublicKey(),
     ]);
 
@@ -145,6 +147,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _loadHistory() async {
     setState(() { _loading = true; _error = null; });
     try {
+      if (_recipientPublicKey == null) {
+        await _fetchRecipientPublicKey();
+      }
       final r = await ApiService().dio.get('/messages/dms/${widget.threadId}');
       if (r.data['success'] == true) {
         final rawMsgs = List<Map<String, dynamic>>.from(r.data['data'] ?? []);
@@ -350,6 +355,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _messages.remove(optimisticMsg));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: ${e.toString()}')),
         );

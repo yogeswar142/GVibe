@@ -7,6 +7,8 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/providers/theme_provider.dart';
+import 'dart:async';
+import '../../core/services/socket_service.dart';
 import 'community_sheet.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   String? _commError;
   String? _myId;
 
+  StreamSubscription<DmMessage>? _dmSub;
+  StreamSubscription<String>? _onlineSub;
+  StreamSubscription<String>? _offlineSub;
+
   @override
   void initState() {
     super.initState();
@@ -39,12 +45,101 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _dmSub?.cancel();
+    _onlineSub?.cancel();
+    _offlineSub?.cancel();
     super.dispose();
   }
 
   Future<void> _loadMyId() async {
     final prefs = await SharedPreferences.getInstance();
-    _myId = prefs.getString('user_id');
+    setState(() {
+      _myId = prefs.getString('user_id');
+    });
+    _subscribeToSockets();
+  }
+
+  void _subscribeToSockets() {
+    _dmSub?.cancel();
+    _dmSub = SocketService.instance.dmStream.listen((dm) {
+      if (!mounted) return;
+      _handleIncomingDm(dm);
+    });
+
+    _onlineSub?.cancel();
+    _onlineSub = SocketService.instance.onlineStream.listen((userId) {
+      if (!mounted) return;
+      _updateUserOnlineStatus(userId, true);
+    });
+
+    _offlineSub?.cancel();
+    _offlineSub = SocketService.instance.offlineStream.listen((userId) {
+      if (!mounted) return;
+      _updateUserOnlineStatus(userId, false);
+    });
+  }
+
+  void _handleIncomingDm(DmMessage dm) {
+    // Only process the message if it belongs to the current user
+    if (dm.senderId != _myId && dm.receiverId != _myId) return;
+    
+    final partnerId = dm.senderId == _myId ? dm.receiverId : dm.senderId;
+
+    setState(() {
+      final index = _convos.indexWhere((convo) {
+        final sender = convo['sender'] is Map ? convo['sender'] : null;
+        final receiver = convo['receiver'] is Map ? convo['receiver'] : null;
+        final sId = sender?['_id']?.toString() ?? '';
+        final rId = receiver?['_id']?.toString() ?? '';
+        final pId = sId == _myId ? rId : sId;
+        return pId == partnerId;
+      });
+
+      final newConvo = {
+        '_id': dm.id,
+        'sender': dm.senderId == _myId 
+            ? {'_id': _myId, 'name': 'You'} 
+            : {'_id': dm.senderId, 'name': dm.senderName, 'avatar': dm.senderAvatar},
+        'receiver': dm.senderId == _myId
+            ? {'_id': dm.receiverId}
+            : {'_id': _myId},
+        'ciphertext': dm.ciphertext,
+        'nonce': dm.nonce,
+        'mac': dm.mac,
+        'createdAt': dm.createdAt.toIso8601String(),
+      };
+
+      if (index != -1) {
+        final existingConvo = _convos[index];
+        newConvo['sender'] = existingConvo['sender'];
+        newConvo['receiver'] = existingConvo['receiver'];
+        
+        _convos.removeAt(index);
+        _convos.insert(0, newConvo);
+      } else {
+        _convos.insert(0, newConvo);
+      }
+    });
+  }
+
+  void _updateUserOnlineStatus(String userId, bool isOnline) {
+    setState(() {
+      for (var convo in _convos) {
+        final sender = convo['sender'] is Map ? convo['sender'] : null;
+        final receiver = convo['receiver'] is Map ? convo['receiver'] : null;
+        final sId = sender?['_id']?.toString() ?? '';
+        final p = sId == _myId ? receiver : sender;
+        if (p != null && p['_id']?.toString() == userId) {
+          final updatedPartner = Map<String, dynamic>.from(p);
+          updatedPartner['lastSeen'] = isOnline ? null : DateTime.now().toIso8601String();
+          if (sId == _myId) {
+            convo['receiver'] = updatedPartner;
+          } else {
+            convo['sender'] = updatedPartner;
+          }
+        }
+      }
+    });
   }
 
   // BUG-05 fix: fetch real DM conversations instead of all users

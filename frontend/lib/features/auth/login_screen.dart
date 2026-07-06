@@ -63,9 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = response.data['data'];
         await AuthService.saveToken(data['token']);
         await AuthService.saveUser(data);
-        // BUG-01 fix: regenerate + upload a fresh E2EE key after every login
-        // so device key and server key are guaranteed to be in sync.
-        await AuthService.uploadFreshKeys(ApiService());
+        // BUG-01 fix: sync E2EE keys dynamically after every login
+        // so device key and server key are in sync without breaking history.
+        await AuthService.syncEncryptionKeys(ApiService());
         if (mounted) context.go(AppRouter.home);
       } else {
         setState(() => _error = response.data['message'] ?? 'Login failed');
@@ -346,8 +346,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                    final data = response['data'];
                                    await AuthService.saveToken(data['token']);
                                    await AuthService.saveUser(data);
-                                   // BUG-01 fix: regenerate + upload fresh E2EE key
-                                   await AuthService.uploadFreshKeys(ApiService());
+                                    // BUG-01 fix: sync E2EE keys dynamically
+                                    await AuthService.syncEncryptionKeys(ApiService());
                                    if (mounted) {
                                      if (data['profileComplete'] == true) {
                                        context.go(AppRouter.home);

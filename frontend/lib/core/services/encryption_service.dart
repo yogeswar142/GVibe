@@ -13,13 +13,23 @@ library;
 import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EncryptionService {
   EncryptionService._();
   static final EncryptionService instance = EncryptionService._();
 
-  static const _privateKeyStorageKey = 'gvibe_chat_private_key_v1';
-  static const _publicKeyStorageKey  = 'gvibe_chat_public_key_v1';
+  Future<String> _getPrivateKeyStorageKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = prefs.getString('user_id') ?? 'default';
+    return 'gvibe_chat_private_key_v1_$uid';
+  }
+
+  Future<String> _getPublicKeyStorageKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = prefs.getString('user_id') ?? 'default';
+    return 'gvibe_chat_public_key_v1_$uid';
+  }
 
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -36,7 +46,10 @@ class EncryptionService {
   Future<SimpleKeyPair> _getOrCreateKeyPair() async {
     if (_cachedKeyPair != null) return _cachedKeyPair!;
 
-    final storedPrivate = await _storage.read(key: _privateKeyStorageKey);
+    final privateKeyKey = await _getPrivateKeyStorageKey();
+    final publicKeyKey = await _getPublicKeyStorageKey();
+
+    final storedPrivate = await _storage.read(key: privateKeyKey);
     if (storedPrivate != null) {
       try {
         final bytes = base64Decode(storedPrivate);
@@ -45,7 +58,7 @@ class EncryptionService {
         // private seed so public/private keys in storage can never desync.
         final pubKey = await _cachedKeyPair!.extractPublicKey();
         await _storage.write(
-          key: _publicKeyStorageKey,
+          key: publicKeyKey,
           value: base64Encode(pubKey.bytes),
         );
         return _cachedKeyPair!;
@@ -58,14 +71,14 @@ class EncryptionService {
     final keyPair = await _x25519.newKeyPair();
     final privateBytes = await keyPair.extractPrivateKeyBytes();
     await _storage.write(
-      key: _privateKeyStorageKey,
+      key: privateKeyKey,
       value: base64Encode(privateBytes),
     );
 
     // Cache the public key in plain prefs for quick retrieval
     final pubKey = await keyPair.extractPublicKey();
     await _storage.write(
-      key: _publicKeyStorageKey,
+      key: publicKeyKey,
       value: base64Encode(pubKey.bytes),
     );
 
@@ -76,7 +89,8 @@ class EncryptionService {
   /// Returns the user's own X25519 public key as a Base64 string.
   /// This is safe to share — uploaded to the server for others to encrypt DMs.
   Future<String> getMyPublicKeyBase64() async {
-    final stored = await _storage.read(key: _publicKeyStorageKey);
+    final publicKeyKey = await _getPublicKeyStorageKey();
+    final stored = await _storage.read(key: publicKeyKey);
     if (stored != null) return stored;
 
     final kp = await _getOrCreateKeyPair();
@@ -171,7 +185,9 @@ class EncryptionService {
 
   /// Wipes public and private keys from secure storage (call on logout).
   Future<void> clearSecureKeys() async {
-    await _storage.delete(key: _privateKeyStorageKey);
-    await _storage.delete(key: _publicKeyStorageKey);
+    final privateKeyKey = await _getPrivateKeyStorageKey();
+    final publicKeyKey = await _getPublicKeyStorageKey();
+    await _storage.delete(key: privateKeyKey);
+    await _storage.delete(key: publicKeyKey);
   }
 }

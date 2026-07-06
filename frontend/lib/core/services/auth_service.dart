@@ -42,7 +42,8 @@ class AuthService {
     final newUid = userData['_id']?.toString() ?? userData['id']?.toString();
     if (existingUid != null && existingUid != newUid) {
       EncryptionService.instance.clearCache();
-      await EncryptionService.instance.clearSecureKeys();
+      // NOTE: We no longer delete keys on account switch because keys are user-namespaced.
+      // This preserves historical DM readability when logging back into a previous account.
     }
 
     await prefs.setString(_userKey, jsonEncode(userData));
@@ -97,6 +98,36 @@ class AuthService {
       debugPrint('🔑 [E2EE] Fresh key pair generated and uploaded: $myPub');
     } catch (e) {
       debugPrint('🔑 [E2EE Error] Failed to upload fresh key: $e');
+    }
+  }
+
+  /// Syncs E2EE keys dynamically without wiping existing ones, preserving history.
+  /// If missing or mismatched on the server, uploads/syncs them.
+  static Future<void> syncEncryptionKeys(ApiService api) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final myId = prefs.getString(_userIdKey);
+      if (myId == null || myId.isEmpty) {
+        await uploadFreshKeys(api);
+        return;
+      }
+
+      final myLocalPub = await EncryptionService.instance.getMyPublicKeyBase64();
+      
+      final response = await api.dio.get('/messages/keys/$myId');
+      if (response.data['success'] == true) {
+        final serverPub = response.data['data']?['x25519']?.toString();
+        if (serverPub == myLocalPub) {
+          debugPrint('🔑 [E2EE] Keys are in sync with server. No rotation needed.');
+          return;
+        }
+      }
+      
+      await api.dio.put('/messages/keys/public', data: {'x25519': myLocalPub});
+      debugPrint('🔑 [E2EE] Uploaded local public key to server for sync: $myLocalPub');
+    } catch (e) {
+      debugPrint('🔑 [E2EE Sync Error] Failed to sync keys: $e. Falling back to uploading fresh keys.');
+      await uploadFreshKeys(api);
     }
   }
 

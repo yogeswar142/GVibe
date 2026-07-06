@@ -63,6 +63,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = response.data['data'];
         await AuthService.saveToken(data['token']);
         await AuthService.saveUser(data);
+        // BUG-01 fix: regenerate + upload a fresh E2EE key after every login
+        // so device key and server key are guaranteed to be in sync.
+        await AuthService.uploadFreshKeys(ApiService());
         if (mounted) context.go(AppRouter.home);
       } else {
         setState(() => _error = response.data['message'] ?? 'Login failed');
@@ -340,17 +343,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                   action: 'login',
                                 );
                                 if (response != null && response['success'] == true) {
-                                  final data = response['data'];
-                                  await AuthService.saveToken(data['token']);
-                                  await AuthService.saveUser(data);
-                                  if (mounted) {
-                                    if (data['profileComplete'] == true) {
-                                      context.go(AppRouter.home);
-                                    } else {
-                                      context.go(AppRouter.onboarding);
-                                    }
-                                  }
-                                } else if (response != null) {
+                                   final data = response['data'];
+                                   await AuthService.saveToken(data['token']);
+                                   await AuthService.saveUser(data);
+                                   // BUG-01 fix: regenerate + upload fresh E2EE key
+                                   await AuthService.uploadFreshKeys(ApiService());
+                                   if (mounted) {
+                                     if (data['profileComplete'] == true) {
+                                       context.go(AppRouter.home);
+                                     } else {
+                                       context.go(AppRouter.onboarding);
+                                     }
+                                   }
+                                 } else if (response != null) {
                                   setState(() => _error = response['message'] ?? 'Google login failed');
                                 }
                               },

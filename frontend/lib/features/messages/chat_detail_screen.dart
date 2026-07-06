@@ -216,10 +216,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           failed = true;
         } else {
           final decrypted = await EncryptionService.instance.decrypt(
-            ciphertextBase64:      m['ciphertext'].toString(),
-            nonceBase64:           m['nonce'].toString(),
-            macBase64:             m['mac'].toString(),
-            senderPublicKeyBase64: _recipientPublicKey!,
+            ciphertextBase64:          m['ciphertext'].toString(),
+            nonceBase64:               m['nonce'].toString(),
+            macBase64:                 m['mac'].toString(),
+            remotePartyPublicKeyBase64: _recipientPublicKey!,
           );
           text   = decrypted ?? '🔒 Could not decrypt';
           failed = decrypted == null;
@@ -246,10 +246,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       }
 
       final decoded = _recipientPublicKey == null ? null : await EncryptionService.instance.decrypt(
-        ciphertextBase64:      dm.ciphertext,
-        nonceBase64:           dm.nonce,
-        macBase64:             dm.mac,
-        senderPublicKeyBase64: _recipientPublicKey!,
+        ciphertextBase64:          dm.ciphertext,
+        nonceBase64:               dm.nonce,
+        macBase64:                 dm.mac,
+        remotePartyPublicKeyBase64: _recipientPublicKey!,
       );
 
       final msg = _ChatMsg(
@@ -314,6 +314,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _typingTimer?.cancel();
     SocketService.instance.sendDmTyping(widget.threadId, isTyping: false);
 
+    // BUG-06 fix: Optimistically add the message immediately so the user
+    // gets instant feedback. We'll remove it only on an explicit server error.
+    final optimisticMsg = _ChatMsg(
+      id:            null,
+      isMe:          true,
+      text:          text,
+      time:          _formatTime(DateTime.now().toLocal().toString()),
+      decryptFailed: false,
+    );
+    if (mounted) {
+      setState(() => _messages.add(optimisticMsg));
+      _scrollToBottom();
+    }
+
     try {
       final encrypted = await EncryptionService.instance.encrypt(
         plaintext:                text,
@@ -327,21 +341,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         mac:        encrypted['mac']!,
       );
 
-      if (ok) {
-        final newMsg = _ChatMsg(
-          id:             null,
-          isMe:           true,
-          text:           text,
-          time:           _formatTime(DateTime.now().toLocal().toString()),
-          decryptFailed:  false,
-        );
-        if (mounted) {
-          setState(() {
-            _messages.add(newMsg);
-          });
-          _scrollToBottom();
-        }
-      } else if (mounted) {
+      if (!ok && mounted) {
+        // Explicit failure (not a timeout) — remove the optimistic message
+        setState(() => _messages.remove(optimisticMsg));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to send — please retry')),
         );

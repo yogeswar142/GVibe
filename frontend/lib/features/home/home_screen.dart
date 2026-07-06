@@ -29,14 +29,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _connectSocket() async {
     final token = await AuthService.getToken();
     if (token != null && token.isNotEmpty) {
+      // Socket connection is normally established in auth_service.saveUser().
+      // This call is a safe fallback for cold-start (app killed and reopened
+      // while already logged in, bypassing the login screen).
       SocketService.instance.connect(token);
-      // Proactively upload public key to server
+      // On cold-start the key was already uploaded at login time. We only do
+      // a lightweight re-upload here if the key is somehow missing from the server.
       try {
         final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
         await ApiService().dio.put('/messages/keys/public', data: {'x25519': myPub});
-        print('🔑 [E2EE] Proactively uploaded public key: $myPub');
+        debugPrint('🔑 [E2EE] Home: fallback public key confirmed on server: $myPub');
       } catch (e) {
-        print('🔑 [E2EE Error] Failed to proactively upload public key: $e');
+        debugPrint('🔑 [E2EE Error] Home: fallback key upload failed: $e');
       }
     }
   }

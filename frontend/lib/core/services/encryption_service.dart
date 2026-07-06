@@ -41,9 +41,16 @@ class EncryptionService {
       try {
         final bytes = base64Decode(storedPrivate);
         _cachedKeyPair = await _x25519.newKeyPairFromSeed(bytes);
+        // BUG-08 fix: always re-derive and re-write the public key from the
+        // private seed so public/private keys in storage can never desync.
+        final pubKey = await _cachedKeyPair!.extractPublicKey();
+        await _storage.write(
+          key: _publicKeyStorageKey,
+          value: base64Encode(pubKey.bytes),
+        );
         return _cachedKeyPair!;
       } catch (_) {
-        // Corrupted key — regenerate
+        // Corrupted key — fall through to regenerate
       }
     }
 
@@ -114,23 +121,30 @@ class EncryptionService {
 
   // ── Decryption ─────────────────────────────────────────────────────────────
 
-  /// Decrypts an incoming DM using the sender's public key.
+  /// Decrypts an incoming DM using the other party's public key.
+  ///
+  /// ECDH is symmetric: sharedSecret(myPrivate, theirPublic)
+  ///   == sharedSecret(theirPrivate, myPublic)
+  /// So [remotePartyPublicKeyBase64] is the recipient's key when decrypting
+  /// messages YOU sent from history, and the sender's key for received messages.
+  /// Both cases use the OTHER person's public key — that is intentional.
+  ///
   /// Returns the plaintext string, or null on any error.
   Future<String?> decrypt({
     required String ciphertextBase64,
     required String nonceBase64,
     required String macBase64,
-    required String senderPublicKeyBase64,
+    required String remotePartyPublicKeyBase64, // BUG-03 fix: was 'senderPublicKeyBase64'
   }) async {
     try {
       final myKeyPair = await _getOrCreateKeyPair();
 
-      final senderPubBytes = base64Decode(senderPublicKeyBase64);
-      final senderPublicKey = SimplePublicKey(senderPubBytes, type: KeyPairType.x25519);
+      final remoteBytes = base64Decode(remotePartyPublicKeyBase64);
+      final remotePublicKey = SimplePublicKey(remoteBytes, type: KeyPairType.x25519);
 
       final sharedSecret = await _x25519.sharedSecretKey(
         keyPair: myKeyPair,
-        remotePublicKey: senderPublicKey,
+        remotePublicKey: remotePublicKey,
       );
 
       final secretBox = SecretBox(
@@ -143,7 +157,7 @@ class EncryptionService {
       return utf8.decode(decryptedBytes);
     } catch (e) {
       print('🔑 [E2EE Decrypt Error] Decryption failed! Details: $e');
-      print('🔑 [E2EE Decrypt Error] Remote Public Key: $senderPublicKeyBase64');
+      print('🔑 [E2EE Decrypt Error] Remote Public Key: $remotePartyPublicKeyBase64');
       try {
         final myPub = await getMyPublicKeyBase64();
         print('🔑 [E2EE Decrypt Error] My Public Key: $myPub');

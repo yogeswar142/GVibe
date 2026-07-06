@@ -12,12 +12,11 @@ class AuthService {
   static const String _userKey  = 'user_data';
   static const String _userIdKey = 'user_id';
 
-  // Save JWT token and connect Socket.io
+  // Save JWT token — does NOT connect the socket yet.
+  // Call connectSocket() AFTER saveUser() so stale key caches are cleared first.
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, token);
-    // Connect socket immediately so DMs arrive without delay
-    SocketService.instance.connect(token);
   }
 
   // Get JWT token
@@ -32,10 +31,12 @@ class AuthService {
     return token != null && token.isNotEmpty;
   }
 
-  // Save user data as JSON (also persists userId for socket DM routing)
+  // Save user data as JSON (also persists userId for socket DM routing).
+  // BUG-02 fix: connect the socket AFTER saving user so stale key caches are
+  // cleared before any socket events fire under the new account.
   static Future<void> saveUser(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Check if the user is switching accounts to clear key cache
     final existingUid = prefs.getString(_userIdKey);
     final newUid = userData['_id']?.toString() ?? userData['id']?.toString();
@@ -43,10 +44,16 @@ class AuthService {
       EncryptionService.instance.clearCache();
       await EncryptionService.instance.clearSecureKeys();
     }
-    
+
     await prefs.setString(_userKey, jsonEncode(userData));
     // Persist userId separately for quick access without full JSON decode
     if (newUid != null) await prefs.setString(_userIdKey, newUid);
+
+    // BUG-02 fix: connect socket only now, after user identity is settled.
+    final token = await getToken();
+    if (token != null && token.isNotEmpty) {
+      SocketService.instance.connect(token);
+    }
   }
 
   // Get cached user data
@@ -61,20 +68,36 @@ class AuthService {
 
   // Clear all auth data (logout)
   static Future<void> logout() async {
+    // BUG-02 fix: disconnect socket FIRST before clearing credentials
+    // so no in-flight events fire with a stale identity.
+    SocketService.instance.disconnect();
+    EncryptionService.instance.clearCache();
+    await EncryptionService.instance.clearSecureKeys();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
     await prefs.remove(_userIdKey);
-    // Disconnect socket and clear in-memory E2EE key pair + secure storage E2EE keys
-    SocketService.instance.disconnect();
-    EncryptionService.instance.clearCache();
-    await EncryptionService.instance.clearSecureKeys();
     try {
       await GoogleSignIn.instance.disconnect();
     } catch (_) {}
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
+  }
+
+  /// BUG-01 fix: Clears the local E2EE keypair and re-uploads a fresh public
+  /// key to the server. Call this after every login/registration to guarantee
+  /// the device key and the server's stored key are always in sync.
+  static Future<void> uploadFreshKeys(ApiService api) async {
+    try {
+      EncryptionService.instance.clearCache();
+      await EncryptionService.instance.clearSecureKeys();
+      final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
+      await api.dio.put('/messages/keys/public', data: {'x25519': myPub});
+      debugPrint('🔑 [E2EE] Fresh key pair generated and uploaded: $myPub');
+    } catch (e) {
+      debugPrint('🔑 [E2EE Error] Failed to upload fresh key: $e');
+    }
   }
 
   // Orchestrate Google Sign-in: tries real Google Auth first, falls back to simulation on dev errors

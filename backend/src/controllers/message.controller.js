@@ -68,6 +68,7 @@ exports.getConversations = async (req, res) => {
       { 
         $match: { 
           deletedAt: null, 
+          community: null, // DMs only — exclude community messages from inbox
           $or: [
             { sender: uid },
             { receiver: uid }

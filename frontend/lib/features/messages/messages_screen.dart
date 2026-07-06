@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
@@ -18,18 +19,20 @@ class MessagesScreen extends ConsumerStatefulWidget {
 class _MessagesScreenState extends ConsumerState<MessagesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  List<dynamic> _users       = [];
-  List<dynamic> _communities = [];
-  bool _loading          = true;
-  bool _commLoading      = true;
+  List<dynamic> _convos       = []; // real DM conversations (inbox)
+  List<dynamic> _communities  = [];
+  bool _loading               = true;
+  bool _commLoading           = true;
   String? _error;
   String? _commError;
+  String? _myId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _fetchUsers();
+    _loadMyId();
+    _fetchConversations();
     _fetchCommunities();
   }
 
@@ -39,12 +42,18 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     super.dispose();
   }
 
-  Future<void> _fetchUsers() async {
+  Future<void> _loadMyId() async {
+    final prefs = await SharedPreferences.getInstance();
+    _myId = prefs.getString('user_id');
+  }
+
+  // BUG-05 fix: fetch real DM conversations instead of all users
+  Future<void> _fetchConversations() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final response = await ApiService().dio.get('/users');
+      final response = await ApiService().dio.get('/messages/conversations');
       if (response.data['success'] == true) {
-        setState(() { _users = response.data['data'] ?? []; _loading = false; });
+        setState(() { _convos = response.data['data'] ?? []; _loading = false; });
       }
     } on DioException catch (e) {
       setState(() { _error = ApiService.getErrorMessage(e); _loading = false; });
@@ -108,7 +117,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                 ),
               ),
               Text(
-                _loading ? 'Loading...' : '${_users.length} on campus',
+                _loading ? 'Loading...' : '${_convos.length} conversation${_convos.length == 1 ? '' : 's'}',
                 style: AppTextStyles.bodySm.copyWith(
                   color: countColor,
                   fontWeight: FontWeight.w600,
@@ -134,93 +143,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     );
   }
 
-  Widget _buildOnlineRow(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
-    final subColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
-      ),
-      child: SizedBox(
-        height: 80,
-        child: _loading
-            ? Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation(
-                      isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3),
-                    ),
-                  ),
-                ),
-              )
-            : _users.isEmpty
-                ? Center(
-                    child: Text(
-                      'No users online',
-                      style: AppTextStyles.bodyXs.copyWith(color: subColor),
-                    ),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _users.length,
-                    itemBuilder: (_, i) {
-                      final user = _users[i];
-                      final name = user['name']?.toString() ?? 'User';
-                      final avatar = user['avatar']?.toString();
-                      return Container(
-                        margin: const EdgeInsets.only(right: 16),
-                        child: Column(
-                          children: [
-                            Stack(
-                              children: [
-                                GVibeAvatar(
-                                  imageUrl: avatar,
-                                  initials: name.isNotEmpty ? name[0] : '?',
-                                  size: 48,
-                                  showGlow: true,
-                                ),
-                                Positioned(
-                                  right: 1,
-                                  bottom: 1,
-                                  child: Container(
-                                    width: 11,
-                                    height: 11,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF34C77B), // success
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Theme.of(context).scaffoldBackgroundColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              name.split(' ').first,
-                              style: AppTextStyles.bodyXs.copyWith(color: textColor),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-      ),
-    );
-  }
+  // BUG-05 fix: online row now removed — the conversations list shows
+  // real last-seen data per partner so a separate strip is redundant.
+  Widget _buildOnlineRow(BuildContext context) => const SizedBox.shrink();
 
   Widget _buildTabBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -256,6 +181,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     final separatorColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
     final emptyColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
     final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final iconBg      = isDark ? const Color(0xFF1A1F4D) : const Color(0xFFF3F4F6);
+    final titleColor  = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
 
     if (_loading) {
       return Center(
@@ -276,42 +203,96 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
               ),
             ),
             const SizedBox(height: 16),
-            GVibeButton(label: 'Retry', onPressed: _fetchUsers),
+            GVibeButton(label: 'Retry', onPressed: _fetchConversations),
           ],
         ),
       );
     }
-    if (_users.isEmpty) {
+    if (_convos.isEmpty) {
       return Center(
-        child: Text(
-          'No users on campus yet.',
-          style: AppTextStyles.bodyMd.copyWith(color: emptyColor),
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(20)),
+            child: Icon(Icons.chat_bubble_outline_rounded, color: accentColor, size: 36),
+          ),
+          const SizedBox(height: 20),
+          Text('No messages yet', style: AppTextStyles.headlineMd.copyWith(color: titleColor, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text('Find someone on campus to start a conversation', style: AppTextStyles.bodyMd.copyWith(color: emptyColor)),
+        ]),
       );
     }
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: _users.length,
-      separatorBuilder: (_, __) => Divider(
-        color: separatorColor,
-        height: 0.5,
-        indent: 82,
+
+    return RefreshIndicator(
+      color: accentColor,
+      onRefresh: _fetchConversations,
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: _convos.length,
+        separatorBuilder: (_, __) => Divider(
+          color: separatorColor,
+          height: 0.5,
+          indent: 82,
+        ),
+        itemBuilder: (_, i) {
+          final convo = _convos[i];
+
+          // The conversation has sender + receiver populated objects.
+          // Find which one is NOT the current user = the partner.
+          final sender   = convo['sender']   is Map ? convo['sender']   : null;
+          final receiver = convo['receiver'] is Map ? convo['receiver'] : null;
+          final senderId   = sender?['_id']?.toString() ?? '';
+
+          final Map<String, dynamic>? partner =
+              senderId == _myId ? receiver : sender;
+
+          final name      = partner?['name']?.toString() ?? 'Unknown';
+          final avatar    = partner?['avatar']?.toString();
+          final partnerId = partner?['_id']?.toString() ?? senderId;
+
+          // Online: lastSeen == null means currently online
+          final lastSeen  = partner?['lastSeen'];
+          final isOnline  = lastSeen == null;
+
+          // Last message preview
+          final hasCiphertext = convo['ciphertext'] != null;
+          final lastPreview = hasCiphertext
+              ? '🔒 Encrypted message'
+              : (convo['content']?.toString() ?? '');
+
+          // Timestamp
+          final createdAt = convo['createdAt']?.toString() ?? '';
+          String timeLabel = '';
+          if (createdAt.isNotEmpty) {
+            try {
+              final dt = DateTime.parse(createdAt).toLocal();
+              final now = DateTime.now();
+              if (now.difference(dt).inDays == 0) {
+                final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+                final m = dt.minute.toString().padLeft(2, '0');
+                timeLabel = '$h:$m ${dt.hour >= 12 ? 'PM' : 'AM'}';
+              } else if (now.difference(dt).inDays < 7) {
+                const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                timeLabel = days[dt.weekday - 1];
+              } else {
+                timeLabel = '${dt.day}/${dt.month}';
+              }
+            } catch (_) {}
+          }
+
+          return _ChatRow(
+            name:       name,
+            avatarUrl:  avatar,
+            time:       timeLabel,
+            message:    lastPreview,
+            hasUnread:  false, // TODO: wire up real unread count
+            unreadCount: 0,
+            isOnline:   isOnline,
+            onTap: () => context.push('/chat/$partnerId'),
+          );
+        },
       ),
-      itemBuilder: (_, i) {
-        final user = _users[i];
-        final name = user['name']?.toString() ?? 'User';
-        final bio = user['bio']?.toString() ?? 'Tap to start chatting';
-        final level = user['level'] ?? 1;
-        return _ChatRow(
-          name: name,
-          time: 'LVL $level',
-          message: bio,
-          hasUnread: false,
-          unreadCount: 0,
-          isOnline: true,
-          onTap: () => context.push('/chat/${user['_id']}'),
-        );
-      },
     );
   }
 
@@ -394,6 +375,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
 // ─── Chat Row ─────────────────────────────────────────────────────────────────
 class _ChatRow extends StatelessWidget {
   final String name;
+  final String? avatarUrl; // added for BUG-05 fix
   final String time;
   final String message;
   final bool hasUnread;
@@ -403,6 +385,7 @@ class _ChatRow extends StatelessWidget {
 
   const _ChatRow({
     required this.name,
+    this.avatarUrl,
     required this.time,
     required this.message,
     this.hasUnread = false,
@@ -429,6 +412,7 @@ class _ChatRow extends StatelessWidget {
             Stack(
               children: [
                 GVibeAvatar(
+                  imageUrl: avatarUrl,
                   initials: name.isNotEmpty ? name[0] : '?',
                   size: 52,
                   showGlow: isOnline,

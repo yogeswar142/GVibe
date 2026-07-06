@@ -185,8 +185,8 @@ class SocketService {
       final success = (data as Map?)?['success'] == true;
       if (!completer.isCompleted) completer.complete(success);
     });
-    // Timeout fallback
-    Future.delayed(const Duration(seconds: 5), () {
+    // Timeout fallback — 15s to handle slow mobile networks (BUG-06 fix)
+    Future.delayed(const Duration(seconds: 15), () {
       if (!completer.isCompleted) completer.complete(false);
     });
     return completer.future;
@@ -214,7 +214,7 @@ class SocketService {
       final success = (data as Map?)?['success'] == true;
       if (!completer.isCompleted) completer.complete(success);
     });
-    Future.delayed(const Duration(seconds: 5), () {
+    Future.delayed(const Duration(seconds: 15), () {
       if (!completer.isCompleted) completer.complete(false);
     });
     return completer.future;

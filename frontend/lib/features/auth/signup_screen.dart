@@ -259,6 +259,8 @@ class _SignupScreenState extends State<SignupScreen> {
                                       final data = response['data'];
                                       await AuthService.saveToken(data['token']);
                                       await AuthService.saveUser(data);
+                                      // BUG-01 fix: regenerate + upload fresh E2EE key on registration
+                                      await AuthService.uploadFreshKeys(ApiService());
                                       if (mounted) {
                                         context.go(AppRouter.onboarding);
                                       }

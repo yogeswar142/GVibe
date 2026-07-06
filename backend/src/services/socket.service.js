@@ -22,6 +22,22 @@ const Community = require('../models/Community');
 
 let io; // exported so REST controllers can emit when needed
 
+// ─── Server-level per-user rate limit buckets ─────────────────────────────────
+// Keyed by userId string so multi-device users share the same bucket.
+const _dmBuckets  = new Map(); // userId → { count, resetAt }
+const _comBuckets = new Map(); // userId → { count, resetAt }
+
+const _checkUserLimit = (bucketsMap, userId, max) => {
+  const now = Date.now();
+  let bucket = bucketsMap.get(userId);
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + 60_000 };
+    bucketsMap.set(userId, bucket);
+  }
+  bucket.count += 1;
+  return bucket.count <= max;
+};
+
 // ─── JWT Auth Middleware for Socket.io ────────────────────────────────────────
 const socketAuthMiddleware = async (socket, next) => {
   try {
@@ -73,24 +89,26 @@ const initSocket = (httpServer) => {
     const userId = socket.user._id.toString();
     console.log(`🟢 Socket connected: ${socket.user.name} (${userId})`);
 
-    // ── Per-socket rate limit state ────────────────────────────────────────
-    // Simple sliding-window counter (resets every windowMs).
-    const dmCount  = { count: 0, resetAt: Date.now() + 60_000 };  // 30 DMs/min
-    const comCount = { count: 0, resetAt: Date.now() + 60_000 };  // 60 msgs/min
-
-    const checkLimit = (bucket, max) => {
-      const now = Date.now();
-      if (now >= bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + 60_000; }
-      bucket.count += 1;
-      return bucket.count <= max;
-    };
+    // ── Rate limiting: server-level per-user buckets (BUG-09 fix) ───────────
+    // Using shared server-level maps so multiple devices share one quota.
+    const checkLimit = (bucketsMap, max) => _checkUserLimit(bucketsMap, userId, max);
 
     // ── Personal room: targetable from REST handlers too ──────────────────
     socket.join(userId);
 
     // ── Mark user online ──────────────────────────────────────────────────
     await User.findByIdAndUpdate(userId, { lastSeen: null }); // null = online
-    io.emit('user:online', { userId });
+    // BUG-07 fix: emit presence only to this user's followers, not everyone
+    try {
+      const self = await User.findById(userId).select('followers').lean();
+      (self?.followers ?? []).forEach(fid => {
+        io.to(fid.toString()).emit('user:online', { userId });
+      });
+      // Also notify the user themselves (useful for multi-device)
+      io.to(userId).emit('user:online', { userId });
+    } catch (_) {
+      // Non-critical — swallow presence emit errors
+    }
 
     // ── Rejoin all community rooms this user belongs to ───────────────────
     const communities = await Community.find(
@@ -106,7 +124,7 @@ const initSocket = (httpServer) => {
     // ─────────────────────────────────────────────────────────────────────
     socket.on('dm:send', async (data, ack) => {
       try {
-        if (!checkLimit(dmCount, 30)) {
+        if (!checkLimit(_dmBuckets, 30)) {
           return ack?.({ success: false, error: 'Rate limit: slow down (30 DMs/min max)' });
         }
         const { receiverId, ciphertext, nonce, mac } = data;
@@ -176,7 +194,7 @@ const initSocket = (httpServer) => {
     // ─────────────────────────────────────────────────────────────────────
     socket.on('community:send', async (data, ack) => {
       try {
-        if (!checkLimit(comCount, 60)) {
+        if (!checkLimit(_comBuckets, 60)) {
           return ack?.({ success: false, error: 'Rate limit: slow down (60 messages/min max)' });
         }
         const { communityId, content } = data;
@@ -248,8 +266,18 @@ const initSocket = (httpServer) => {
     // ─────────────────────────────────────────────────────────────────────
     socket.on('disconnect', async () => {
       console.log(`🔴 Socket disconnected: ${socket.user.name} (${userId})`);
-      await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
-      io.emit('user:offline', { userId, lastSeen: new Date() });
+      const lastSeen = new Date();
+      await User.findByIdAndUpdate(userId, { lastSeen });
+      // BUG-07 fix: emit offline presence only to this user's followers
+      try {
+        const self = await User.findById(userId).select('followers').lean();
+        (self?.followers ?? []).forEach(fid => {
+          io.to(fid.toString()).emit('user:offline', { userId, lastSeen });
+        });
+        io.to(userId).emit('user:offline', { userId, lastSeen });
+      } catch (_) {
+        // Non-critical
+      }
     });
   });
 

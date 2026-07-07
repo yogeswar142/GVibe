@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 
 class EncryptionService {
   EncryptionService._();
@@ -99,10 +100,6 @@ class EncryptionService {
   /// Returns the user's own X25519 public key as a Base64 string.
   /// This is safe to share — uploaded to the server for others to encrypt DMs.
   Future<String> getMyPublicKeyBase64() async {
-    final publicKeyKey = await _getPublicKeyStorageKey();
-    final stored = await _storage.read(key: publicKeyKey);
-    if (stored != null) return stored;
-
     final kp = await _getOrCreateKeyPair();
     final pub = await kp.extractPublicKey();
     return base64Encode(pub.bytes);
@@ -159,6 +156,8 @@ class EncryptionService {
     required String nonceBase64,
     required String macBase64,
     required String remotePartyPublicKeyBase64, // BUG-03 fix: was 'senderPublicKeyBase64'
+    String? messageId,
+    String? remotePartyId,
   }) async {
     try {
       final myKeyPair = await _getOrCreateKeyPair();
@@ -182,10 +181,26 @@ class EncryptionService {
     } catch (e) {
       print('🔑 [E2EE Decrypt Error] Decryption failed! Details: $e');
       print('🔑 [E2EE Decrypt Error] Remote Public Key: $remotePartyPublicKeyBase64');
+      String? myPub;
       try {
-        final myPub = await getMyPublicKeyBase64();
+        myPub = await getMyPublicKeyBase64();
         print('🔑 [E2EE Decrypt Error] My Public Key: $myPub');
       } catch (_) {}
+
+      // Report failure to the backend for debugging
+      if (messageId != null && remotePartyId != null) {
+        try {
+          await ApiService().dio.post('/messages/debug/log-decrypt-failure', data: {
+            'messageId': messageId,
+            'remotePartyId': remotePartyId,
+            'remotePartyPublicKey': remotePartyPublicKeyBase64,
+            'myPublicKeyUsed': myPub,
+            'errorDetails': e.toString(),
+          });
+        } catch (reportErr) {
+          print('🔑 [E2EE Decrypt Error] Failed to upload decryption failure report: $reportErr');
+        }
+      }
       return null;
     }
   }

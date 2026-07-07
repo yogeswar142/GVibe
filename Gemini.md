@@ -34,3 +34,8 @@ To maximize developer efficiency and minimize token usage, the following rules a
 * **ADB Wireless Configuration**: `192.168.1.5:37707`
 * **Release Builds**: No release APK compilation required for online LambdaTest. All tests are conducted live on the physical device over wireless ADB.
 * **Backend Dev Endpoint**: Bound to static ngrok domain `https://levitative-unpresumptuously-claire.ngrok-free.dev`.
+
+---
+
+## 📁 Change Log
+* **Folders updated:** Frontend, Backend

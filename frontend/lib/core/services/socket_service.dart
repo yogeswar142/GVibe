@@ -31,6 +31,8 @@ class DmMessage {
   final String ciphertext;
   final String nonce;
   final String mac;
+  final String senderPublicKey;
+  final String receiverPublicKey;
   final DateTime createdAt;
 
   const DmMessage({
@@ -42,6 +44,8 @@ class DmMessage {
     required this.ciphertext,
     required this.nonce,
     required this.mac,
+    required this.senderPublicKey,
+    required this.receiverPublicKey,
     required this.createdAt,
   });
 
@@ -56,6 +60,8 @@ class DmMessage {
       ciphertext:   m['ciphertext']?.toString() ?? '',
       nonce:        m['nonce']?.toString() ?? '',
       mac:          m['mac']?.toString() ?? '',
+      senderPublicKey: m['senderPublicKey']?.toString() ?? '',
+      receiverPublicKey: m['receiverPublicKey']?.toString() ?? '',
       createdAt:    DateTime.tryParse(m['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
@@ -174,6 +180,8 @@ class SocketService {
     required String ciphertext,
     required String nonce,
     required String mac,
+    required String senderPublicKey,
+    required String receiverPublicKey,
   }) {
     final completer = Completer<bool>();
     _socket?.emitWithAck('dm:send', {
@@ -181,6 +189,8 @@ class SocketService {
       'ciphertext': ciphertext,
       'nonce':      nonce,
       'mac':        mac,
+      'senderPublicKey': senderPublicKey,
+      'receiverPublicKey': receiverPublicKey,
     }, ack: (data) {
       final success = (data as Map?)?['success'] == true;
       if (!completer.isCompleted) completer.complete(success);

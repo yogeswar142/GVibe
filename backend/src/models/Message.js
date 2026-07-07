@@ -33,6 +33,8 @@ const messageSchema = new mongoose.Schema({
   ciphertext: { type: String, default: null },
   nonce:      { type: String, default: null },
   mac:        { type: String, default: null },
+  senderPublicKey:   { type: String, default: null },
+  receiverPublicKey: { type: String, default: null },
 
   // ── Read receipts ─────────────────────────────────────────────────
   // DM: simple boolean; Community: list of userIds who have read it

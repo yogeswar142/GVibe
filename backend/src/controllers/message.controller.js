@@ -39,7 +39,7 @@ exports.getDMs = async (req, res) => {
     const messages = await Message.find(filter)
       .sort({ createdAt: -1 })           // newest first → client reverses
       .limit(PAGE_SIZE)
-      .select('sender receiver ciphertext nonce mac read createdAt')
+      .select('sender receiver ciphertext nonce mac read senderPublicKey receiverPublicKey createdAt')
       .populate('sender', 'name avatar')
       .lean();
 
@@ -409,6 +409,34 @@ exports.updateMemberRole = async (req, res) => {
     await community.save();
 
     res.json({ success: true, message: `Member role updated to ${role}` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/messages/debug/log-decrypt-failure
+ * Logs detailed client-side E2EE decryption failure context on the server.
+ */
+exports.logDecryptFailure = async (req, res) => {
+  try {
+    const { messageId, remotePartyId, remotePartyPublicKey, myPublicKeyUsed, errorDetails } = req.body;
+    
+    // Fetch current keys/names for debugging comparison
+    const me = await User.findById(req.user.id).select('publicKey name').lean();
+    const remote = await User.findById(remotePartyId).select('publicKey name').lean();
+
+    console.error(`\n🔒 [E2EE Decrypt Failure Report]`);
+    console.error(`   - Reporter: ${me?.name || 'Unknown'} (${req.user.id})`);
+    console.error(`   - Reporter Current DB Pub Key: ${me?.publicKey?.x25519 || 'none'}`);
+    console.error(`   - Reporter Local Pub Key Used: ${myPublicKeyUsed || 'none'}`);
+    console.error(`   - Partner: ${remote?.name || 'Unknown'} (${remotePartyId})`);
+    console.error(`   - Partner Current DB Pub Key: ${remote?.publicKey?.x25519 || 'none'}`);
+    console.error(`   - Partner Pub Key Used by Reporter: ${remotePartyPublicKey || 'none'}`);
+    console.error(`   - Message ID: ${messageId}`);
+    console.error(`   - Error Details: ${errorDetails || 'none'}\n`);
+
+    res.json({ success: true, message: 'Failure reported successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

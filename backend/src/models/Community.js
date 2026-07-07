@@ -53,5 +53,6 @@ const communitySchema = new mongoose.Schema({
 // ── Indexes ───────────────────────────────────────────────────────────
 communitySchema.index({ 'members.user': 1 });      // "my communities" query
 communitySchema.index({ name: 'text', description: 'text' }); // search
+communitySchema.index({ isPrivate: 1, memberCount: -1 });      // public discovery sorted by size
 
 module.exports = mongoose.model('Community', communitySchema);

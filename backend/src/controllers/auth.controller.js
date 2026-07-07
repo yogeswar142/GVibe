@@ -1,5 +1,9 @@
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+
+const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '102660971528-qp48pr3151d6sit1f1bch7s4hln68fr5.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -77,7 +81,19 @@ exports.login = async (req, res) => {
 
 exports.googleAuth = async (req, res) => {
   try {
-    const { email, name, googleId, action } = req.body;
+    const { idToken, action } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({ success: false, message: 'Google ID Token is required' });
+    }
+
+    // Verify Google ID Token
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload;
 
     if (!email || !email.endsWith('@student.gitam.edu')) {
       return res.status(400).json({
@@ -87,6 +103,9 @@ exports.googleAuth = async (req, res) => {
     }
 
     let user = await User.findOne({ email });
+
+    const regExp = /^(.*?)\s+(\d{10})$/;
+    const isNameVerified = regExp.test(name);
 
     if (action === 'register') {
       if (user) {
@@ -103,7 +122,7 @@ exports.googleAuth = async (req, res) => {
         email,
         googleId,
         profileComplete: false,
-        isVerified: false
+        isVerified: isNameVerified
       });
     } else if (action === 'login') {
       if (!user) {
@@ -114,9 +133,17 @@ exports.googleAuth = async (req, res) => {
         });
       }
 
-      // Ensure googleId is mapped if not already
+      // Ensure googleId is mapped if not already, and update verification if applicable
+      let updated = false;
       if (!user.googleId) {
         user.googleId = googleId;
+        updated = true;
+      }
+      if (isNameVerified && !user.isVerified) {
+        user.isVerified = true;
+        updated = true;
+      }
+      if (updated) {
         await user.save();
       }
     } else {

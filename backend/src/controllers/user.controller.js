@@ -66,10 +66,6 @@ exports.updateProfile = async (req, res) => {
     user.academicLevel = req.body.academicLevel || user.academicLevel;
     user.interests = req.body.interests || user.interests;
     
-    if (req.body.isVerified !== undefined) {
-      user.isVerified = req.body.isVerified;
-    }
-
     // Set profile as complete and clear temp state
     user.profileComplete = true;
     user.tempProfileData = null;

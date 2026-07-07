@@ -216,7 +216,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         String text;
         bool failed = false;
 
-        if (_recipientPublicKey == null) {
+        final msgSenderPub = m['senderPublicKey']?.toString() ?? '';
+        final msgReceiverPub = m['receiverPublicKey']?.toString() ?? '';
+        final fallbackKey = _recipientPublicKey;
+
+        final remoteKey = isMe ? msgReceiverPub : msgSenderPub;
+        final finalKey = remoteKey.isNotEmpty ? remoteKey : fallbackKey;
+
+        if (finalKey == null || finalKey.isEmpty) {
           text   = '🔒 Cannot decrypt (missing key)';
           failed = true;
         } else {
@@ -224,7 +231,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ciphertextBase64:          m['ciphertext'].toString(),
             nonceBase64:               m['nonce'].toString(),
             macBase64:                 m['mac'].toString(),
-            remotePartyPublicKeyBase64: _recipientPublicKey!,
+            remotePartyPublicKeyBase64: finalKey,
+            messageId:                 m['_id']?.toString(),
+            remotePartyId:             widget.threadId,
           );
           text   = decrypted ?? '🔒 Could not decrypt';
           failed = decrypted == null;
@@ -270,11 +279,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         await _fetchRecipientPublicKey();
       }
 
-      final decoded = _recipientPublicKey == null ? null : await EncryptionService.instance.decrypt(
+      final remoteKey = isMe ? dm.receiverPublicKey : dm.senderPublicKey;
+      final finalKey = remoteKey.isNotEmpty ? remoteKey : _recipientPublicKey;
+
+      final decoded = finalKey == null ? null : await EncryptionService.instance.decrypt(
         ciphertextBase64:          dm.ciphertext,
         nonceBase64:               dm.nonce,
         macBase64:                 dm.mac,
-        remotePartyPublicKeyBase64: _recipientPublicKey!,
+        remotePartyPublicKeyBase64: finalKey,
+        messageId:                 dm.id,
+        remotePartyId:             widget.threadId,
       );
 
       final msg = _ChatMsg(
@@ -364,6 +378,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ciphertext: encrypted['ciphertext']!,
         nonce:      encrypted['nonce']!,
         mac:        encrypted['mac']!,
+        senderPublicKey: await EncryptionService.instance.getMyPublicKeyBase64(),
+        receiverPublicKey: _recipientPublicKey!,
       );
 
       if (!ok && mounted) {

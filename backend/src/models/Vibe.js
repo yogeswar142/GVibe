@@ -35,4 +35,7 @@ const vibeSchema = new mongoose.Schema({
   }],
 }, { timestamps: true });
 
+// ── Indexes ───────────────────────────────────────────────────────────────────
+vibeSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Vibe', vibeSchema);

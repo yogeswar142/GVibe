@@ -73,7 +73,8 @@ class AuthService {
     // so no in-flight events fire with a stale identity.
     SocketService.instance.disconnect();
     EncryptionService.instance.clearCache();
-    await EncryptionService.instance.clearSecureKeys();
+    // NOTE: We no longer delete keys on logout to preserve historical DM readability
+    // when logging back into the same account on this device.
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
@@ -108,7 +109,6 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final myId = prefs.getString(_userIdKey);
       if (myId == null || myId.isEmpty) {
-        await uploadFreshKeys(api);
         return;
       }
 
@@ -126,8 +126,7 @@ class AuthService {
       await api.dio.put('/messages/keys/public', data: {'x25519': myLocalPub});
       debugPrint('🔑 [E2EE] Uploaded local public key to server for sync: $myLocalPub');
     } catch (e) {
-      debugPrint('🔑 [E2EE Sync Error] Failed to sync keys: $e. Falling back to uploading fresh keys.');
-      await uploadFreshKeys(api);
+      debugPrint('🔑 [E2EE Sync Error] Failed to sync keys: $e. Skipping rotation to protect history.');
     }
   }
 
@@ -149,16 +148,16 @@ class AuthService {
         return null; // User cancelled
       }
 
-      final String email = googleUser.email;
-      final String name = googleUser.displayName ?? '';
-      final String googleId = googleUser.id;
+      final GoogleSignInAuthentication googleAuthInfo = googleUser.authentication;
+      final String? idToken = googleAuthInfo.idToken;
+      if (idToken == null) {
+        throw Exception('Google Sign-In failed: Could not retrieve ID Token.');
+      }
 
       // 2. Call backend
       try {
         final response = await ApiService().dio.post('/auth/google', data: {
-          'email': email,
-          'name': name,
-          'googleId': googleId,
+          'idToken': idToken,
           'action': action,
         });
         return response.data;

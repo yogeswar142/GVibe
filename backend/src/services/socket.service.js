@@ -127,9 +127,9 @@ const initSocket = (httpServer) => {
         if (!checkLimit(_dmBuckets, 30)) {
           return ack?.({ success: false, error: 'Rate limit: slow down (30 DMs/min max)' });
         }
-        const { receiverId, ciphertext, nonce, mac } = data;
+        const { receiverId, ciphertext, nonce, mac, senderPublicKey, receiverPublicKey } = data;
 
-        if (!receiverId || !ciphertext || !nonce || !mac) {
+        if (!receiverId || !ciphertext || !nonce || !mac || !senderPublicKey || !receiverPublicKey) {
           return ack?.({ success: false, error: 'Missing required fields' });
         }
 
@@ -140,9 +140,11 @@ const initSocket = (httpServer) => {
           ciphertext,
           nonce,
           mac,
+          senderPublicKey,
+          receiverPublicKey,
         });
 
-        console.log(`💬 [Socket] DM sent by ${socket.user.name} (${userId}) to ${receiverId}`);
+        console.log(`💬 [Socket E2EE] DM sent by ${socket.user.name} (${userId}) (Pub: ${senderPublicKey}) to ${receiverId} (Pub: ${receiverPublicKey})`);
 
         const payload = {
           _id: message._id,
@@ -151,6 +153,8 @@ const initSocket = (httpServer) => {
           ciphertext,
           nonce,
           mac,
+          senderPublicKey,
+          receiverPublicKey,
           createdAt: message.createdAt,
         };
 

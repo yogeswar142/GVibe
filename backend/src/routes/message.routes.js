@@ -13,6 +13,7 @@ const {
   getCommunityDetails,
   updateMemberRole,
   kickCommunityMember,
+  logDecryptFailure,
 } = require('../controllers/message.controller');
 const { protect }         = require('../middleware/auth.middleware');
 const { messageLimiter }  = require('../middleware/security.middleware');
@@ -29,6 +30,7 @@ router.get('/dms/:userId',            getDMs);                  // ?before=<id>
 // ── E2EE Public Keys ─────────────────────────────────────────────────────────
 router.put('/keys/public',            uploadPublicKey);
 router.get('/keys/:userId',           getPublicKey);
+router.post('/debug/log-decrypt-failure', logDecryptFailure);
 
 // ── Communities ──────────────────────────────────────────────────────────────
 router.route('/communities')

@@ -682,17 +682,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             const SizedBox(width: 10),
             Expanded(
               child: Container(
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                constraints: const BoxConstraints(minHeight: 44, maxHeight: 120),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: inputBg,
-                  borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+                  borderRadius: BorderRadius.circular(isDark ? 8 : 22),
                   border: Border.all(color: borderColor, width: 1),
                 ),
                 child: TextField(
                   controller: _msgCtrl,
                   onChanged: _onTextChanged,
                   onSubmitted: (_) => _sendMessage(),
+                  maxLines: null,
                   style: AppTextStyles.bodyMd.copyWith(color: inputColor),
                   decoration: InputDecoration(
                     hintText: 'Send a message...',

@@ -93,15 +93,19 @@ exports.getConversations = async (req, res) => {
 
     await Message.populate(convos, { path: 'sender receiver', select: 'name avatar lastSeen followers following' });
 
+    // Filter out conversations where sender or receiver is null (user was deleted)
+    const validConvos = convos.filter(c => c.sender && c.receiver);
+
     // Check mutual follower relationship for each convo if privacy is private
     const myFollowersSet = new Set((currentUser.followers || []).map(id => id.toString()));
     const myFollowingSet = new Set((currentUser.following || []).map(id => id.toString()));
 
     if (currentUser.privacy === 'private') {
-      convos.sort((a, b) => {
-        if (!a.sender || !a.receiver || !b.sender || !b.receiver) return 0;
+      validConvos.sort((a, b) => {
         const partnerAObj = a.sender._id.toString() === uid.toString() ? a.receiver : a.sender;
         const partnerBObj = b.sender._id.toString() === uid.toString() ? b.receiver : b.sender;
+
+        if (!partnerAObj || !partnerBObj) return 0;
 
         const partnerAId = partnerAObj._id.toString();
         const partnerBId = partnerBObj._id.toString();
@@ -117,7 +121,7 @@ exports.getConversations = async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: convos });
+    res.json({ success: true, data: validConvos });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

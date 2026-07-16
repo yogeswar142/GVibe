@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Vibe = require('../models/Vibe');
 const User = require('../models/User');
 const Post = require('../models/Post');
@@ -25,54 +26,85 @@ exports.getTrendingVibes = async (req, res) => {
 exports.discoverPeople = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.id).select('interests');
-    const userInterests = currentUser?.interests || [];
+    const userInterests = (currentUser?.interests || []).map(i => i.toLowerCase());
 
-    // Fetch all other users
-    const allUsers = await User.find({ _id: { $ne: req.user.id } })
-      .select('name username avatar dept year bio level followers following interests lastSeen')
-      .lean();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    // Map each user to calculate recommendation score
-    const scoredUsers = allUsers.map(user => {
-      let score = 0;
-
-      // 1. Popularity (followers count)
-      const followersCount = user.followers?.length || 0;
-      score += followersCount * 2; // 2 points per follower
-
-      // 2. Activeness (lastSeen)
-      if (user.lastSeen === null) {
-        score += 50; // 50 points if currently online
-      } else {
-        const lastSeenDate = new Date(user.lastSeen);
-        const diffMs = Date.now() - lastSeenDate.getTime();
-        const diffHours = diffMs / (1000 * 60 * 60);
-        if (diffHours < 24) {
-          score += 30; // 30 points if active in the last 24h
-        } else if (diffHours < 24 * 7) {
-          score += 10; // 10 points if active in the last week
+    const finalUsers = await User.aggregate([
+      {
+        $match: {
+          _id: { $ne: new mongoose.Types.ObjectId(req.user.id) }
+        }
+      },
+      {
+        $addFields: {
+          followersCount: { $size: { $ifNull: ["$followers", []] } },
+          followingCount: { $size: { $ifNull: ["$following", []] } },
+          commonInterests: {
+            $setIntersection: [
+              {
+                $map: {
+                  input: { $ifNull: ["$interests", []] },
+                  as: "i",
+                  in: { $toLower: "$$i" }
+                }
+              },
+              userInterests
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          popularityScore: { $multiply: ["$followersCount", 2] },
+          activenessScore: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$lastSeen", null] }, then: 50 },
+                { case: { $gte: ["$lastSeen", oneDayAgo] }, then: 30 },
+                { case: { $gte: ["$lastSeen", sevenDaysAgo] }, then: 10 }
+              ],
+              default: 0
+            }
+          },
+          interestScore: {
+            $multiply: [
+              { $size: { $ifNull: ["$commonInterests", []] } },
+              15
+            ]
+          }
+        }
+      },
+      {
+        $addFields: {
+          score: { $add: ["$popularityScore", "$activenessScore", "$interestScore"] }
+        }
+      },
+      {
+        $sort: { score: -1, _id: 1 }
+      },
+      {
+        $limit: 30
+      },
+      {
+        $project: {
+          name: 1,
+          username: 1,
+          avatar: 1,
+          dept: 1,
+          year: 1,
+          bio: 1,
+          level: 1,
+          followers: 1,
+          following: 1,
+          interests: 1,
+          lastSeen: 1,
+          score: 1,
+          followersCount: 1
         }
       }
-
-      // 3. Recommendation System: Mutual Interest Match
-      const otherInterests = user.interests || [];
-      const commonInterests = userInterests.filter(interest => 
-        otherInterests.some(i => i.toLowerCase() === interest.toLowerCase())
-      );
-      score += commonInterests.length * 15; // 15 points per matching interest
-
-      return {
-        ...user,
-        score,
-        followersCount,
-      };
-    });
-
-    // Sort by score descending
-    scoredUsers.sort((a, b) => b.score - a.score);
-
-    // Limit to top 30
-    const finalUsers = scoredUsers.slice(0, 30);
+    ]);
 
     res.json({ success: true, data: finalUsers });
   } catch (error) {
@@ -132,32 +164,50 @@ exports.unifiedSearch = async (req, res) => {
 
     const regex = new RegExp(q, 'i');
 
-    const users = await User.find({
-      $and: [
-        { _id: { $ne: req.user.id } },
-        {
-          $or: [
-            { name: regex },
-            { username: regex },
-            { dept: regex },
-            { interests: regex }
-          ]
-        }
-      ]
+    // 1. Try text index search for Users
+    let users = await User.find({
+      $text: { $search: q },
+      _id: { $ne: req.user.id }
     })
       .select('name username avatar dept year bio level followers following')
       .limit(20);
 
-    const communities = await Community.find({
+    // Fall back to regex scan if no exact word matches
+    if (users.length === 0) {
+      users = await User.find({
+        _id: { $ne: req.user.id },
+        $or: [
+          { name: regex },
+          { username: regex },
+          { dept: regex },
+          { interests: regex }
+        ]
+      })
+        .select('name username avatar dept year bio level followers following')
+        .limit(20);
+    }
+
+    // 2. Try text index search for Communities
+    let communities = await Community.find({
       isPrivate: false,
-      $or: [
-        { name: regex },
-        { handle: regex },
-        { description: regex }
-      ]
+      $text: { $search: q }
     })
       .select('name handle avatar description memberCount messageCount isPrivate')
       .limit(20);
+
+    // Fall back to regex scan if no exact word matches
+    if (communities.length === 0) {
+      communities = await Community.find({
+        isPrivate: false,
+        $or: [
+          { name: regex },
+          { handle: regex },
+          { description: regex }
+        ]
+      })
+        .select('name handle avatar description memberCount messageCount isPrivate')
+        .limit(20);
+    }
 
     res.json({
       success: true,

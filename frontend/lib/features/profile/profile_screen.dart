@@ -28,7 +28,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _followingCount = 0;
   String? _loggedInUserId;
 
-  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNIT'];
+  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNITIES'];
 
   @override
   void initState() {

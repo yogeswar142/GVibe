@@ -653,14 +653,18 @@ class _ChatRow extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        name,
-                        style: AppTextStyles.headlineSm.copyWith(
-                          color: nameColor,
-                          fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: AppTextStyles.headlineSm.copyWith(
+                            color: nameColor,
+                            fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       Text(
                         time,
                         style: AppTextStyles.monoXs.copyWith(

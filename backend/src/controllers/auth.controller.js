@@ -15,6 +15,16 @@ exports.register = async (req, res) => {
   try {
     const { name, email, password, dept, year } = req.body;
 
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Please provide a name' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Please provide an email' });
+    }
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'User already exists' });
@@ -50,6 +60,13 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Please provide an email or username' });
+    }
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Please provide a password' });
+    }
 
     // Check for user by email OR username (handle)
     const user = await User.findOne({

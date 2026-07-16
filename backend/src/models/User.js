@@ -63,6 +63,9 @@ const userSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+// Compound text index for search optimization
+userSchema.index({ name: 'text', username: 'text', dept: 'text', interests: 'text' });
+
 // Hash password before saving if present
 userSchema.pre('save', async function (next) {
   if (!this.password || !this.isModified('password')) return next();

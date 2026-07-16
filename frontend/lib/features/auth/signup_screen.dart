@@ -246,7 +246,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                 GVibeButton(
                                   label: 'Continue with Google',
                                   isPrimary: true,
-                                  icon: Icons.g_mobiledata_rounded,
+                                  icon: Icons.account_circle_outlined,
                                   onPressed: () async {
                                     setState(() => _error = null);
                                     final response =

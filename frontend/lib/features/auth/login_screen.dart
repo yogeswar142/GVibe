@@ -333,7 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             GVibeButton(
                               label: 'Google Account',
                               isPrimary: false,
-                              icon: Icons.g_mobiledata_rounded,
+                              icon: Icons.account_circle_outlined,
                               onPressed: () async {
                                 setState(() {
                                   _error = null;

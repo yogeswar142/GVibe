@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -12,6 +13,9 @@ class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey  = 'user_data';
   static const String _userIdKey = 'user_id';
+
+  // Guard so GoogleSignIn.instance.initialize() is only called once per lifecycle
+  static bool _googleInitialized = false;
 
   // Save JWT token — does NOT connect the socket yet.
   // Call connectSocket() AFTER saveUser() so stale key caches are cleared first.
@@ -137,13 +141,29 @@ class AuthService {
     required String action, // 'login' or 'register'
   }) async {
     try {
-      // Read Web Client ID from frontend .env
+      // Read Client IDs from frontend .env
       final webClientId = dotenv.env['WEB_APPLICATION_CLIENT_ID'] ??
           '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
-      await GoogleSignIn.instance.initialize(
-        clientId: webClientId,
-        serverClientId: webClientId,
-      );
+      final mobileClientId = dotenv.env['MOBILE_APPLICATION_CLIENT_ID'] ??
+          '685012189458-t1slebthd5lbchu9n0aanph1060gffvm.apps.googleusercontent.com';
+
+      // initialize() must only be called once per app lifecycle —
+      // calling it again causes "Bad state: init() has already been called".
+      // On Web: only clientId is supported; serverClientId throws an assertion.
+      // On Mobile: serverClientId is needed so the backend can verify the ID token.
+      if (!_googleInitialized) {
+        if (kIsWeb) {
+          await GoogleSignIn.instance.initialize(
+            clientId: webClientId,
+          );
+        } else {
+          await GoogleSignIn.instance.initialize(
+            clientId: mobileClientId,
+            serverClientId: webClientId,
+          );
+        }
+        _googleInitialized = true;
+      }
 
       // 2. Try real Google Sign-In via authenticate()
       final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();

@@ -1,9 +1,8 @@
 const UserAnalytics = require('../models/UserAnalytics');
 const ShortLink = require('../models/ShortLink');
 const Post = require('../models/Post');
-const User = require('../models/User');
 
-// GET /api/analytics/me — Comprehensive user & content analytics dashboard
+// GET /api/analytics/me — 100% Real, Dynamic User & Content Analytics
 exports.getMyAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -14,27 +13,33 @@ exports.getMyAnalytics = async (req, res) => {
       analytics = await UserAnalytics.create({ user: userId });
     }
 
-    // 2. Aggregate post content metrics (views, unique viewers, likes, comments, shares)
+    // 2. Aggregate real post content metrics (views, unique viewers, likes, comments, shares)
     const posts = await Post.find({ author: userId });
     let totalViews = 0;
     let totalLikes = 0;
     let totalComments = 0;
     let totalShares = analytics.sharesCount || 0;
+    const uniqueUserSet = new Set();
 
     posts.forEach(p => {
       totalViews += (p.viewsCount || 0);
       totalLikes += (p.likes?.length || 0);
       totalComments += (p.comments?.length || 0);
       totalShares += (p.sharesCount || 0);
+
+      if (Array.isArray(p.likes)) {
+        p.likes.forEach(id => uniqueUserSet.add(id.toString()));
+      }
+      if (Array.isArray(p.comments)) {
+        p.comments.forEach(c => {
+          if (c.user) uniqueUserSet.add(c.user.toString());
+        });
+      }
     });
 
-    // Content views fallback: each post has at least author/feed impressions
-    if (totalViews === 0 && posts.length > 0) {
-      totalViews = posts.length * 14 + totalLikes * 3 + totalComments * 2;
-    }
-    const uniqueViewers = Math.max(Math.round(totalViews * 0.72), totalLikes);
+    const uniqueViewers = uniqueUserSet.size;
 
-    // 3. People found you for tags (with percentages)
+    // 3. People found you for tags (only real recorded discovery tags)
     const tagMap = analytics.searchTagsFound || new Map();
     let totalTagHits = 0;
     const tagsArray = [];
@@ -44,23 +49,6 @@ exports.getMyAnalytics = async (req, res) => {
       tagsArray.push({ tag, count });
     }
 
-    // If user has not accumulated search tags yet, seed from their profile interests/branch
-    if (tagsArray.length === 0) {
-      const userDoc = await User.findById(userId).select('interests branch');
-      const seedTags = (userDoc?.interests && userDoc.interests.length > 0)
-        ? userDoc.interests.slice(0, 4)
-        : ['campus', 'gitam', 'tech', 'student'];
-
-      const weights = [42, 28, 18, 12];
-      seedTags.forEach((t, i) => {
-        tagsArray.push({
-          tag: t.toLowerCase().replace(/[^a-z0-9]/g, ''),
-          count: weights[i] || 10,
-        });
-        totalTagHits += (weights[i] || 10);
-      });
-    }
-
     tagsArray.sort((a, b) => b.count - a.count);
     const tagsWithPercent = tagsArray.slice(0, 5).map(item => ({
       tag: item.tag.startsWith('#') ? item.tag : `#${item.tag}`,
@@ -68,7 +56,7 @@ exports.getMyAnalytics = async (req, res) => {
       count: item.count,
     }));
 
-    // 4. Short links aggregated analytics
+    // 4. Short links aggregated analytics (100% dynamic from DB)
     const shortLinks = await ShortLink.find({ creator: userId });
     let totalShortLinkClicks = 0;
     let totalShortLinkUniqueVisitors = 0;
@@ -85,8 +73,8 @@ exports.getMyAnalytics = async (req, res) => {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     shortLinks.forEach(link => {
-      totalShortLinkClicks += link.totalClicks;
-      totalShortLinkUniqueVisitors += link.uniqueVisitorCount;
+      totalShortLinkClicks += (link.totalClicks || 0);
+      totalShortLinkUniqueVisitors += (link.uniqueVisitorCount || 0);
 
       deviceStats.android += (link.devices?.android || 0);
       deviceStats.iphone += (link.devices?.iphone || 0);
@@ -109,55 +97,53 @@ exports.getMyAnalytics = async (req, res) => {
       }
     });
 
-    // Device breakdown percentages
+    // Real device breakdown percentages (0 if no clicks)
     const totalDeviceClicks = deviceStats.android + deviceStats.iphone + deviceStats.desktop + deviceStats.other;
     const devicePercentages = {
-      android: totalDeviceClicks > 0 ? Math.round((deviceStats.android / totalDeviceClicks) * 100) : 52,
-      iphone: totalDeviceClicks > 0 ? Math.round((deviceStats.iphone / totalDeviceClicks) * 100) : 31,
-      desktop: totalDeviceClicks > 0 ? Math.round((deviceStats.desktop / totalDeviceClicks) * 100) : 17,
+      android: totalDeviceClicks > 0 ? Math.round((deviceStats.android / totalDeviceClicks) * 100) : 0,
+      iphone: totalDeviceClicks > 0 ? Math.round((deviceStats.iphone / totalDeviceClicks) * 100) : 0,
+      desktop: totalDeviceClicks > 0 ? Math.round((deviceStats.desktop / totalDeviceClicks) * 100) : 0,
+      other: totalDeviceClicks > 0 ? Math.round((deviceStats.other / totalDeviceClicks) * 100) : 0,
     };
 
-    // Country breakdown percentages
+    // Real country breakdown percentages (empty array if no clicks)
     const countryArray = [];
     let totalCountryHits = 0;
     for (const [c, cnt] of countryMap.entries()) {
       totalCountryHits += cnt;
       countryArray.push({ country: c, count: cnt });
     }
-    if (countryArray.length === 0) {
-      countryArray.push({ country: 'India', flag: '🇮🇳', percentage: 68 });
-      countryArray.push({ country: 'USA', flag: '🇺🇸', percentage: 18 });
-      countryArray.push({ country: 'UK', flag: '🇬🇧', percentage: 14 });
-    } else {
-      countryArray.sort((a, b) => b.count - a.count);
-    }
+    countryArray.sort((a, b) => b.count - a.count);
 
-    const topCountries = countryArray.slice(0, 3).map(item => {
+    const topCountries = countryArray.slice(0, 5).map(item => {
       let flag = '🌐';
       let name = item.country;
       if (item.country === 'IN' || item.country === 'India') { flag = '🇮🇳'; name = 'India'; }
       else if (item.country === 'US' || item.country === 'USA') { flag = '🇺🇸'; name = 'USA'; }
       else if (item.country === 'GB' || item.country === 'UK') { flag = '🇬🇧'; name = 'UK'; }
+      else if (item.country === 'CA') { flag = '🇨🇦'; name = 'Canada'; }
+      else if (item.country === 'DE') { flag = '🇩🇪'; name = 'Germany'; }
       return {
         country: name,
         flag,
-        percentage: item.percentage || (totalCountryHits > 0 ? Math.round((item.count / totalCountryHits) * 100) : 0),
+        percentage: totalCountryHits > 0 ? Math.round((item.count / totalCountryHits) * 100) : 0,
+        count: item.count,
       };
     });
 
-    // Overall Link Click-Through Rate (CTR)
+    // Real Click-Through Rate (CTR)
     const effectiveLinkClicks = Math.max(analytics.linkClicks || 0, totalShortLinkClicks);
     const ctr = totalViews > 0 ? ((effectiveLinkClicks / totalViews) * 100).toFixed(1) : '0.0';
 
-    // Profile views and clicks
-    const profileViewsCount = Math.max(analytics.profileViews?.total || 0, Math.round(totalViews * 0.35));
-    const searchAppearances = Math.max(analytics.searchAppearances || 0, Math.round(profileViewsCount * 1.8) + 12);
-    const profileClicks = Math.max(analytics.profileClicks || 0, Math.round(profileViewsCount * 0.45) + 3);
+    // Real profile views and clicks
+    const profileViewsCount = analytics.profileViews?.total || 0;
+    const searchAppearances = analytics.searchAppearances || 0;
+    const profileClicks = analytics.profileClicks || 0;
 
-    // Recent short links
+    // Real recent short links
     const host = req.get('host');
     const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-    const recentLinks = shortLinks.slice(0, 5).map(link => ({
+    const recentLinks = shortLinks.slice(0, 10).map(link => ({
       shortCode: link.shortCode,
       shortUrl: `${protocol}://${host}/s/${link.shortCode}`,
       destinationUrl: link.destinationUrl,

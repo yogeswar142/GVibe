@@ -946,9 +946,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final thisMonthClicks = (timeBreakdown['thisMonth'] is num) ? (timeBreakdown['thisMonth'] as num).toInt() : 0;
 
     final devices = sData['devices'] as Map? ?? {};
-    final androidPct = (devices['android'] is num) ? (devices['android'] as num).toInt() : 52;
-    final iphonePct = (devices['iphone'] is num) ? (devices['iphone'] as num).toInt() : 31;
-    final desktopPct = (devices['desktop'] is num) ? (devices['desktop'] as num).toInt() : 17;
+    final androidPct = (devices['android'] is num) ? (devices['android'] as num).toInt() : 0;
+    final iphonePct = (devices['iphone'] is num) ? (devices['iphone'] as num).toInt() : 0;
+    final desktopPct = (devices['desktop'] is num) ? (devices['desktop'] as num).toInt() : 0;
+    final hasDeviceClicks = (androidPct + iphonePct + desktopPct) > 0;
 
     final topCountries = (sData['topCountries'] as List?) ?? [];
     final recentLinks = (sData['recentLinks'] as List?) ?? [];
@@ -1266,36 +1267,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _devicePill('Android', '$androidPct%', const Color(0xFF27C93F)),
-                    const SizedBox(width: 8),
-                    _devicePill('iPhone', '$iphonePct%', const Color(0xFF0070F3)),
-                    const SizedBox(width: 8),
-                    _devicePill('Desktop', '$desktopPct%', const Color(0xFFAF52DE)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // Segmented visual bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Row(
+                if (!hasDeviceClicks)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      'No device data yet. Platform statistics will record as peers open your links.',
+                      style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
+                    ),
+                  )
+                else ...[
+                  Row(
                     children: [
-                      Flexible(
-                        flex: androidPct > 0 ? androidPct : 1,
-                        child: Container(height: 6, color: const Color(0xFF27C93F)),
-                      ),
-                      Flexible(
-                        flex: iphonePct > 0 ? iphonePct : 1,
-                        child: Container(height: 6, color: const Color(0xFF0070F3)),
-                      ),
-                      Flexible(
-                        flex: desktopPct > 0 ? desktopPct : 1,
-                        child: Container(height: 6, color: const Color(0xFFAF52DE)),
-                      ),
+                      _devicePill('Android', '$androidPct%', const Color(0xFF27C93F)),
+                      const SizedBox(width: 8),
+                      _devicePill('iPhone', '$iphonePct%', const Color(0xFF0070F3)),
+                      const SizedBox(width: 8),
+                      _devicePill('Desktop', '$desktopPct%', const Color(0xFFAF52DE)),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  // Segmented visual bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Row(
+                      children: [
+                        if (androidPct > 0)
+                          Flexible(
+                            flex: androidPct,
+                            child: Container(height: 6, color: const Color(0xFF27C93F)),
+                          ),
+                        if (iphonePct > 0)
+                          Flexible(
+                            flex: iphonePct,
+                            child: Container(height: 6, color: const Color(0xFF0070F3)),
+                          ),
+                        if (desktopPct > 0)
+                          Flexible(
+                            flex: desktopPct,
+                            child: Container(height: 6, color: const Color(0xFFAF52DE)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 16),
                 Divider(color: borderColor, height: 1),
@@ -1307,23 +1321,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                ...topCountries.map((c) {
-                  final flag = c['flag']?.toString() ?? '🌐';
-                  final name = c['country']?.toString() ?? '';
-                  final pct = c['percentage'] ?? 0;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        Text(flag, style: const TextStyle(fontSize: 14)),
-                        const SizedBox(width: 8),
-                        Text(name, style: AppTextStyles.bodySm.copyWith(color: titleColor)),
-                        const Spacer(),
-                        Text('$pct%', style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold)),
-                      ],
+                if (topCountries.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      'No geo click data yet. Visitor locations will show here when peers click your links.',
+                      style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
                     ),
-                  );
-                }),
+                  )
+                else
+                  ...topCountries.map((c) {
+                    final flag = c['flag']?.toString() ?? '🌐';
+                    final name = c['country']?.toString() ?? '';
+                    final pct = c['percentage'] ?? 0;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Text(flag, style: const TextStyle(fontSize: 14)),
+                          const SizedBox(width: 8),
+                          Text(name, style: AppTextStyles.bodySm.copyWith(color: titleColor)),
+                          const Spacer(),
+                          Text('$pct%', style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    );
+                  }),
 
                 if (recentLinks.isNotEmpty) ...[
                   const SizedBox(height: 16),

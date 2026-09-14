@@ -13,6 +13,38 @@ const generateShortCode = () => {
   return code;
 };
 
+const shortenUrlsInText = async (text, userId, req) => {
+  if (!text) return text;
+  let processed = text.trim();
+  const urlRegex = /(https?:\/\/[^\s]+)/gi;
+  const matchedUrls = processed.match(urlRegex) || [];
+
+  const host = req.get('host');
+  const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+
+  for (const rawUrl of matchedUrls) {
+    // Skip URLs already pointing to our shortlink engine
+    if (rawUrl.includes('/s/')) continue;
+
+    let shortCode;
+    let exists = true;
+    while (exists) {
+      shortCode = generateShortCode();
+      exists = await ShortLink.findOne({ shortCode });
+    }
+
+    await ShortLink.create({
+      shortCode,
+      destinationUrl: rawUrl,
+      creator: userId,
+    });
+
+    const shortUrl = `${protocol}://${host}/s/${shortCode}`;
+    processed = processed.replace(rawUrl, shortUrl);
+  }
+  return processed;
+};
+
 // GET /api/posts — get all posts (newest first, optionally filtered by author)
 exports.getPosts = async (req, res) => {
   try {
@@ -42,36 +74,7 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Post content is required' });
     }
 
-    let processedContent = content.trim();
-
-    // Auto-detect and shorten URLs (LinkedIn / Twitter style)
-    const urlRegex = /(https?:\/\/[^\s]+)/gi;
-    const matchedUrls = processedContent.match(urlRegex) || [];
-
-    const host = req.get('host');
-    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
-
-    for (const rawUrl of matchedUrls) {
-      // Skip URLs already pointing to our shortlink engine
-      if (rawUrl.includes('/s/')) continue;
-
-      let shortCode;
-      let exists = true;
-      while (exists) {
-        shortCode = generateShortCode();
-        exists = await ShortLink.findOne({ shortCode });
-      }
-
-      await ShortLink.create({
-        shortCode,
-        destinationUrl: rawUrl,
-        creator: req.user.id,
-      });
-
-      const shortUrl = `${protocol}://${host}/s/${shortCode}`;
-      processedContent = processedContent.replace(rawUrl, shortUrl);
-    }
-
+    const processedContent = await shortenUrlsInText(content, req.user.id, req);
     const tags = (processedContent.match(/#\w+/g) || []).map(tag => tag.substring(1).toLowerCase());
 
     const post = await Post.create({
@@ -147,7 +150,9 @@ exports.addComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    post.comments.push({ user: req.user.id, text: text.trim() });
+    const processedText = await shortenUrlsInText(text, req.user.id, req);
+
+    post.comments.push({ user: req.user.id, text: processedText });
     await post.save();
 
     const updatedPost = await Post.findById(post._id)

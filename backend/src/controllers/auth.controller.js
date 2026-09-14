@@ -2,8 +2,9 @@ const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '102660971528-qp48pr3151d6sit1f1bch7s4hln68fr5.apps.googleusercontent.com';
-const googleClient = new OAuth2Client(CLIENT_ID);
+const WEB_CLIENT_ID = process.env.WEB_APPLICATION_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
+const MOBILE_CLIENT_ID = process.env.MOBILE_APPLICATION_CLIENT_ID || process.env.GOOGLE_ANDROID_CLIENT_ID || '685012189458-t1slebthd5lbchu9n0aanph1060gffvm.apps.googleusercontent.com';
+const googleClient = new OAuth2Client(WEB_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -87,10 +88,10 @@ exports.googleAuth = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Google ID Token is required' });
     }
 
-    // Verify Google ID Token
+    // Verify Google ID Token against web or mobile client IDs
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: CLIENT_ID,
+      audience: [WEB_CLIENT_ID, MOBILE_CLIENT_ID],
     });
     const payload = ticket.getPayload();
     const { email, name, sub: googleId } = payload;

@@ -220,7 +220,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     final countColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [

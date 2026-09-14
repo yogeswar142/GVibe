@@ -223,7 +223,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 52, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [

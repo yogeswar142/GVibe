@@ -75,7 +75,8 @@ class _BackendDownScreenState extends State<BackendDownScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final mq = MediaQuery.of(context);
+    final screenHeight = mq.size.height;
     final bgColor = isDark ? const Color(0xFF000004) : const Color(0xFFFDFDFD);
     final accentColor = isDark ? const Color(0xFF8B5CF6) : const Color(0xFF2563EB);
     final badgeBg = isDark
@@ -94,9 +95,10 @@ class _BackendDownScreenState extends State<BackendDownScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
-              
-              // ── System Status Maintenance Bar ─────────────────
+              // ── Top gap (proportional, not fixed) ─────────────────
+              SizedBox(height: screenHeight * 0.03),
+
+              // ── System Status Maintenance Bar ─────────────────────
               Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -139,24 +141,29 @@ class _BackendDownScreenState extends State<BackendDownScreen>
                   ),
                 ),
               ),
-              
-              // Lower the image by adding space below the status bar
-              const SizedBox(height: 140),
 
-              // ── Hero Image fitted to width ─────────────────
-              Image.asset(
-                isDark
-                    ? 'assets/maintenance_dark.png'
-                    : 'assets/maintenance_light.png',
-                width: double.infinity,
-                fit: BoxFit.fitWidth,
+              // ── Gap between badge and image (proportional) ─────────
+              SizedBox(height: screenHeight * 0.06),
+
+              // ── Hero Image — flexes to fill available space without overflowing ──
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Center(
+                    child: Image.asset(
+                      isDark
+                          ? 'assets/maintenance_dark.png'
+                          : 'assets/maintenance_light.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(height: 12),
 
-              const Spacer(),
-
-              // Bottom Area containing the Retry Button
+              // ── Retry Button ───────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.fromLTRB(28, 20, 28, 48),
+                padding: const EdgeInsets.fromLTRB(28, 16, 28, 24),
                 child: SizedBox(
                   width: double.infinity,
                   child: GestureDetector(

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'api_service.dart';
 import 'socket_service.dart';
 import 'encryption_service.dart';
@@ -136,10 +137,12 @@ class AuthService {
     required String action, // 'login' or 'register'
   }) async {
     try {
-      // Initialize GoogleSignIn using the new Web Client ID as the serverClientId.
-      // This allows the Android app to obtain ID tokens/auth codes.
+      // Read Web Client ID from frontend .env
+      final webClientId = dotenv.env['WEB_APPLICATION_CLIENT_ID'] ??
+          '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
       await GoogleSignIn.instance.initialize(
-        serverClientId: '102660971528-qp48pr3151d6sit1f1bch7s4hln68fr5.apps.googleusercontent.com',
+        clientId: webClientId,
+        serverClientId: webClientId,
       );
 
       // 2. Try real Google Sign-In via authenticate()

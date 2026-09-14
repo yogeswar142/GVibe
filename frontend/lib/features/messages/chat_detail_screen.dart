@@ -453,9 +453,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(76),
+        preferredSize: Size.fromHeight(MediaQuery.of(context).padding.top + 58),
         child: Container(
-          padding: const EdgeInsets.fromLTRB(8, 48, 16, 10),
+          padding: EdgeInsets.fromLTRB(8, MediaQuery.of(context).padding.top + 8, 16, 10),
           decoration: BoxDecoration(
             color: Theme.of(context).scaffoldBackgroundColor,
             border: Border(bottom: BorderSide(color: borderColor, width: 1)),

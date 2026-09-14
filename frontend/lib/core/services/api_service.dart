@@ -138,8 +138,8 @@ class ApiService {
       try {
         final testDio = Dio(BaseOptions(
           baseUrl: candidate,
-          connectTimeout: const Duration(milliseconds: 2000),
-          receiveTimeout: const Duration(milliseconds: 2000),
+          connectTimeout: const Duration(milliseconds: 12000),
+          receiveTimeout: const Duration(milliseconds: 12000),
         ));
         final response = await testDio.get('/');
         final data = response.data;

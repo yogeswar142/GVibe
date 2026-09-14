@@ -325,13 +325,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     const SizedBox(height: 8),
                     // COMPLETE YOUR PROFILE — big heading
-                    Text(
-                      'COMPLETE\nYOUR PROFILE',
-                      style: AppTextStyles.displayXl.copyWith(
-                        fontSize: 44,
-                        height: 0.95,
-                        letterSpacing: -1,
-                        color: AppColors.textPrimary,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'COMPLETE\nYOUR PROFILE',
+                        style: AppTextStyles.displayXl.copyWith(
+                          fontSize: 44,
+                          height: 0.95,
+                          letterSpacing: -1,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 36),
@@ -789,32 +793,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        GestureDetector(
-                          onTap: () => _showOverlayModal(
-                            'Privacy Protocols',
-                            'GVibe values student privacy. All personal registration data is end-to-end verified. Your information is securely stored inside GITAM systems and will never be shared with third parties or external advertising networks.',
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () => _showOverlayModal(
+                              'Privacy Protocols',
+                              'GVibe values student privacy. All personal registration data is end-to-end verified. Your information is securely stored inside GITAM systems and will never be shared with third parties or external advertising networks.',
+                            ),
+                            child: Text('Privacy Protocols',
+                                style: AppTextStyles.monoXs
+                                    .copyWith(color: AppColors.textMuted, fontSize: 9),
+                                overflow: TextOverflow.ellipsis),
                           ),
-                          child: Text('Privacy Protocols',
-                              style: AppTextStyles.monoXs
-                                  .copyWith(color: AppColors.textMuted, fontSize: 9)),
                         ),
-                        GestureDetector(
-                          onTap: () => _showOverlayModal(
-                            'GVibe Guidelines',
-                            'Be respectful and authentic. GVibe is an exclusive platform for verified student interactions. Impersonation, hate speech, spam, harassment, or sharing of non-consensual media will result in immediate and permanent account suspension.',
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () => _showOverlayModal(
+                              'GVibe Guidelines',
+                              'Be respectful and authentic. GVibe is an exclusive platform for verified student interactions. Impersonation, hate speech, spam, harassment, or sharing of non-consensual media will result in immediate and permanent account suspension.',
+                            ),
+                            child: Text('GVibe Guidelines',
+                                style: AppTextStyles.monoXs
+                                    .copyWith(color: AppColors.textMuted, fontSize: 9),
+                                overflow: TextOverflow.ellipsis),
                           ),
-                          child: Text('GVibe Guidelines',
-                              style: AppTextStyles.monoXs
-                                  .copyWith(color: AppColors.textMuted, fontSize: 9)),
                         ),
-                        GestureDetector(
-                          onTap: () => _showOverlayModal(
-                            'Help Matrix',
-                            'Need assistance? Access our 24/7 student support desk. You can contact support at support@student.gitam.edu or visit the help desk located inside the IT & Systems department at the central administration block.',
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () => _showOverlayModal(
+                              'Help Matrix',
+                              'Need assistance? Access our 24/7 student support desk. You can contact support at support@student.gitam.edu or visit the help desk located inside the IT & Systems department at the central administration block.',
+                            ),
+                            child: Text('Help Matrix',
+                                style: AppTextStyles.monoXs
+                                    .copyWith(color: AppColors.textMuted, fontSize: 9),
+                                overflow: TextOverflow.ellipsis),
                           ),
-                          child: Text('Help Matrix',
-                              style: AppTextStyles.monoXs
-                                  .copyWith(color: AppColors.textMuted, fontSize: 9)),
                         ),
                       ],
                     ),

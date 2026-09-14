@@ -272,7 +272,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
 
     return Container(
-      padding: EdgeInsets.fromLTRB(_isOwnProfile ? 20 : 8, 52, 20, 12),
+      padding: EdgeInsets.fromLTRB(_isOwnProfile ? 20 : 8, MediaQuery.of(context).padding.top + 12, 20, 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
@@ -307,7 +307,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             GestureDetector(
               onTap: _logout,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(isDark ? 8 : 6),
@@ -452,7 +452,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     style: AppTextStyles.label.copyWith(
                       color: isActive ? activeColor : inactiveColor,
                       fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 11,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
               ),

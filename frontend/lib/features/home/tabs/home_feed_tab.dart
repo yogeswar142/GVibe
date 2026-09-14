@@ -5,7 +5,10 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/services/api_service.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/gvibe_widgets.dart';
+import '../../../shared/widgets/comments_sheet.dart';
+import '../../../shared/widgets/share_post_sheet.dart';
 import '../../../core/providers/theme_provider.dart';
 
 class HomeFeedTab extends StatefulWidget {
@@ -298,24 +301,119 @@ class _HomeFeedTabState extends State<HomeFeedTab>
 }
 
 // ═══════════════════════ POST CARD ═══════════════════════════════════════════
-class _PostCard extends StatelessWidget {
+class _PostCard extends StatefulWidget {
   final Map<String, dynamic> post;
   const _PostCard({required this.post});
+
+  @override
+  State<_PostCard> createState() => _PostCardState();
+}
+
+class _PostCardState extends State<_PostCard> {
+  late int _likesCount;
+  late int _commentsCount;
+  late int _sharesCount;
+  bool _isLiked = false;
+  String? _currentUserId;
+
+  @override
+  void initState() {
+    super.initState();
+    final likesList = (widget.post['likes'] as List?) ?? [];
+    _likesCount = likesList.length;
+    _commentsCount = (widget.post['comments'] as List?)?.length ?? 0;
+    _sharesCount = widget.post['sharesCount'] ?? 0;
+    _checkLikedStatus(likesList);
+  }
+
+  Future<void> _checkLikedStatus(List likesList) async {
+    final cached = await AuthService.getUser();
+    if (mounted) {
+      final myId = cached?['_id']?.toString();
+      setState(() {
+        _currentUserId = myId;
+        if (myId != null) {
+          _isLiked = likesList.any((id) => id.toString() == myId);
+        }
+      });
+    }
+  }
+
+  Future<void> _toggleLike() async {
+    final postId = widget.post['_id']?.toString() ?? widget.post['id']?.toString();
+    if (postId == null) return;
+
+    // Optimistic update
+    setState(() {
+      if (_isLiked) {
+        _isLiked = false;
+        _likesCount = (_likesCount - 1).clamp(0, 999999);
+      } else {
+        _isLiked = true;
+        _likesCount += 1;
+      }
+    });
+
+    try {
+      final res = await ApiService().dio.put('/posts/$postId/like');
+      if (res.data['success'] == true && mounted) {
+        final updatedPost = res.data['data'];
+        final updatedLikes = (updatedPost['likes'] as List?) ?? [];
+        setState(() {
+          _likesCount = updatedLikes.length;
+          if (_currentUserId != null) {
+            _isLiked = updatedLikes.any((id) => id.toString() == _currentUserId);
+          }
+        });
+      }
+    } catch (_) {
+      // Revert if request fails
+      if (mounted) {
+        setState(() {
+          if (_isLiked) {
+            _isLiked = false;
+            _likesCount = (_likesCount - 1).clamp(0, 999999);
+          } else {
+            _isLiked = true;
+            _likesCount += 1;
+          }
+        });
+      }
+    }
+  }
+
+  void _openComments() {
+    CommentsSheet.show(
+      context,
+      post: widget.post,
+      onCommentsCountChanged: (count) {
+        if (mounted) setState(() => _commentsCount = count);
+      },
+    );
+  }
+
+  void _openShare() {
+    SharePostSheet.show(
+      context,
+      post: widget.post,
+      onShared: (count) {
+        if (mounted) setState(() => _sharesCount = count);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final ext = context.ext;
-    final author = post['author'];
+    final author = widget.post['author'];
     final name = author?['name']?.toString() ?? 'Anonymous';
     final avatar = author?['avatar']?.toString();
     final initials = name.isNotEmpty ? name[0] : '?';
-    final content = post['content']?.toString() ?? '';
-    final likes = (post['likes'] as List?)?.length ?? 0;
-    final comments = (post['comments'] as List?)?.length ?? 0;
-    final createdAt = post['createdAt']?.toString() ?? '';
+    final content = widget.post['content']?.toString() ?? '';
+    final createdAt = widget.post['createdAt']?.toString() ?? '';
     final timeAgo = _timeAgo(createdAt);
-    final isTrending = likes > 5;
+    final isTrending = _likesCount > 5;
 
     final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
     final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
@@ -349,6 +447,7 @@ class _PostCard extends StatelessWidget {
                           color: nameColor,
                           fontWeight: FontWeight.w600,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -392,21 +491,49 @@ class _PostCard extends StatelessWidget {
             // Actions
             Row(
               children: [
-                AnimatedLikeButton(count: likes),
+                AnimatedLikeButton(
+                  count: _likesCount,
+                  isLiked: _isLiked,
+                  onTap: _toggleLike,
+                ),
                 const SizedBox(width: 20),
-                Icon(Icons.chat_bubble_outline_rounded,
-                    color: actionColor, size: 17),
-                const SizedBox(width: 5),
-                Text(
-                  '$comments',
-                  style: AppTextStyles.monoSm.copyWith(
-                    color: actionColor,
-                    fontWeight: FontWeight.w500,
+                GestureDetector(
+                  onTap: _openComments,
+                  child: Row(
+                    children: [
+                      Icon(Icons.chat_bubble_outline_rounded,
+                          color: actionColor, size: 17),
+                      const SizedBox(width: 5),
+                      Text(
+                        '$_commentsCount',
+                        style: AppTextStyles.monoSm.copyWith(
+                          color: actionColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
-                Icon(Icons.share_outlined,
-                    color: actionColor, size: 17),
+                GestureDetector(
+                  onTap: _openShare,
+                  child: Row(
+                    children: [
+                      Icon(Icons.share_outlined,
+                          color: actionColor, size: 17),
+                      if (_sharesCount > 0) ...[
+                        const SizedBox(width: 5),
+                        Text(
+                          '$_sharesCount',
+                          style: AppTextStyles.monoSm.copyWith(
+                            color: actionColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ],

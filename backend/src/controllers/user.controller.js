@@ -154,6 +154,31 @@ exports.getUserById = async (req, res) => {
         createdAt: user.createdAt,
       },
     });
+
+    // Asynchronously record profile view and click analytics
+    if (req.user && req.user.id.toString() !== req.params.id) {
+      setImmediate(async () => {
+        try {
+          const UserAnalytics = require('../models/UserAnalytics');
+          const todayStr = new Date().toISOString().split('T')[0];
+          const viewerHash = req.user.id.toString();
+          let analytics = await UserAnalytics.findOne({ user: req.params.id });
+          if (!analytics) analytics = await UserAnalytics.create({ user: req.params.id });
+          analytics.profileViews.total += 1;
+          analytics.profileClicks += 1;
+          if (!analytics.profileViews.uniqueVisitors.includes(viewerHash)) {
+            analytics.profileViews.uniqueVisitors.push(viewerHash);
+          }
+          const historyEntry = analytics.viewsHistory.find(h => h.date === todayStr);
+          if (historyEntry) {
+            historyEntry.views += 1;
+          } else {
+            analytics.viewsHistory.push({ date: todayStr, views: 1 });
+          }
+          await analytics.save();
+        } catch (_) {}
+      });
+    }
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -186,6 +211,18 @@ exports.toggleFollow = async (req, res) => {
       // Follow
       targetUser.followers.push(req.user.id);
       currentUser.following.push(req.params.id);
+
+      // Asynchronously increment followers gained analytics
+      setImmediate(async () => {
+        try {
+          const UserAnalytics = require('../models/UserAnalytics');
+          await UserAnalytics.findOneAndUpdate(
+            { user: req.params.id },
+            { $inc: { followersGained: 1 } },
+            { upsert: true }
+          );
+        } catch (_) {}
+      });
     }
 
     await targetUser.save();

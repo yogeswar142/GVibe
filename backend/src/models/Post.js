@@ -39,7 +39,15 @@ const postSchema = new mongoose.Schema({
     type: String,
     lowercase: true,
     trim: true
-  }]
+  }],
+  sharesCount: {
+    type: Number,
+    default: 0,
+  },
+  viewsCount: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────

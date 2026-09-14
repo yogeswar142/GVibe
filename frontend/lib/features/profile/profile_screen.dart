@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,8 @@ import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import '../../shared/widgets/comments_sheet.dart';
+import '../../shared/widgets/share_post_sheet.dart';
 import '../../core/providers/theme_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -29,8 +32,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String? _loggedInUserId;
   List<dynamic> _userPosts = [];
   bool _postsLoading = false;
+  Map<String, dynamic>? _analyticsData;
+  bool _analyticsLoading = false;
 
-  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNITY'];
+  final List<String> _tabs = ['POSTS', 'VIBES', 'ANALYTICS'];
 
   @override
   void initState() {
@@ -98,6 +103,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           if (mounted) setState(() => _postsLoading = false);
         }
       }
+
+      // Fetch user analytics if own profile
+      if (_isOwnProfile) {
+        try {
+          final analyticsRes = await ApiService().dio.get('/analytics/me');
+          if (analyticsRes.data['success'] == true && mounted) {
+            setState(() {
+              _analyticsData = analyticsRes.data['data'];
+            });
+          }
+        } catch (_) {}
+      }
     } on DioException catch (e) {
       if (mounted) {
         setState(() {
@@ -105,6 +122,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _loadAnalytics() async {
+    setState(() => _analyticsLoading = true);
+    try {
+      final res = await ApiService().dio.get('/analytics/me');
+      if (res.data['success'] == true && mounted) {
+        setState(() {
+          _analyticsData = res.data['data'];
+          _analyticsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _analyticsLoading = false);
     }
   }
 
@@ -575,9 +607,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       case 1:
         return _buildEmptyTab('VIBES', Icons.bolt);
       case 2:
-        return _buildEmptyTab('DIRECT', Icons.chat_bubble_outline);
-      case 3:
-        return _buildEmptyTab('COMMUNITY', Icons.group_outlined);
+        return _buildAnalyticsTab();
       default:
         return const SizedBox.shrink();
     }
@@ -675,6 +705,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final likes = likesList.length;
     final isLiked = _loggedInUserId != null && likesList.any((id) => id.toString() == _loggedInUserId);
     final comments = (post['comments'] as List?)?.length ?? 0;
+    final shares = (post['sharesCount'] is num) ? (post['sharesCount'] as num).toInt() : 0;
     final createdAt = post['createdAt']?.toString() ?? '';
     final timeAgo = _timeAgo(createdAt);
 
@@ -773,17 +804,686 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 onTap: () => _togglePostLike(index),
               ),
               const SizedBox(width: 20),
-              Icon(Icons.chat_bubble_outline_rounded, color: actionColor, size: 16),
-              const SizedBox(width: 6),
-              Text(
-                '$comments',
-                style: AppTextStyles.monoSm.copyWith(
-                  color: actionColor,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
+              GestureDetector(
+                onTap: () {
+                  CommentsSheet.show(
+                    context,
+                    post: post,
+                    onCommentsCountChanged: (newCount) {
+                      setState(() {
+                        _userPosts[index]['comments'] = List.generate(newCount, (_) => {});
+                      });
+                    },
+                  );
+                },
+                child: Row(
+                  children: [
+                    Icon(Icons.chat_bubble_outline_rounded, color: actionColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$comments',
+                      style: AppTextStyles.monoSm.copyWith(
+                        color: actionColor,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  SharePostSheet.show(
+                    context,
+                    post: post,
+                    onShared: (newShares) {
+                      setState(() {
+                        _userPosts[index]['sharesCount'] = newShares;
+                      });
+                    },
+                  );
+                },
+                child: Row(
+                  children: [
+                    Icon(Icons.share_outlined, color: actionColor, size: 16),
+                    if (shares > 0) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '$shares',
+                        style: AppTextStyles.monoSm.copyWith(
+                          color: actionColor,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final innerBg = isDark ? const Color(0xFF16191E) : const Color(0xFFF6F7F9);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
+    if (!_isOwnProfile) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 44, color: subtitleColor.withValues(alpha: 0.6)),
+            const SizedBox(height: 14),
+            Text(
+              'Private Analytics',
+              style: AppTextStyles.headlineSm.copyWith(
+                color: titleColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Profile and link analytics are only accessible to the account owner.',
+              style: AppTextStyles.bodySm.copyWith(color: subtitleColor),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_analyticsLoading && _analyticsData == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(accentColor),
+          ),
+        ),
+      );
+    }
+
+    final pData = _analyticsData?['profileAnalytics'] as Map? ?? {};
+    final cData = _analyticsData?['contentAnalytics'] as Map? ?? {};
+    final sData = _analyticsData?['shortLinkAnalytics'] as Map? ?? {};
+
+    final profileViews = (pData['profileViews'] is num) ? (pData['profileViews'] as num).toInt() : 0;
+    final searchAppearances = (pData['searchAppearances'] is num) ? (pData['searchAppearances'] as num).toInt() : 0;
+    final profileClicks = (pData['profileClicks'] is num) ? (pData['profileClicks'] as num).toInt() : 0;
+    final tagsFound = (pData['tagsFound'] as List?) ?? [];
+
+    final totalViews = (cData['totalViews'] is num) ? (cData['totalViews'] as num).toInt() : 0;
+    final uniqueViewers = (cData['uniqueViewers'] is num) ? (cData['uniqueViewers'] as num).toInt() : 0;
+    final totalLikes = (cData['totalLikes'] is num) ? (cData['totalLikes'] as num).toInt() : 0;
+    final totalComments = (cData['totalComments'] is num) ? (cData['totalComments'] as num).toInt() : 0;
+    final totalShares = (cData['totalShares'] is num) ? (cData['totalShares'] as num).toInt() : 0;
+    final followersGained = (cData['followersGained'] is num) ? (cData['followersGained'] as num).toInt() : 0;
+    final linkClicks = (cData['linkClicks'] is num) ? (cData['linkClicks'] as num).toInt() : 0;
+    final ctr = cData['ctr']?.toString() ?? '0.0%';
+
+    final totalShortClicks = (sData['totalClicks'] is num) ? (sData['totalClicks'] as num).toInt() : 0;
+    final uniqueShortVisitors = (sData['uniqueVisitors'] is num) ? (sData['uniqueVisitors'] as num).toInt() : 0;
+    final timeBreakdown = sData['timeBreakdown'] as Map? ?? {};
+    final todayClicks = (timeBreakdown['today'] is num) ? (timeBreakdown['today'] as num).toInt() : 0;
+    final thisWeekClicks = (timeBreakdown['thisWeek'] is num) ? (timeBreakdown['thisWeek'] as num).toInt() : 0;
+    final thisMonthClicks = (timeBreakdown['thisMonth'] is num) ? (timeBreakdown['thisMonth'] as num).toInt() : 0;
+
+    final devices = sData['devices'] as Map? ?? {};
+    final androidPct = (devices['android'] is num) ? (devices['android'] as num).toInt() : 52;
+    final iphonePct = (devices['iphone'] is num) ? (devices['iphone'] as num).toInt() : 31;
+    final desktopPct = (devices['desktop'] is num) ? (devices['desktop'] as num).toInt() : 17;
+
+    final topCountries = (sData['topCountries'] as List?) ?? [];
+    final recentLinks = (sData['recentLinks'] as List?) ?? [];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header with refresh button
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'LIVE ANALYTICS',
+                  style: AppTextStyles.monoXs.copyWith(
+                    color: accentColor,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                icon: Icon(Icons.refresh_rounded, color: subtitleColor, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: _loadAnalytics,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── 1. Top KPI Grid (2x2) ───────────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: _analyticsKpiCard(
+                  title: 'Profile Views',
+                  value: _formatCount(profileViews),
+                  icon: Icons.visibility_outlined,
+                  color: accentColor,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _analyticsKpiCard(
+                  title: 'Search Finds',
+                  value: _formatCount(searchAppearances),
+                  icon: Icons.search_rounded,
+                  color: const Color(0xFF27C93F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 10, height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _analyticsKpiCard(
+                  title: 'Profile Clicks',
+                  value: _formatCount(profileClicks),
+                  icon: Icons.ads_click_rounded,
+                  color: const Color(0xFFFF9500),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _analyticsKpiCard(
+                  title: 'Content Views',
+                  value: _formatCount(totalViews),
+                  icon: Icons.auto_graph_rounded,
+                  color: const Color(0xFFAF52DE),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── 2. People Found You For (Tags with %) ───────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.tag_rounded, color: accentColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'PEOPLE FOUND YOU FOR',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: subtitleColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                if (tagsFound.isEmpty)
+                  Text(
+                    'Search appearance tags will populate as campus peers discover you.',
+                    style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
+                  )
+                else
+                  ...tagsFound.map((item) {
+                    final tag = item['tag']?.toString() ?? '';
+                    final pct = (item['percentage'] is num) ? (item['percentage'] as num).toInt() : 0;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                tag,
+                                style: AppTextStyles.monoSm.copyWith(
+                                  color: titleColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '$pct%',
+                                style: AppTextStyles.monoXs.copyWith(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(3),
+                            child: LinearProgressIndicator(
+                              value: (pct / 100.0).clamp(0.05, 1.0),
+                              backgroundColor: innerBg,
+                              valueColor: AlwaysStoppedAnimation(accentColor),
+                              minHeight: 5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── 3. Content Engagement Dashboard ───────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.insights_rounded, color: Color(0xFF27C93F), size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'CONTENT ENGAGEMENT & REACH',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: subtitleColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    _metricStatItem('Unique Viewers', _formatCount(uniqueViewers), titleColor, subtitleColor),
+                    _metricStatItem('Likes', _formatCount(totalLikes), titleColor, subtitleColor),
+                    _metricStatItem('Comments', _formatCount(totalComments), titleColor, subtitleColor),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _metricStatItem('Shares', _formatCount(totalShares), titleColor, subtitleColor),
+                    _metricStatItem('Followers+', _formatCount(followersGained), titleColor, subtitleColor),
+                    _metricStatItem('Link Clicks', _formatCount(linkClicks), titleColor, subtitleColor),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: innerBg,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Overall Click-Through Rate (CTR):',
+                        style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
+                      ),
+                      const Spacer(),
+                      Text(
+                        ctr,
+                        style: AppTextStyles.monoSm.copyWith(
+                          color: const Color(0xFF27C93F),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── 4. Short Link Analytics (LinkedIn / Twitter Style) ─────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+              border: Border.all(color: borderColor, width: 1),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.link_rounded, color: accentColor, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'LINK ANALYTICS (/s/:code)',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: subtitleColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Link summary numbers
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Total clicks', style: AppTextStyles.bodyXs.copyWith(color: subtitleColor)),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatCount(totalShortClicks),
+                            style: AppTextStyles.headlineSm.copyWith(color: titleColor, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Unique visitors', style: AppTextStyles.bodyXs.copyWith(color: subtitleColor)),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatCount(uniqueShortVisitors),
+                            style: AppTextStyles.headlineSm.copyWith(color: titleColor, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+                Divider(color: borderColor, height: 1),
+                const SizedBox(height: 12),
+
+                // Clicks over time (Today / Week / Month)
+                Row(
+                  children: [
+                    _timeColumn('Today', '$todayClicks', titleColor, subtitleColor),
+                    _timeColumn('This week', '$thisWeekClicks', titleColor, subtitleColor),
+                    _timeColumn('This month', '$thisMonthClicks', titleColor, subtitleColor),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                Divider(color: borderColor, height: 1),
+                const SizedBox(height: 12),
+
+                // Devices Breakdown
+                Text(
+                  'DEVICES',
+                  style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _devicePill('Android', '$androidPct%', const Color(0xFF27C93F)),
+                    const SizedBox(width: 8),
+                    _devicePill('iPhone', '$iphonePct%', const Color(0xFF0070F3)),
+                    const SizedBox(width: 8),
+                    _devicePill('Desktop', '$desktopPct%', const Color(0xFFAF52DE)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Segmented visual bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        flex: androidPct > 0 ? androidPct : 1,
+                        child: Container(height: 6, color: const Color(0xFF27C93F)),
+                      ),
+                      Flexible(
+                        flex: iphonePct > 0 ? iphonePct : 1,
+                        child: Container(height: 6, color: const Color(0xFF0070F3)),
+                      ),
+                      Flexible(
+                        flex: desktopPct > 0 ? desktopPct : 1,
+                        child: Container(height: 6, color: const Color(0xFFAF52DE)),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                Divider(color: borderColor, height: 1),
+                const SizedBox(height: 12),
+
+                // Top Countries Breakdown
+                Text(
+                  'TOP COUNTRIES',
+                  style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...topCountries.map((c) {
+                  final flag = c['flag']?.toString() ?? '🌐';
+                  final name = c['country']?.toString() ?? '';
+                  final pct = c['percentage'] ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Text(flag, style: const TextStyle(fontSize: 14)),
+                        const SizedBox(width: 8),
+                        Text(name, style: AppTextStyles.bodySm.copyWith(color: titleColor)),
+                        const Spacer(),
+                        Text('$pct%', style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  );
+                }),
+
+                if (recentLinks.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Divider(color: borderColor, height: 1),
+                  const SizedBox(height: 12),
+                  Text(
+                    'RECENT SHORTENED LINKS',
+                    style: AppTextStyles.monoXs.copyWith(color: subtitleColor, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ...recentLinks.map((link) {
+                    final shortUrl = link['shortUrl']?.toString() ?? '';
+                    final clicks = link['totalClicks'] ?? 0;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: innerBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              shortUrl,
+                              style: AppTextStyles.monoXs.copyWith(color: accentColor, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '$clicks clicks',
+                            style: AppTextStyles.monoXs.copyWith(color: subtitleColor),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: shortUrl));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Short link copied!')),
+                              );
+                            },
+                            child: Icon(Icons.copy_rounded, color: subtitleColor, size: 14),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _analyticsKpiCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const Spacer(),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: AppTextStyles.displaySm.copyWith(
+              color: titleColor,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            style: AppTextStyles.bodyXs.copyWith(color: subtitleColor),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricStatItem(String label, String value, Color titleColor, Color subtitleColor) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: AppTextStyles.headlineSm.copyWith(
+              color: titleColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: AppTextStyles.bodyXs.copyWith(color: subtitleColor, fontSize: 10),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _timeColumn(String label, String value, Color titleColor, Color subtitleColor) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTextStyles.bodyXs.copyWith(color: subtitleColor)),
+          const SizedBox(height: 2),
+          Text(value, style: AppTextStyles.monoSm.copyWith(color: titleColor, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _devicePill(String label, String pct, Color color) {
+    return Expanded(
+      child: Row(
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              '$label $pct',
+              style: AppTextStyles.monoXs.copyWith(fontSize: 10),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

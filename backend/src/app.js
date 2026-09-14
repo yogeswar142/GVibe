@@ -18,6 +18,8 @@ const vibeRoutes      = require('./routes/vibe.routes');
 const discoveryRoutes = require('./routes/discovery.routes');
 const messageRoutes   = require('./routes/message.routes');
 const lostItemRoutes  = require('./routes/lost_item.routes');
+const shortLinkRoutes = require('./routes/short_link.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
 
 const app = express();
 
@@ -77,6 +79,13 @@ app.use('/api/messages',  messageRoutes);
 
 // Lost & Found
 app.use('/api/lost-items', lostItemRoutes);
+
+// LinkedIn/Twitter style URL shortener redirect: /s/:code
+app.use('/s', shortLinkRoutes);
+app.use('/api/links', shortLinkRoutes);
+
+// Comprehensive user, content, and link analytics
+app.use('/api/analytics', analyticsRoutes);
 
 // ── 9. 404 handler ────────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -1,4 +1,17 @@
 const Post = require('../models/Post');
+const ShortLink = require('../models/ShortLink');
+const UserAnalytics = require('../models/UserAnalytics');
+const crypto = require('crypto');
+
+const generateShortCode = () => {
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  const bytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    code += chars[bytes[i] % chars.length];
+  }
+  return code;
+};
 
 // GET /api/posts — get all posts (newest first, optionally filtered by author)
 exports.getPosts = async (req, res) => {
@@ -20,7 +33,7 @@ exports.getPosts = async (req, res) => {
   }
 };
 
-// POST /api/posts — create a new post
+// POST /api/posts — create a new post with auto link shortening (Twitter/LinkedIn style)
 exports.createPost = async (req, res) => {
   try {
     const { content, type } = req.body;
@@ -29,11 +42,41 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Post content is required' });
     }
 
-    const tags = (content.match(/#\w+/g) || []).map(tag => tag.substring(1).toLowerCase());
+    let processedContent = content.trim();
+
+    // Auto-detect and shorten URLs (LinkedIn / Twitter style)
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const matchedUrls = processedContent.match(urlRegex) || [];
+
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+
+    for (const rawUrl of matchedUrls) {
+      // Skip URLs already pointing to our shortlink engine
+      if (rawUrl.includes('/s/')) continue;
+
+      let shortCode;
+      let exists = true;
+      while (exists) {
+        shortCode = generateShortCode();
+        exists = await ShortLink.findOne({ shortCode });
+      }
+
+      await ShortLink.create({
+        shortCode,
+        destinationUrl: rawUrl,
+        creator: req.user.id,
+      });
+
+      const shortUrl = `${protocol}://${host}/s/${shortCode}`;
+      processedContent = processedContent.replace(rawUrl, shortUrl);
+    }
+
+    const tags = (processedContent.match(/#\w+/g) || []).map(tag => tag.substring(1).toLowerCase());
 
     const post = await Post.create({
       author: req.user.id,
-      content: content.trim(),
+      content: processedContent,
       type: type || 'text',
       tags,
     });
@@ -66,9 +109,26 @@ exports.toggleLike = async (req, res) => {
     await post.save();
 
     const populatedPost = await Post.findById(post._id)
-      .populate('author', 'name avatar dept year');
+      .populate('author', 'name avatar dept year')
+      .populate('comments.user', 'name avatar');
 
     res.json({ success: true, data: populatedPost });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// GET /api/posts/:id/comments — get post comments
+exports.getComments = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate('comments.user', 'name avatar dept year');
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    res.json({ success: true, data: post.comments });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -78,7 +138,7 @@ exports.toggleLike = async (req, res) => {
 exports.addComment = async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text) {
+    if (!text || !text.trim()) {
       return res.status(400).json({ success: false, message: 'Comment text is required' });
     }
 
@@ -87,14 +147,109 @@ exports.addComment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    post.comments.push({ user: req.user.id, text });
+    post.comments.push({ user: req.user.id, text: text.trim() });
     await post.save();
 
     const updatedPost = await Post.findById(post._id)
       .populate('author', 'name avatar dept year')
-      .populate('comments.user', 'name avatar');
+      .populate('comments.user', 'name avatar dept year');
 
     res.status(201).json({ success: true, data: updatedPost });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/posts/:postId/comments/:commentId — delete a comment
+exports.deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found' });
+    }
+
+    // Only comment author or post author can delete
+    if (comment.user.toString() !== req.user.id && post.author.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this comment' });
+    }
+
+    post.comments.pull(commentId);
+    await post.save();
+
+    const updatedPost = await Post.findById(post._id)
+      .populate('author', 'name avatar dept year')
+      .populate('comments.user', 'name avatar dept year');
+
+    res.json({ success: true, data: updatedPost });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/posts/:id/share — Share post and increment share analytics
+exports.sharePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    post.sharesCount = (post.sharesCount || 0) + 1;
+    await post.save();
+
+    // Increment author's analytics
+    await UserAnalytics.findOneAndUpdate(
+      { user: post.author },
+      { $inc: { sharesCount: 1 } },
+      { upsert: true }
+    );
+
+    const host = req.get('host');
+    const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
+
+    // Check if short link already exists for this post
+    let shortLink = await ShortLink.findOne({ postId: post._id });
+    if (!shortLink) {
+      let shortCode;
+      let exists = true;
+      while (exists) {
+        shortCode = generateShortCode();
+        exists = await ShortLink.findOne({ shortCode });
+      }
+      shortLink = await ShortLink.create({
+        shortCode,
+        destinationUrl: `${protocol}://${host}/api/posts/${post._id}`,
+        creator: req.user.id,
+        postId: post._id,
+      });
+    }
+
+    const shareUrl = `${protocol}://${host}/s/${shortLink.shortCode}`;
+
+    res.json({
+      success: true,
+      data: {
+        sharesCount: post.sharesCount,
+        shareUrl,
+        shortCode: shortLink.shortCode,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/posts/:id/view — Record post view
+exports.recordView = async (req, res) => {
+  try {
+    await Post.findByIdAndUpdate(req.params.id, { $inc: { viewsCount: 1 } });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

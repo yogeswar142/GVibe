@@ -159,6 +159,23 @@ exports.unifiedSearch = async (req, res) => {
       .select('name handle avatar description memberCount messageCount isPrivate')
       .limit(20);
 
+    // Asynchronously record search appearances and tag analytics
+    if (users.length > 0) {
+      setImmediate(async () => {
+        try {
+          const UserAnalytics = require('../models/UserAnalytics');
+          const cleanTag = q.toLowerCase().replace(/[^a-z0-9]/g, '');
+          for (const u of users) {
+            const update = { $inc: { searchAppearances: 1 } };
+            if (cleanTag) {
+              update.$inc[`searchTagsFound.${cleanTag}`] = 1;
+            }
+            await UserAnalytics.findOneAndUpdate({ user: u._id }, update, { upsert: true });
+          }
+        } catch (_) {}
+      });
+    }
+
     res.json({
       success: true,
       data: {

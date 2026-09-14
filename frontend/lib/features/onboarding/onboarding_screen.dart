@@ -1025,7 +1025,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _yearLabels[index],
               style: AppTextStyles.displaySm.copyWith(
                 fontSize: 22,
-                color: isSelected ? AppColors.accentDark : AppColors.textPrimary,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w900,
               ),
             ),

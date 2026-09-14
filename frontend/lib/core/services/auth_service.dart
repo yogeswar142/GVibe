@@ -165,7 +165,54 @@ class AuthService {
         _googleInitialized = true;
       }
 
-      // 2. Try real Google Sign-In via authenticate()
+      // 2. Google Sign-In execution:
+      // Google Identity Services (GIS) on Web does not support programmatic .authenticate()
+      // because the browser requires an explicit user-rendered button (<gsi_login_button>)
+      // or FedCM one-tap prompt.
+      if (kIsWeb) {
+        // Attempt lightweight authentication (FedCM / One-Tap if available on Web)
+        final attempt = GoogleSignIn.instance.attemptLightweightAuthentication();
+        GoogleSignInAccount? googleUser;
+        if (attempt != null) {
+          googleUser = await attempt;
+        }
+
+        if (googleUser == null) {
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Google Sign-In on Web'),
+                content: const Text(
+                  'Google Sign-In on Web requires browser One-Tap/FedCM permissions or native mobile device execution. '
+                  'For Web testing, please log in with your email & password or test Google Auth on your Android device.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return null;
+        }
+
+        final GoogleSignInAuthentication googleAuthInfo = googleUser.authentication;
+        final String? idToken = googleAuthInfo.idToken;
+        if (idToken == null) {
+          throw Exception('Google Sign-In failed: Could not retrieve ID Token.');
+        }
+
+        final response = await ApiService().dio.post('/auth/google', data: {
+          'idToken': idToken,
+          'action': action,
+        });
+        return response.data;
+      }
+
+      // Mobile (Android / iOS): Use authenticate() with native account picker
       final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
       if (googleUser == null) {
         return null; // User cancelled
@@ -177,7 +224,7 @@ class AuthService {
         throw Exception('Google Sign-In failed: Could not retrieve ID Token.');
       }
 
-      // 2. Call backend
+      // 3. Call backend
       try {
         final response = await ApiService().dio.post('/auth/google', data: {
           'idToken': idToken,
@@ -200,9 +247,10 @@ class AuthService {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Google Auth Unavailable'),
-            content: const Text(
-              'Something went wrong or the Google auth option is not working. '
-              'Please try again after some time.'
+            content: Text(
+              kIsWeb
+                  ? 'Google Sign-In in web browsers requires native One-Tap / FedCM. Please log in using email & password or test Google Sign-In on an Android device.'
+                  : 'Something went wrong or the Google auth option is not working. Please try again after some time.',
             ),
             actions: [
               TextButton(

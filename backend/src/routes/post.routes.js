@@ -1,5 +1,5 @@
 const express = require('express');
-const { getPosts, createPost, toggleLike, addComment } = require('../controllers/post.controller');
+const { getPosts, createPost, toggleLike, addComment, deletePost } = require('../controllers/post.controller');
 const { protect } = require('../middleware/auth.middleware');
 
 const router = express.Router();
@@ -10,6 +10,7 @@ router.route('/')
   .get(getPosts)
   .post(createPost);
 
+router.delete('/:id', deletePost);
 router.put('/:id/like', toggleLike);
 router.post('/:id/comment', addComment);
 

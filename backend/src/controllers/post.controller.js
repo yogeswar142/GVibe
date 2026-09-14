@@ -1,9 +1,14 @@
 const Post = require('../models/Post');
 
-// GET /api/posts — get all posts (newest first)
+// GET /api/posts — get all posts (newest first, optionally filtered by author)
 exports.getPosts = async (req, res) => {
   try {
-    const posts = await Post.find()
+    const filter = {};
+    if (req.query.author) {
+      filter.author = req.query.author;
+    }
+
+    const posts = await Post.find(filter)
       .populate('author', 'name avatar dept year')
       .populate('comments.user', 'name avatar')
       .sort({ createdAt: -1 })
@@ -90,6 +95,25 @@ exports.addComment = async (req, res) => {
       .populate('comments.user', 'name avatar');
 
     res.status(201).json({ success: true, data: updatedPost });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// DELETE /api/posts/:id — delete a post
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found' });
+    }
+
+    if (post.author.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Post deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -27,8 +27,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   int _followersCount = 0;
   int _followingCount = 0;
   String? _loggedInUserId;
+  List<dynamic> _userPosts = [];
+  bool _postsLoading = false;
 
-  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNIT'];
+  final List<String> _tabs = ['POSTS', 'VIBES', 'DIRECT', 'COMMUNITY'];
 
   @override
   void initState() {
@@ -47,12 +49,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _loggedInUserId = cachedUser?['_id']?.toString();
 
       final targetId = widget.userId;
+      String? profileUserId;
 
       if (targetId == null || targetId == _loggedInUserId) {
         _isOwnProfile = true;
         final response = await ApiService().dio.get('/users/profile');
         if (response.data['success'] == true) {
           final data = response.data['data'];
+          profileUserId = data['_id']?.toString() ?? _loggedInUserId;
           setState(() {
             _user = data;
             _followersCount = (data['followers'] as List?)?.length ?? 0;
@@ -62,6 +66,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         }
       } else {
         _isOwnProfile = false;
+        profileUserId = targetId;
         final response = await ApiService().dio.get('/users/$targetId');
         if (response.data['success'] == true) {
           final data = response.data['data'];
@@ -74,11 +79,106 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           });
         }
       }
+
+      // Fetch user's dynamic posts
+      if (profileUserId != null) {
+        setState(() => _postsLoading = true);
+        try {
+          final postsRes = await ApiService().dio.get(
+            '/posts',
+            queryParameters: {'author': profileUserId},
+          );
+          if (postsRes.data['success'] == true && mounted) {
+            setState(() {
+              _userPosts = (postsRes.data['data'] as List?) ?? [];
+              _postsLoading = false;
+            });
+          }
+        } catch (_) {
+          if (mounted) setState(() => _postsLoading = false);
+        }
+      }
     } on DioException catch (e) {
-      setState(() {
-        _error = ApiService.getErrorMessage(e);
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = ApiService.getErrorMessage(e);
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _togglePostLike(int index) async {
+    if (index < 0 || index >= _userPosts.length) return;
+    final post = _userPosts[index];
+    final postId = post['_id']?.toString() ?? post['id']?.toString();
+    if (postId == null) return;
+    try {
+      final res = await ApiService().dio.put('/posts/$postId/like');
+      if (res.data['success'] == true && mounted) {
+        setState(() {
+          _userPosts[index] = res.data['data'];
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _deletePost(String postId) async {
+    try {
+      final response = await ApiService().dio.delete('/posts/$postId');
+      if (response.data['success'] == true && mounted) {
+        setState(() {
+          _userPosts.removeWhere((p) => (p['_id'] ?? p['id'])?.toString() == postId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Post deleted successfully')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to delete post')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeletePost(String postId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Post'),
+        content: const Text('Are you sure you want to delete this post?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deletePost(postId);
+    }
+  }
+
+  String _timeAgo(String dateString) {
+    if (dateString.isEmpty) return 'just now';
+    try {
+      final dt = DateTime.parse(dateString);
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+      if (diff.inHours < 24) return '${diff.inHours}h ago';
+      return '${diff.inDays}d ago';
+    } catch (_) {
+      return 'just now';
     }
   }
 
@@ -170,15 +270,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             data: {'privacy': currentPrivacy},
                           );
                           if (response.data['success'] == true) {
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
                             if (mounted) {
                               setState(() {
                                 _user = response.data['data'];
                               });
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                const SnackBar(content: Text('Privacy settings updated successfully')),
+                              );
                             }
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Privacy settings updated successfully')),
-                            );
                           }
                         } catch (_) {}
                       },
@@ -367,7 +469,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          _statCard('128', 'Posts'),
+          _statCard(_formatCount(_userPosts.length), 'Posts'),
           const SizedBox(width: 10),
           _statCard(_formatCount(_followersCount), 'Followers', onTap: () {
             final userId = widget.userId ?? _loggedInUserId;
@@ -482,284 +584,209 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _buildPostsTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildCodeSnippetCard(),
-        _buildImageGrid(),
-      ],
-    );
-  }
-
-  Widget _buildCodeSnippetCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-    final editorBg = isDark ? const Color(0xFF070809) : const Color(0xFFF9F9FB);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
     final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
     final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
+    if (_postsLoading && _userPosts.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(accentColor),
+          ),
+        ),
+      );
+    }
+
+    if (_userPosts.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+          border: Border.all(
+            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.article_outlined, size: 44, color: labelColor.withValues(alpha: 0.6)),
+            const SizedBox(height: 14),
+            Text(
+              'No posts yet',
+              style: AppTextStyles.headlineSm.copyWith(
+                color: nameColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              _isOwnProfile
+                  ? 'Your shared vibes and campus posts will appear here.'
+                  : 'This student hasn\'t published any posts yet.',
+              style: AppTextStyles.bodySm.copyWith(color: labelColor),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        children: _userPosts.asMap().entries.map((entry) {
+          final index = entry.key;
+          final post = entry.value is Map<String, dynamic>
+              ? entry.value as Map<String, dynamic>
+              : Map<String, dynamic>.from(entry.value as Map);
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildPostCard(post, index),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPostCard(Map<String, dynamic> post, int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final subtitleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final contentColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
+    final actionColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
+    final postId = post['_id']?.toString() ?? post['id']?.toString() ?? '';
+    final author = post['author'] is Map ? post['author'] as Map : null;
+    final authorName = author?['name']?.toString() ?? _user?['name']?.toString() ?? 'Student';
+    final avatar = author?['avatar']?.toString() ?? _user?['avatar']?.toString();
+    final initials = authorName.isNotEmpty ? authorName[0].toUpperCase() : '?';
+    final content = post['content']?.toString() ?? '';
+    final tags = (post['tags'] as List?)?.map((t) => t.toString()).toList() ?? [];
+    final likesList = (post['likes'] as List?) ?? [];
+    final likes = likesList.length;
+    final isLiked = _loggedInUserId != null && likesList.any((id) => id.toString() == _loggedInUserId);
+    final comments = (post['comments'] as List?)?.length ?? 0;
+    final createdAt = post['createdAt']?.toString() ?? '';
+    final timeAgo = _timeAgo(createdAt);
+
     return Container(
-      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(isDark ? 8 : 6),
         border: Border.all(color: borderColor, width: 1),
       ),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Code editor header with colored dots
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: editorBg,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(isDark ? 8 : 6),
-                topRight: Radius.circular(isDark ? 8 : 6),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GVibeAvatar(
+                imageUrl: avatar,
+                size: 38,
+                initials: initials,
               ),
-              border: Border(
-                bottom: BorderSide(color: borderColor, width: 1),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Window dots + close
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF5F56), // red dot
-                        shape: BoxShape.circle,
+                    Text(
+                      authorName,
+                      style: AppTextStyles.headlineSm.copyWith(
+                        color: nameColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      timeAgo,
+                      style: AppTextStyles.bodyXs.copyWith(
+                        color: subtitleColor,
+                        fontSize: 11,
                       ),
                     ),
-                    const SizedBox(width: 5),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFBD2E), // yellow dot
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF27C93F), // green dot
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const Spacer(),
-                    Icon(Icons.close_rounded, color: labelColor, size: 14),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Code title
-                Text(
-                  'CODE_TOTEM_HOME_01_+_FREQUENCY/FUNC&RESULT',
-                  style: AppTextStyles.monoXs.copyWith(
-                    color: labelColor,
-                    fontSize: 8,
-                    letterSpacing: 0.5,
-                  ),
+              ),
+              if (_isOwnProfile && postId.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.delete_outline_rounded, color: subtitleColor, size: 18),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 16,
+                  onPressed: () => _confirmDeletePost(postId),
                 ),
-                const SizedBox(height: 8),
-                // Code lines
-                ..._buildCodeLines(),
-              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: AppTextStyles.bodyMd.copyWith(
+              color: contentColor,
+              height: 1.5,
+              fontSize: 14,
             ),
           ),
-          // FEATURED badge + title
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: tags.map((t) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(isDark ? 4 : 999),
-                    border: Border.all(color: accentColor, width: 1.2),
+                    color: accentColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'FEATURED',
+                    '#$t',
                     style: AppTextStyles.monoXs.copyWith(
                       color: accentColor,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.5,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'SYSTEM OVERRIDE V.01',
-                  style: AppTextStyles.displaySm.copyWith(
-                    fontSize: 22,
-                    color: titleColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildCodeLines() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final labelColor = isDark ? const Color(0xFF4C566A) : const Color(0xFF9E9E9E);
-    
-    final lines = [
-      '  fn main() {',
-      '    let system = Engine::new();',
-      '    system.override(Config {',
-      '      mode: "gitam-green",',
-      '      freq: 42.0,',
-      '    });',
-      '    system.run();',
-      '  }',
-    ];
-    return lines.asMap().entries.map((e) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 24,
-              child: Text(
-                '${e.key + 1}',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: labelColor,
-                  fontSize: 10,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                e.value,
-                style: AppTextStyles.monoXs.copyWith(
-                  color: _codeLineColor(e.value),
-                  fontSize: 10,
-                ),
-              ),
+                );
+              }).toList(),
             ),
           ],
-        ),
-      );
-    }).toList();
-  }
-
-  Color _codeLineColor(String line) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (line.contains('fn ') || line.contains('let ')) {
-      return isDark ? const Color(0xFFB48EAD) : const Color(0xFF800080);
-    }
-    if (line.contains('"')) {
-      return isDark ? const Color(0xFFA3BE8C) : const Color(0xFF032F62);
-    }
-    if (line.contains('42')) {
-      return isDark ? const Color(0xFF88C0D0) : const Color(0xFF005CC5);
-    }
-    return isDark ? const Color(0xFFD8DEE9) : const Color(0xFF24292E);
-  }
-
-  Widget _buildImageGrid() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final tileColor = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
+          const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
-                child: _gridTile(tileColor, 180, icon: Icons.person_outline),
+              AnimatedLikeButton(
+                count: likes,
+                isLiked: isLiked,
+                onTap: () => _togglePostLike(index),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _gridTile(tileColor, 180, icon: Icons.radio),
+              const SizedBox(width: 20),
+              Icon(Icons.chat_bubble_outline_rounded, color: actionColor, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                '$comments',
+                style: AppTextStyles.monoSm.copyWith(
+                  color: actionColor,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
-          const SizedBox(width: 8, height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _gridTile(tileColor, 180, icon: Icons.water_drop_outlined),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _gridTile(tileColor, 180, icon: Icons.waves),
-              ),
-            ],
-          ),
-          const SizedBox(width: 8, height: 8),
-          // CAMPUS LIFE accent tile
-          _gridTile(
-            primaryColor,
-            200,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'CAMPUS',
-                  style: AppTextStyles.monoLg.copyWith(
-                    color: Colors.white,
-                    fontSize: 16,
-                    letterSpacing: 3,
-                  ),
-                ),
-                Text(
-                  'LIFE',
-                  style: AppTextStyles.displayLg.copyWith(
-                    color: Colors.white,
-                    fontSize: 52,
-                    height: 1.0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
         ],
       ),
-    );
-  }
-
-  Widget _gridTile(Color color, double height, {IconData? icon, Widget? child}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final iconColor = isDark ? const Color(0xFF4C566A) : const Color(0xFF9E9E9E);
-
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
-        border: Border.all(color: borderColor, width: 1),
-      ),
-      child: child ??
-          Center(
-            child: icon != null
-                ? Icon(
-                    icon,
-                    color: iconColor.withValues(alpha: 0.4),
-                    size: 32,
-                  )
-                : null,
-          ),
     );
   }
 
@@ -803,7 +830,6 @@ class _DigitalStudentIDCard extends StatefulWidget {
   final bool isFollowing;
 
   const _DigitalStudentIDCard({
-    super.key,
     required this.user,
     required this.isOwnProfile,
     required this.onEdit,
@@ -821,24 +847,25 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   @override
   Widget build(BuildContext context) {
     final avatar = widget.user?['avatar']?.toString();
-    final level = widget.user?['level'] ?? 42;
-    final name = widget.user?['name']?.toString() ?? 'User Name';
+    final level = (widget.user?['level'] is num) ? (widget.user!['level'] as num).toInt() : 1;
+    final name = widget.user?['name']?.toString() ?? 'Student';
     final username = widget.user?['username']?.toString() ?? name.toLowerCase().replaceAll(' ', '_');
-    final dept = widget.user?['dept']?.toString() ?? 'Computer Science';
-    final year = widget.user?['year']?.toString() ?? '2024';
-    final hub = widget.user?['hub']?.toString() ?? 'Engineering Quad';
+    final dept = widget.user?['branch']?.toString() ?? widget.user?['dept']?.toString() ?? 'Student';
+    final year = widget.user?['academicLevel']?.toString() ?? widget.user?['year']?.toString() ?? '1st Year';
+    final regNo = widget.user?['registrationNumber']?.toString();
+    final hub = (regNo != null && regNo.isNotEmpty) ? regNo : (widget.user?['hub']?.toString() ?? 'GITAM Campus');
 
     // Vibe rating calculations
-    final double ratingVal = 0.85 + ((level * 3) % 15) / 100.0;
-    final ratingPercent = (ratingVal * 100).toStringAsFixed(1);
+    final double ratingVal = ((level * 18 + 40).clamp(20, 100)) / 100.0;
+    final ratingPercent = (ratingVal * 100).toStringAsFixed(0);
     
-    String rank = 'ARCHMAGE';
-    if (level < 10) {
-      rank = 'INITIATE';
-    } else if (level < 25) {
-      rank = 'ACOLYTE';
-    } else if (level < 40) {
+    String rank = 'INITIATE';
+    if (level >= 40) {
+      rank = 'ARCHMAGE';
+    } else if (level >= 25) {
       rank = 'WIZARD';
+    } else if (level >= 10) {
+      rank = 'ACOLYTE';
     }
 
     return Padding(
@@ -1013,7 +1040,12 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                       const SizedBox(height: 3),
                       _detailRow('Class:', year),
                       const SizedBox(height: 3),
-                      _detailRow('Status:', '📍 $hub'),
+                      _detailRow(
+                        widget.user?['registrationNumber'] != null && widget.user!['registrationNumber'].toString().isNotEmpty
+                            ? 'ID:'
+                            : 'Campus:',
+                        hub,
+                      ),
                     ],
                   ),
                 ),
@@ -1143,12 +1175,25 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   }
 
   Widget _buildBack(String name, int level) {
-    final sigHash = '0x${('${name.hashCode.abs()}FEED42').padRight(16, 'A').substring(0, 16).toUpperCase()}';
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
     final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
     final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
     final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+
+    final regNo = widget.user?['registrationNumber']?.toString();
+    final bool isVerified = widget.user?['isVerified'] == true;
+    final createdAtStr = widget.user?['createdAt']?.toString();
+    String memberSince = 'Active';
+    if (createdAtStr != null && createdAtStr.isNotEmpty) {
+      try {
+        final dt = DateTime.parse(createdAtStr);
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        memberSince = '${months[dt.month - 1]} ${dt.year}';
+      } catch (_) {}
+    }
+    final rawHash = (name + (widget.user?['_id']?.toString() ?? 'GVIBE')).hashCode.abs();
+    final sigHash = '0x${rawHash.toRadixString(16).padRight(12, '0').toUpperCase()}';
 
     return Container(
       width: double.infinity,
@@ -1184,9 +1229,9 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               ),
               const Spacer(),
               Text(
-                'Verified',
+                isVerified ? 'Verified' : 'Pending',
                 style: AppTextStyles.monoXs.copyWith(
-                  color: accentColor,
+                  color: isVerified ? accentColor : labelColor,
                   fontSize: 9,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1218,13 +1263,13 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      _detailRow('Reg No:', (regNo != null && regNo.isNotEmpty) ? regNo : 'Pending'),
+                      const SizedBox(height: 4),
                       _detailRow('Signature:', sigHash),
                       const SizedBox(height: 4),
-                      _detailRow('Cipher:', 'AES-256 GCM'),
+                      _detailRow('Status:', isVerified ? 'Verified' : 'Pending'),
                       const SizedBox(height: 4),
-                      _detailRow('Verification:', 'Approved'),
-                      const SizedBox(height: 4),
-                      _detailRow('Expires:', '31 Dec 2026'),
+                      _detailRow('Member Since:', memberSince),
                     ],
                   ),
                 ),

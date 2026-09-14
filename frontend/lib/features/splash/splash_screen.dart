@@ -69,7 +69,13 @@ class _SplashScreenState extends State<SplashScreen>
     final token = await AuthService.getToken();
     if (!mounted) return;
     if (token != null) {
-      context.go(AppRouter.home);
+      final user = await AuthService.getUser();
+      if (!mounted) return;
+      if (user != null && user['profileComplete'] == false) {
+        context.go(AppRouter.onboarding);
+      } else {
+        context.go(AppRouter.home);
+      }
     } else {
       context.go(AppRouter.login);
     }

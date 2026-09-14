@@ -6,6 +6,7 @@ import '../../core/router/app_router.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import 'widgets/adaptive_google_sign_in_button.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -15,7 +16,6 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
-  bool _loading = false;
   String? _error;
 
   @override
@@ -242,45 +242,29 @@ class _SignupScreenState extends State<SignupScreen> {
                                   const SizedBox(height: 16),
                                 ],
 
-                                // Google button
-                                GVibeButton(
-                                  label: 'Continue with Google',
-                                  isPrimary: true,
-                                  icon: Icons.g_mobiledata_rounded,
-                                  onPressed: () async {
-                                    setState(() => _error = null);
-                                    final response =
-                                        await AuthService.triggerGoogleAuth(
-                                      context: context,
-                                      action: 'register',
-                                    );
-                                    if (response != null &&
-                                        response['success'] == true) {
-                                      final data = response['data'];
-                                      await AuthService.saveToken(data['token']);
-                                      await AuthService.saveUser(data);
-                                      // BUG-01 fix: sync E2EE keys dynamically on registration
-                                      await AuthService.syncEncryptionKeys(ApiService());
-                                      if (mounted) {
-                                        context.go(AppRouter.onboarding);
-                                      }
-                                    } else if (response != null) {
-                                      final msg = response['message'] ?? '';
-                                      if (response['code'] == 'USER_EXISTS' ||
-                                          msg.contains('already exists')) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                'Account already exists! Redirecting to login...'),
-                                          ));
-                                          context.go(AppRouter.login);
-                                        }
-                                      } else {
-                                        setState(() => _error = msg.isNotEmpty
-                                            ? msg
-                                            : 'Google registration failed');
-                                      }
+                                // Google Button (Adaptive: Web iframe button on Chrome, GVibeButton on Android)
+                                AdaptiveGoogleSignInButton(
+                                  action: 'register',
+                                  onAuthSuccess: (data) async {
+                                    final userData = data['data'];
+                                    await AuthService.saveToken(userData['token']);
+                                    await AuthService.saveUser(userData);
+                                    await AuthService.syncEncryptionKeys(ApiService());
+                                    if (mounted) {
+                                      context.go(AppRouter.onboarding);
+                                    }
+                                  },
+                                  onError: (msg) {
+                                    if (!mounted) return;
+                                    if (msg.contains('already exists')) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Account already exists! Redirecting to login...'),
+                                        ),
+                                      );
+                                      context.go(AppRouter.login);
+                                    } else {
+                                      setState(() => _error = msg.isNotEmpty ? msg : 'Google registration failed');
                                     }
                                   },
                                 ),

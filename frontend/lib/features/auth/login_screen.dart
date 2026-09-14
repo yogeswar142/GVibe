@@ -7,6 +7,7 @@ import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
+import 'widgets/adaptive_google_sign_in_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -329,34 +330,25 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 20),
 
-                            // Google Button
-                            GVibeButton(
-                              label: 'Google Account',
-                              isPrimary: false,
-                              icon: Icons.g_mobiledata_rounded,
-                              onPressed: () async {
-                                setState(() {
-                                  _error = null;
-                                });
-                                final response = await AuthService.triggerGoogleAuth(
-                                  context: context,
-                                  action: 'login',
-                                );
-                                if (response != null && response['success'] == true) {
-                                   final data = response['data'];
-                                   await AuthService.saveToken(data['token']);
-                                   await AuthService.saveUser(data);
-                                    // BUG-01 fix: sync E2EE keys dynamically
-                                    await AuthService.syncEncryptionKeys(ApiService());
-                                   if (mounted) {
-                                     if (data['profileComplete'] == true) {
-                                       context.go(AppRouter.home);
-                                     } else {
-                                       context.go(AppRouter.onboarding);
-                                     }
-                                   }
-                                 } else if (response != null) {
-                                  setState(() => _error = response['message'] ?? 'Google login failed');
+                            // Google Button (Adaptive: Web iframe button on Chrome, GVibeButton on Android)
+                            AdaptiveGoogleSignInButton(
+                              action: 'login',
+                              onAuthSuccess: (data) async {
+                                final userData = data['data'];
+                                await AuthService.saveToken(userData['token']);
+                                await AuthService.saveUser(userData);
+                                await AuthService.syncEncryptionKeys(ApiService());
+                                if (mounted) {
+                                  if (userData['profileComplete'] == true) {
+                                    context.go(AppRouter.home);
+                                  } else {
+                                    context.go(AppRouter.onboarding);
+                                  }
+                                }
+                              },
+                              onError: (err) {
+                                if (mounted) {
+                                  setState(() => _error = err);
                                 }
                               },
                             ),

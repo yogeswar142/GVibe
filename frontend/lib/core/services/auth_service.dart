@@ -17,6 +17,54 @@ class AuthService {
   // Guard so GoogleSignIn.instance.initialize() is only called once per lifecycle
   static bool _googleInitialized = false;
 
+  // Ensures GoogleSignIn is initialized with the proper platform client IDs
+  static Future<void> ensureGoogleInitialized() async {
+    if (_googleInitialized) return;
+
+    final webClientId = dotenv.env['WEB_APPLICATION_CLIENT_ID'] ??
+        '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
+    final mobileClientId = dotenv.env['MOBILE_APPLICATION_CLIENT_ID'] ??
+        '685012189458-t1slebthd5lbchu9n0aanph1060gffvm.apps.googleusercontent.com';
+
+    if (kIsWeb) {
+      await GoogleSignIn.instance.initialize(
+        clientId: webClientId,
+      );
+    } else {
+      await GoogleSignIn.instance.initialize(
+        clientId: mobileClientId,
+        serverClientId: webClientId,
+      );
+    }
+    _googleInitialized = true;
+  }
+
+  // Exchanges a Google ID Token directly with the GVibe backend
+  static Future<Map<String, dynamic>?> authenticateGoogleIdToken({
+    required String idToken,
+    required String action,
+  }) async {
+    try {
+      final response = await ApiService().dio.post('/auth/google', data: {
+        'idToken': idToken,
+        'action': action,
+      });
+      return response.data;
+    } on DioException catch (dioError) {
+      final msg = ApiService.getErrorMessage(dioError);
+      return {
+        'success': false,
+        'message': msg,
+        'code': dioError.response?.data?['code'],
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
   // Save JWT token — does NOT connect the socket yet.
   // Call connectSocket() AFTER saveUser() so stale key caches are cleared first.
   static Future<void> saveToken(String token) async {
@@ -141,29 +189,7 @@ class AuthService {
     required String action, // 'login' or 'register'
   }) async {
     try {
-      // Read Client IDs from frontend .env
-      final webClientId = dotenv.env['WEB_APPLICATION_CLIENT_ID'] ??
-          '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
-      final mobileClientId = dotenv.env['MOBILE_APPLICATION_CLIENT_ID'] ??
-          '685012189458-t1slebthd5lbchu9n0aanph1060gffvm.apps.googleusercontent.com';
-
-      // initialize() must only be called once per app lifecycle —
-      // calling it again causes "Bad state: init() has already been called".
-      // On Web: only clientId is supported; serverClientId throws an assertion.
-      // On Mobile: serverClientId is needed so the backend can verify the ID token.
-      if (!_googleInitialized) {
-        if (kIsWeb) {
-          await GoogleSignIn.instance.initialize(
-            clientId: webClientId,
-          );
-        } else {
-          await GoogleSignIn.instance.initialize(
-            clientId: mobileClientId,
-            serverClientId: webClientId,
-          );
-        }
-        _googleInitialized = true;
-      }
+      await ensureGoogleInitialized();
 
       // 2. Google Sign-In execution:
       // Google Identity Services (GIS) on Web does not support programmatic .authenticate()
@@ -205,11 +231,10 @@ class AuthService {
           throw Exception('Google Sign-In failed: Could not retrieve ID Token.');
         }
 
-        final response = await ApiService().dio.post('/auth/google', data: {
-          'idToken': idToken,
-          'action': action,
-        });
-        return response.data;
+        return await authenticateGoogleIdToken(
+          idToken: idToken,
+          action: action,
+        );
       }
 
       // Mobile (Android / iOS): Use authenticate() with native account picker
@@ -225,21 +250,10 @@ class AuthService {
       }
 
       // 3. Call backend
-      try {
-        final response = await ApiService().dio.post('/auth/google', data: {
-          'idToken': idToken,
-          'action': action,
-        });
-        return response.data;
-      } on DioException catch (dioError) {
-        // Backend returned a response error (like 400 Bad Request / email not allowed / user exists)
-        final msg = ApiService.getErrorMessage(dioError);
-        return {
-          'success': false,
-          'message': msg,
-          'code': dioError.response?.data?['code'],
-        };
-      }
+      return await authenticateGoogleIdToken(
+        idToken: idToken,
+        action: action,
+      );
     } catch (e) {
       debugPrint('Google Sign-In initialization/authentication failed: $e');
       if (context.mounted) {

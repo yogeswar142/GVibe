@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
 import '../../../core/constants/app_theme_extension.dart';
 import '../../../core/services/api_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/gvibe_widgets.dart';
-import '../../../shared/widgets/comments_sheet.dart';
 import '../../../shared/widgets/share_post_sheet.dart';
-import '../../../core/providers/theme_provider.dart';
+import 'package:go_router/go_router.dart';
+import '../../../shared/widgets/theme_toggle_button.dart';
+import '../../../shared/widgets/discord_hyperlink.dart';
+import '../../../shared/widgets/location_picker_sheet.dart';
+import '../../../shared/widgets/emoji_picker_panel.dart';
 
 class HomeFeedTab extends StatefulWidget {
   const HomeFeedTab({super.key});
@@ -93,17 +95,8 @@ class _HomeFeedTabState extends State<HomeFeedTab>
             ),
           ),
           const Spacer(),
-          Consumer(
-            builder: (context, ref, child) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: _IconButton(
-                  icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  onTap: () => ref.read(themeModeProvider.notifier).toggle(),
-                ),
-              );
-            },
+          const ThemeToggleButton(
+            margin: EdgeInsets.only(right: 10),
           ),
           _IconButton(icon: Icons.notifications_outlined, onTap: () {}),
         ],
@@ -382,14 +375,17 @@ class _PostCardState extends State<_PostCard> {
     }
   }
 
-  void _openComments() {
-    CommentsSheet.show(
-      context,
-      post: widget.post,
-      onCommentsCountChanged: (count) {
-        if (mounted) setState(() => _commentsCount = count);
-      },
+  Future<void> _openComments() async {
+    final postId = widget.post['_id']?.toString() ?? widget.post['id']?.toString() ?? '';
+    if (postId.isEmpty) return;
+
+    final newCount = await context.push<int>(
+      '/post/$postId',
+      extra: widget.post,
     );
+    if (newCount != null && mounted) {
+      setState(() => _commentsCount = newCount);
+    }
   }
 
   void _openShare() {
@@ -478,9 +474,9 @@ class _PostCardState extends State<_PostCard> {
               ],
             ),
             const SizedBox(height: 12),
-            // Content
-            Text(
-              content,
+            // Content with Discord-style hyperlinks
+            RichContentText(
+              text: content,
               style: AppTextStyles.bodyMd.copyWith(
                 color: contentColor,
                 height: 1.5,
@@ -683,12 +679,29 @@ class _CreatePostSheet extends StatefulWidget {
 
 class _CreatePostSheetState extends State<_CreatePostSheet> {
   final _contentController = TextEditingController();
+  final _contentFocusNode = FocusNode();
   bool _posting = false;
+  bool _showEmoji = false;
 
   @override
   void dispose() {
     _contentController.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
+  }
+
+  void _openLocationPicker() {
+    LocationPickerSheet.show(
+      context,
+      onLocationSelected: (locationText) {
+        final current = _contentController.text.trim();
+        final updated = current.isEmpty ? locationText : '$current\n$locationText';
+        _contentController.value = TextEditingValue(
+          text: updated,
+          selection: TextSelection.collapsed(offset: updated.length),
+        );
+      },
+    );
   }
 
   Future<void> _submitPost() async {
@@ -780,8 +793,12 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                   Expanded(
                     child: TextField(
                       controller: _contentController,
+                      focusNode: _contentFocusNode,
                       maxLines: null,
                       autofocus: true,
+                      onTap: () {
+                        if (_showEmoji) setState(() => _showEmoji = false);
+                      },
                       style: AppTextStyles.bodyLg.copyWith(color: inputColor),
                       decoration: InputDecoration(
                         hintText: "What's happening on campus?",
@@ -811,9 +828,39 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
                   const SizedBox(width: 16),
                   Icon(Icons.gif_box_outlined,
                       color: subtitleColor, size: 22),
-                  const SizedBox(width: 16),
-                  Icon(Icons.location_on_outlined,
-                      color: subtitleColor, size: 22),
+                  const SizedBox(width: 14),
+                  InkWell(
+                    onTap: _openLocationPicker,
+                    borderRadius: BorderRadius.circular(6),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.location_on_outlined,
+                          color: AppColors.primary, size: 22),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  InkWell(
+                    onTap: () {
+                      if (_showEmoji) {
+                        _contentFocusNode.requestFocus();
+                        setState(() => _showEmoji = false);
+                      } else {
+                        FocusScope.of(context).unfocus();
+                        setState(() => _showEmoji = true);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        _showEmoji
+                            ? Icons.keyboard_alt_outlined
+                            : Icons.sentiment_satisfied_alt_rounded,
+                        color: _showEmoji ? AppColors.primary : subtitleColor,
+                        size: 22,
+                      ),
+                    ),
+                  ),
                   const Spacer(),
                   GestureDetector(
                     onTap: _posting ? null : _submitPost,
@@ -845,6 +892,13 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               ),
             ),
           ),
+          if (_showEmoji)
+            EmojiPickerPanel(
+              onEmojiSelected: (emoji) =>
+                  EmojiPickerPanel.insertEmoji(_contentController, emoji),
+              onBackspace: () =>
+                  EmojiPickerPanel.backspace(_contentController),
+            ),
         ],
       ),
     );

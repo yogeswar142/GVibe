@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
-import '../../core/providers/theme_provider.dart';
+import '../../shared/widgets/theme_toggle_button.dart';
 import 'dart:async';
 import '../../core/services/socket_service.dart';
 import 'community_sheet.dart';
@@ -245,10 +245,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
             ],
           ),
           const Spacer(),
-          _IconButton(
-            icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            onTap: () => ref.read(themeModeProvider.notifier).toggle(),
-          ),
+          const ThemeToggleButton(),
           const SizedBox(width: 8),
           _IconButton(
             icon: Icons.edit_outlined,

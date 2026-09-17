@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
-import '../../core/providers/theme_provider.dart';
+import '../../shared/widgets/theme_toggle_button.dart';
 
 class DiscoveryScreen extends StatefulWidget {
   const DiscoveryScreen({super.key});
@@ -237,17 +235,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
             ),
           ),
           const Spacer(),
-          Consumer(
-            builder: (context, ref, child) {
-              final isDark = Theme.of(context).brightness == Brightness.dark;
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: _IconButton(
-                  icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  onTap: () => ref.read(themeModeProvider.notifier).toggle(),
-                ),
-              );
-            },
+          const ThemeToggleButton(
+            margin: EdgeInsets.only(right: 10),
           ),
           _IconButton(
             icon: Icons.explore_outlined,
@@ -528,8 +517,6 @@ class _CommunitySearchCard extends StatelessWidget {
     final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
     final subColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
     final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFF9F9FB);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
 
     final name = community['name']?.toString() ?? '';
     final desc = community['description']?.toString() ?? 'Tap to chat';

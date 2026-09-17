@@ -23,8 +23,8 @@ const shortenUrlsInText = async (text, userId, req) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
 
   for (const rawUrl of matchedUrls) {
-    // Skip URLs already pointing to our shortlink engine
-    if (rawUrl.includes('/s/')) continue;
+    // Skip URLs already pointing to our shortlink or live location engine
+    if (rawUrl.includes('/s/') || rawUrl.includes('/live/')) continue;
 
     let shortCode;
     let exists = true;

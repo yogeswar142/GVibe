@@ -12,6 +12,7 @@ import '../../features/error/error_screen.dart';
 import '../../features/error/backend_down_screen.dart';
 import '../../features/messages/chat_detail_screen.dart';
 import '../../features/messages/community_chat_screen.dart';
+import '../../features/post/post_detail_screen.dart';
 
 // Slide-up from bottom transition (used for auth pages)
 CustomTransitionPage<void> _slideUpTransition({
@@ -147,6 +148,14 @@ class AppRouter {
             communityId:   communityId,
             communityName: communityName,
           );
+        },
+      ),
+      GoRoute(
+        path: '/post/:id',
+        builder: (context, state) {
+          final postId = state.pathParameters['id']!;
+          final initialPost = state.extra as Map<String, dynamic>?;
+          return PostDetailScreen(postId: postId, initialPost: initialPost);
         },
       ),
       GoRoute(

@@ -253,13 +253,6 @@ class GVibeTextField extends StatefulWidget {
 
 class _GVibeTextFieldState extends State<GVibeTextField> {
   final _focus = FocusNode();
-  bool _focused = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _focus.addListener(() => setState(() => _focused = _focus.hasFocus));
-  }
 
   @override
   void dispose() {

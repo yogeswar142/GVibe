@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
@@ -8,9 +7,9 @@ import '../../core/router/app_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
-import '../../shared/widgets/comments_sheet.dart';
 import '../../shared/widgets/share_post_sheet.dart';
-import '../../core/providers/theme_provider.dart';
+import '../../shared/widgets/theme_toggle_button.dart';
+import '../../shared/widgets/discord_hyperlink.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   final String? userId;
@@ -427,10 +426,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           const Spacer(),
-          _IconButton(
-            icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-            onTap: () => ref.read(themeModeProvider.notifier).toggle(),
-          ),
+          const ThemeToggleButton(),
           if (_isOwnProfile) ...[          
             const SizedBox(width: 8),
             _IconButton(
@@ -763,8 +759,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
-            content,
+          RichContentText(
+            text: content,
             style: AppTextStyles.bodyMd.copyWith(
               color: contentColor,
               height: 1.5,
@@ -805,16 +801,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(width: 20),
               GestureDetector(
-                onTap: () {
-                  CommentsSheet.show(
-                    context,
-                    post: post,
-                    onCommentsCountChanged: (newCount) {
-                      setState(() {
-                        _userPosts[index]['comments'] = List.generate(newCount, (_) => {});
-                      });
-                    },
+                onTap: () async {
+                  final newCount = await context.push<int>(
+                    '/post/$postId',
+                    extra: post,
                   );
+                  if (newCount != null && mounted) {
+                    setState(() {
+                      _userPosts[index]['comments'] = List.generate(newCount, (_) => {});
+                    });
+                  }
                 },
                 child: Row(
                   children: [
@@ -1359,40 +1355,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 8),
                   ...recentLinks.map((link) {
                     final shortUrl = link['shortUrl']?.toString() ?? '';
-                    final clicks = link['totalClicks'] ?? 0;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: innerBg,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              shortUrl,
-                              style: AppTextStyles.monoXs.copyWith(color: accentColor, fontWeight: FontWeight.bold),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '$clicks clicks',
-                            style: AppTextStyles.monoXs.copyWith(color: subtitleColor),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              Clipboard.setData(ClipboardData(text: shortUrl));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Short link copied!')),
-                              );
-                            },
-                            child: Icon(Icons.copy_rounded, color: subtitleColor, size: 14),
-                          ),
-                        ],
-                      ),
+                    final destUrl = link['destinationUrl']?.toString();
+                    final clicks = link['totalClicks'];
+                    final clicksCount = clicks is num ? clicks.toInt() : 0;
+                    return DiscordHyperlinkCard(
+                      shortUrl: shortUrl,
+                      destinationUrl: destUrl,
+                      totalClicks: clicksCount,
                     );
                   }),
                 ],

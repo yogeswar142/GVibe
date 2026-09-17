@@ -3,6 +3,8 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/auth_service.dart';
 import 'gvibe_widgets.dart';
+import 'discord_hyperlink.dart';
+import 'emoji_picker_panel.dart';
 
 class CommentsSheet extends StatefulWidget {
   final Map<String, dynamic> post;
@@ -42,6 +44,7 @@ class _CommentsSheetState extends State<CommentsSheet> {
   bool _submitting = false;
   String? _currentUserId;
   String? _currentUserAvatar;
+  bool _showEmoji = false;
 
   @override
   void initState() {
@@ -359,8 +362,8 @@ class _CommentsSheetState extends State<CommentsSheet> {
                                       ],
                                     ),
                                     const SizedBox(height: 3),
-                                    Text(
-                                      text,
+                                    RichContentText(
+                                      text: text,
                                       style: AppTextStyles.bodyMd.copyWith(
                                         color: isDark ? const Color(0xFFE2E4E9) : const Color(0xFF2C2C2E),
                                         fontSize: 13,
@@ -395,7 +398,29 @@ class _CommentsSheetState extends State<CommentsSheet> {
                   size: 32,
                   initials: 'ME',
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(
+                    _showEmoji
+                        ? Icons.keyboard_alt_outlined
+                        : Icons.sentiment_satisfied_alt_rounded,
+                    color: _showEmoji ? accentColor : subtitleColor,
+                    size: 22,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  onPressed: () {
+                    if (_showEmoji) {
+                      _focusNode.requestFocus();
+                      setState(() => _showEmoji = false);
+                    } else {
+                      FocusScope.of(context).unfocus();
+                      setState(() => _showEmoji = true);
+                    }
+                  },
+                ),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -407,6 +432,9 @@ class _CommentsSheetState extends State<CommentsSheet> {
                     child: TextField(
                       controller: _textController,
                       focusNode: _focusNode,
+                      onTap: () {
+                        if (_showEmoji) setState(() => _showEmoji = false);
+                      },
                       style: TextStyle(color: titleColor, fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Add a comment...',
@@ -453,6 +481,13 @@ class _CommentsSheetState extends State<CommentsSheet> {
               ],
             ),
           ),
+          if (_showEmoji)
+            EmojiPickerPanel(
+              onEmojiSelected: (emoji) =>
+                  EmojiPickerPanel.insertEmoji(_textController, emoji),
+              onBackspace: () =>
+                  EmojiPickerPanel.backspace(_textController),
+            ),
         ],
       ),
     );

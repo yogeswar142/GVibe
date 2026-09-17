@@ -20,6 +20,8 @@ const messageRoutes   = require('./routes/message.routes');
 const lostItemRoutes  = require('./routes/lost_item.routes');
 const shortLinkRoutes = require('./routes/short_link.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
+const liveLocationRoutes = require('./routes/live_location.routes');
+const { redirectLiveLocation } = require('./controllers/live_location.controller');
 
 const app = express();
 
@@ -83,6 +85,10 @@ app.use('/api/lost-items', lostItemRoutes);
 // LinkedIn/Twitter style URL shortener redirect: /s/:code
 app.use('/s', shortLinkRoutes);
 app.use('/api/links', shortLinkRoutes);
+
+// Real-time Live Location with auto-expiration
+app.get('/live/:code', redirectLiveLocation);
+app.use('/api/live-location', liveLocationRoutes);
 
 // Comprehensive user, content, and link analytics
 app.use('/api/analytics', analyticsRoutes);

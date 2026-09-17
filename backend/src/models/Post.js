@@ -16,6 +16,11 @@ const postSchema = new mongoose.Schema({
     enum: ['text', 'image', 'video'],
     default: 'text',
   },
+  category: {
+    type: String,
+    enum: ['general', 'lost_found', 'ride_share', 'teammate'],
+    default: 'general',
+  },
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -52,6 +57,7 @@ const postSchema = new mongoose.Schema({
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
 postSchema.index({ createdAt: -1 });
+postSchema.index({ category: 1, createdAt: -1 });
 postSchema.index({ tags: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Post', postSchema);

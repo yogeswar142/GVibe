@@ -24,11 +24,34 @@ class _HomeFeedTabState extends State<HomeFeedTab>
   late TabController _tabController;
   List<dynamic> _posts = [];
   bool _loading = true;
+  String _selectedCategory = 'all';
+
+  final List<Map<String, dynamic>> _categories = const [
+    {'id': 'all', 'label': 'All Posts', 'icon': Icons.all_inclusive_rounded},
+    {'id': 'general', 'label': 'General', 'icon': Icons.chat_bubble_outline_rounded},
+    {'id': 'lost_found', 'label': 'Lost & Found', 'icon': Icons.search_rounded},
+    {'id': 'ride_share', 'label': 'Ride Share', 'icon': Icons.directions_car_rounded},
+    {'id': 'teammate', 'label': 'Teammates', 'icon': Icons.group_rounded},
+  ];
+
+  List<dynamic> get _displayedPosts {
+    if (_selectedCategory == 'all') return _posts;
+    return _posts.where((p) {
+      final cat = p['category']?.toString();
+      if (_selectedCategory == 'general') {
+        return cat == null || cat.isEmpty || cat == 'general';
+      }
+      return cat == _selectedCategory;
+    }).toList();
+  }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _fetchPosts();
   }
 
@@ -41,7 +64,11 @@ class _HomeFeedTabState extends State<HomeFeedTab>
   Future<void> _fetchPosts() async {
     setState(() => _loading = true);
     try {
-      final response = await ApiService().dio.get('/posts');
+      final query = <String, dynamic>{};
+      if (_selectedCategory != 'all') {
+        query['category'] = _selectedCategory;
+      }
+      final response = await ApiService().dio.get('/posts', queryParameters: query);
       if (response.data['success'] == true) {
         setState(() {
           _posts = response.data['data'] ?? [];
@@ -51,6 +78,14 @@ class _HomeFeedTabState extends State<HomeFeedTab>
     } on DioException catch (_) {
       setState(() => _loading = false);
     }
+  }
+
+  void _onSelectCategory(String catId) {
+    if (_selectedCategory == catId) return;
+    setState(() {
+      _selectedCategory = catId;
+    });
+    _fetchPosts();
   }
 
   @override
@@ -139,30 +174,187 @@ class _HomeFeedTabState extends State<HomeFeedTab>
     );
   }
 
-  Widget _buildPostsFeed() {
-    if (_loading) {
-      return ListView.builder(
-        padding: const EdgeInsets.fromLTRB(0, 16, 0, 100),
-        itemCount: 4,
-        itemBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: PostCardSkeleton(),
-        ),
-      );
-    }
-    if (_posts.isEmpty) {
-      return _buildEmptyState('No posts yet', Icons.article_outlined);
-    }
-    return RefreshIndicator(
-      onRefresh: _fetchPosts,
-      color: AppColors.primary,
-      backgroundColor: AppColors.surface,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: _posts.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (_, i) => _PostCard(post: _posts[i]),
+  Widget _buildCategoryFilterHeader(bool isDark, Color borderColor) {
+    final activeCat = _categories.firstWhere(
+      (c) => c['id'] == _selectedCategory,
+      orElse: () => _categories.first,
+    );
+    final isFiltered = _selectedCategory != 'all';
+    final labelColor = isDark ? const Color(0xFF8A8F98) : const Color(0xFF737373);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Row(
+        children: [
+          Text(
+            isFiltered ? activeCat['label'].toString().toUpperCase() : 'CAMPUS FEED',
+            style: AppTextStyles.monoXs.copyWith(
+              color: labelColor,
+              fontSize: 10,
+              letterSpacing: 1.1,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          _buildCategoryFilterPill(isDark, borderColor),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCategoryFilterPill(bool isDark, Color borderColor) {
+    final activeCat = _categories.firstWhere(
+      (c) => c['id'] == _selectedCategory,
+      orElse: () => _categories.first,
+    );
+    final isFiltered = _selectedCategory != 'all';
+    final pillColor = isFiltered
+        ? (isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3))
+        : (isDark ? const Color(0xFF838EA6) : const Color(0xFF666666));
+
+    final menuBg = isDark ? const Color(0xFF0F1012) : const Color(0xFFFFFFFF);
+    final menuBorder = isDark ? const Color(0xFF22242B) : const Color(0xFFE5E7EB);
+    final menuText = isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717);
+
+    return PopupMenuButton<String>(
+      tooltip: 'Filter posts by category',
+      elevation: 8,
+      color: menuBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: menuBorder, width: 1),
+      ),
+      offset: const Offset(0, 34),
+      onSelected: _onSelectCategory,
+      itemBuilder: (context) {
+        return _categories.map((cat) {
+          final isSelected = cat['id'] == _selectedCategory;
+          return PopupMenuItem<String>(
+            value: cat['id'] as String,
+            height: 40,
+            child: Row(
+              children: [
+                Icon(
+                  cat['icon'] as IconData,
+                  size: 15,
+                  color: isSelected
+                      ? (isDark ? const Color(0xFF828FFF) : const Color(0xFF0070F3))
+                      : (isDark ? const Color(0xFF8A8F98) : const Color(0xFF737373)),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    cat['label'] as String,
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: isSelected
+                          ? (isDark ? Colors.white : const Color(0xFF0070F3))
+                          : menuText,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: isDark ? const Color(0xFF828FFF) : const Color(0xFF0070F3),
+                  ),
+              ],
+            ),
+          );
+        }).toList();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: isFiltered
+              ? (isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.16) : const Color(0xFF0070F3).withValues(alpha: 0.08))
+              : (isDark ? const Color(0xFF161820) : const Color(0xFFF5F6F8)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isFiltered ? pillColor.withValues(alpha: 0.5) : borderColor,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isFiltered) ...[
+              Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: pillColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
+            ],
+            Icon(
+              activeCat['icon'] as IconData,
+              size: 12,
+              color: pillColor,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              activeCat['label'] as String,
+              style: AppTextStyles.monoXs.copyWith(
+                color: pillColor,
+                fontWeight: isFiltered ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 10.5,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 14,
+              color: pillColor,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostsFeed() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
+    final displayed = _displayedPosts;
+
+    return Column(
+      children: [
+        _buildCategoryFilterHeader(isDark, borderColor),
+        Expanded(
+          child: _loading
+              ? ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
+                  itemCount: 4,
+                  itemBuilder: (_, __) => const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: PostCardSkeleton(),
+                  ),
+                )
+              : displayed.isEmpty
+                  ? _buildEmptyState(
+                      _selectedCategory == 'all'
+                          ? 'No posts yet'
+                          : 'No ${_categories.firstWhere((c) => c['id'] == _selectedCategory, orElse: () => _categories.first)['label']} posts yet',
+                      Icons.article_outlined,
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _fetchPosts,
+                      color: AppColors.primary,
+                      backgroundColor: AppColors.surface,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                        itemCount: displayed.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, i) => _PostCard(post: displayed[i]),
+                      ),
+                    ),
+        ),
+      ],
     );
   }
 
@@ -437,13 +629,21 @@ class _PostCardState extends State<_PostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: AppTextStyles.headlineSm.copyWith(
-                          color: nameColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              name,
+                              style: AppTextStyles.headlineSm.copyWith(
+                                color: nameColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          _buildPostCategoryBadge(widget.post['category']?.toString() ?? 'general', isDark),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -534,6 +734,50 @@ class _PostCardState extends State<_PostCard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPostCategoryBadge(String cat, bool isDark) {
+    String label = 'General';
+    Color color = const Color(0xFF5E6AD2);
+    IconData icon = Icons.chat_bubble_outline_rounded;
+
+    if (cat == 'lost_found') {
+      label = 'Lost & Found';
+      color = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+      icon = Icons.search_rounded;
+    } else if (cat == 'ride_share') {
+      label = 'Ride Share';
+      color = isDark ? const Color(0xFF30A46C) : const Color(0xFF16A34A);
+      icon = Icons.directions_car_rounded;
+    } else if (cat == 'teammate') {
+      label = 'Teammate';
+      color = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+      icon = Icons.group_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 0.8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTextStyles.monoXs.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 9.5,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -682,6 +926,14 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
   final _contentFocusNode = FocusNode();
   bool _posting = false;
   bool _showEmoji = false;
+  String _selectedCategory = 'general';
+
+  final List<Map<String, dynamic>> _postCategories = const [
+    {'id': 'general', 'label': 'General', 'icon': Icons.chat_bubble_outline_rounded},
+    {'id': 'lost_found', 'label': 'Lost & Found', 'icon': Icons.search_rounded},
+    {'id': 'ride_share', 'label': 'Ride Share', 'icon': Icons.directions_car_rounded},
+    {'id': 'teammate', 'label': 'Teammate', 'icon': Icons.group_rounded},
+  ];
 
   @override
   void dispose() {
@@ -712,6 +964,7 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
       final response = await ApiService().dio.post('/posts', data: {
         'content': content,
         'type': 'text',
+        'category': _selectedCategory,
       });
       if (response.data['success'] == true) {
         widget.onPostCreated();
@@ -779,7 +1032,64 @@ class _CreatePostSheetState extends State<_CreatePostSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          // Category selector chips
+          SizedBox(
+            height: 32,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _postCategories.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final cat = _postCategories[i];
+                final isSelected = cat['id'] == _selectedCategory;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCategory = cat['id'] as String),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? (isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.18) : const Color(0xFF0070F3).withValues(alpha: 0.1))
+                          : (isDark ? const Color(0xFF161820) : const Color(0xFFF5F6F8)),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected
+                            ? (isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3))
+                            : borderColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          cat['icon'] as IconData,
+                          size: 13,
+                          color: isSelected
+                              ? (isDark ? const Color(0xFF828FFF) : const Color(0xFF0070F3))
+                              : subtitleColor,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          cat['label'] as String,
+                          style: AppTextStyles.monoXs.copyWith(
+                            color: isSelected
+                                ? (isDark ? Colors.white : const Color(0xFF0070F3))
+                                : subtitleColor,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
           Divider(color: borderColor, height: 1),
           // Composer
           Expanded(

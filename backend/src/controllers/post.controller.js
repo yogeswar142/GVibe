@@ -45,12 +45,23 @@ const shortenUrlsInText = async (text, userId, req) => {
   return processed;
 };
 
-// GET /api/posts — get all posts (newest first, optionally filtered by author)
+// GET /api/posts — get all posts (newest first, optionally filtered by author or category)
 exports.getPosts = async (req, res) => {
   try {
     const filter = {};
     if (req.query.author) {
       filter.author = req.query.author;
+    }
+    if (req.query.category && req.query.category !== 'all') {
+      if (req.query.category === 'general') {
+        filter.$or = [
+          { category: 'general' },
+          { category: null },
+          { category: { $exists: false } },
+        ];
+      } else {
+        filter.category = req.query.category;
+      }
     }
 
     const posts = await Post.find(filter)
@@ -68,7 +79,7 @@ exports.getPosts = async (req, res) => {
 // POST /api/posts — create a new post with auto link shortening (Twitter/LinkedIn style)
 exports.createPost = async (req, res) => {
   try {
-    const { content, type } = req.body;
+    const { content, type, category } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ success: false, message: 'Post content is required' });
@@ -77,10 +88,16 @@ exports.createPost = async (req, res) => {
     const processedContent = await shortenUrlsInText(content, req.user.id, req);
     const tags = (processedContent.match(/#\w+/g) || []).map(tag => tag.substring(1).toLowerCase());
 
+    const validCategories = ['general', 'lost_found', 'ride_share', 'teammate'];
+    const sanitizedCategory = category && validCategories.includes(String(category).trim().toLowerCase())
+      ? String(category).trim().toLowerCase()
+      : 'general';
+
     const post = await Post.create({
       author: req.user.id,
       content: processedContent,
       type: type || 'text',
+      category: sanitizedCategory,
       tags,
     });
 

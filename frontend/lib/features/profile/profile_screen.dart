@@ -1539,51 +1539,36 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
   @override
   Widget build(BuildContext context) {
     final avatar = widget.user?['avatar']?.toString();
-    final level = (widget.user?['level'] is num) ? (widget.user!['level'] as num).toInt() : 1;
     final name = widget.user?['name']?.toString() ?? 'Student';
     final username = widget.user?['username']?.toString() ?? name.toLowerCase().replaceAll(' ', '_');
     final dept = widget.user?['branch']?.toString() ?? widget.user?['dept']?.toString() ?? 'Student';
     final year = widget.user?['academicLevel']?.toString() ?? widget.user?['year']?.toString() ?? '1st Year';
     final regNo = widget.user?['registrationNumber']?.toString();
-    final hub = (regNo != null && regNo.isNotEmpty) ? regNo : (widget.user?['hub']?.toString() ?? 'GITAM Campus');
-
-    // Vibe rating calculations
-    final double ratingVal = ((level * 18 + 40).clamp(20, 100)) / 100.0;
-    final ratingPercent = (ratingVal * 100).toStringAsFixed(0);
-    
-    String rank = 'INITIATE';
-    if (level >= 40) {
-      rank = 'ARCHMAGE';
-    } else if (level >= 25) {
-      rank = 'WIZARD';
-    } else if (level >= 10) {
-      rank = 'ACOLYTE';
-    }
+    final hub = widget.user?['hub']?.toString() ?? 'GITAM Campus';
+    final email = widget.user?['email']?.toString() ?? '$username@student.gitam.edu';
+    final bool isVerified = widget.user?['isVerified'] == true;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _showFront = !_showFront;
-          });
-        },
+        onTap: () => setState(() => _showFront = !_showFront),
         child: TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: _showFront ? 0 : 3.1415926535),
-          duration: const Duration(milliseconds: 600),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
           builder: (context, val, child) {
             final isFront = val < 3.1415926535 / 2;
             return Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0012)
+                ..setEntry(3, 2, 0.001)
                 ..rotateY(val),
               child: isFront
-                  ? _buildFront(avatar, level, name, username, dept, year, hub, ratingVal, ratingPercent, rank)
+                  ? _buildFront(avatar, name, username, dept, year, regNo, hub, isVerified)
                   : Transform(
                       alignment: Alignment.center,
                       transform: Matrix4.identity()..rotateY(3.1415926535),
-                      child: _buildBack(name, level),
+                      child: _buildBack(name, username, dept, regNo, hub, email, isVerified),
                     ),
             );
           },
@@ -1594,34 +1579,36 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
 
   Widget _buildFront(
     String? avatar,
-    int level,
     String name,
     String username,
     String dept,
     String year,
+    String? regNo,
     String hub,
-    double ratingVal,
-    String ratingPercent,
-    String rank,
+    bool isVerified,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
-    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final cardBg = isDark ? const Color(0xFF0F1012) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF22242B) : const Color(0xFFE5E7EB);
+    final textColor = isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717);
+    final labelColor = isDark ? const Color(0xFF8A8F98) : const Color(0xFF737373);
     final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final initials = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'S';
+    final displayRegNo = (regNo != null && regNo.isNotEmpty) ? regNo : 'Pending';
 
     return Container(
       width: double.infinity,
-      height: 230,
+      height: 235,
       decoration: BoxDecoration(
         color: cardBg,
-        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
-        border: Border.all(color: borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(isDark ? 14 : 12),
+        border: Border.all(color: borderColor, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
+            color: isDark
+                ? const Color(0xFF010102).withValues(alpha: 0.6)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
             offset: const Offset(0, 4),
           ),
         ],
@@ -1630,91 +1617,72 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Top Bar: University credential & Verified Badge
           Row(
             children: [
-              Icon(Icons.nfc, color: labelColor, size: 14),
+              Icon(Icons.school_outlined, size: 14, color: labelColor),
               const SizedBox(width: 6),
               Text(
-                'Student ID Card',
+                'GITAM UNIVERSITY',
                 style: AppTextStyles.monoXs.copyWith(
                   color: labelColor,
-                  fontSize: 9,
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 10,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const Spacer(),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: accentColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Active',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: accentColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              _buildVerificationBadge(isVerified, accentColor, isDark),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Middle Profile Section
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(2.5),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: accentColor, width: 2),
-                      ),
-                      child: CutCornerAvatar(imageUrl: avatar, size: 76),
-                    ),
-                    Positioned(
-                      bottom: -8,
-                      left: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        color: accentColor,
-                        child: Text(
-                          'Level $level',
-                          style: AppTextStyles.monoXs.copyWith(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                GVibeAvatar(
+                  imageUrl: avatar,
+                  size: 64,
+                  initials: initials,
+                  showGlow: isVerified,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              name,
-                              style: AppTextStyles.displaySm.copyWith(
-                                fontSize: 18,
-                                color: textColor,
-                                letterSpacing: 0.5,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    name,
+                                    style: AppTextStyles.headlineMd.copyWith(
+                                      color: textColor,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                      letterSpacing: -0.3,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isVerified) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    color: accentColor,
+                                    size: 16,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
+                          const SizedBox(width: 8),
                           _buildCardActionBtn(),
                         ],
                       ),
@@ -1723,20 +1691,22 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
                         '@$username',
                         style: AppTextStyles.monoXs.copyWith(
                           color: labelColor,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
-                      _detailRow('Major:', dept),
-                      const SizedBox(height: 3),
-                      _detailRow('Class:', year),
-                      const SizedBox(height: 3),
-                      _detailRow(
-                        widget.user?['registrationNumber'] != null && widget.user!['registrationNumber'].toString().isNotEmpty
-                            ? 'ID:'
-                            : 'Campus:',
-                        hub,
+                      const SizedBox(height: 8),
+                      // Academic badges row
+                      Wrap(
+                        spacing: 5,
+                        runSpacing: 4,
+                        children: [
+                          _buildPill(dept, isDark),
+                          _buildPill(year, isDark),
+                          _buildPill(hub, isDark),
+                        ],
                       ),
                     ],
                   ),
@@ -1744,45 +1714,55 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+          // Divider
+          Divider(color: borderColor, height: 16),
+
+          // Bottom Bar: Roll number & Flip hint
+          Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Vibe Rating: $ratingPercent%',
-                    style: AppTextStyles.monoXs.copyWith(
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Rank: $rank',
-                    style: AppTextStyles.monoXs.copyWith(
-                      color: accentColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Text(
+                'ROLL NO  ',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: labelColor,
+                  fontSize: 9,
+                  letterSpacing: 0.6,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(isDark ? 4 : 99),
-                child: Container(
-                  height: 6,
-                  width: double.infinity,
-                  color: isDark ? const Color(0xFF1A1B1F) : const Color(0xFFE7E8EC),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: ratingVal,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: accentColor,
+              Expanded(
+                child: Text(
+                  displayRegNo,
+                  style: AppTextStyles.monoSm.copyWith(
+                    color: textColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF161820) : const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: borderColor, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.flip_camera_android_rounded, size: 12, color: labelColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Digital Pass',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: labelColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -1792,31 +1772,242 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
     );
   }
 
+  Widget _buildBack(
+    String name,
+    String username,
+    String dept,
+    String? regNo,
+    String hub,
+    String email,
+    bool isVerified,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF0F1012) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF22242B) : const Color(0xFFE5E7EB);
+    final labelColor = isDark ? const Color(0xFF8A8F98) : const Color(0xFF737373);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final displayRegNo = (regNo != null && regNo.isNotEmpty) ? regNo : 'Pending';
+
+    return Container(
+      width: double.infinity,
+      height: 235,
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(isDark ? 14 : 12),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? const Color(0xFF010102).withValues(alpha: 0.6)
+                : Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.qr_code_2_rounded, size: 14, color: labelColor),
+              const SizedBox(width: 6),
+              Text(
+                'CAMPUS PASS · ACCESS ID',
+                style: AppTextStyles.monoXs.copyWith(
+                  color: labelColor,
+                  fontSize: 10,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Icon(Icons.flip_to_front_rounded, size: 12, color: accentColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Front',
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: accentColor,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Body: Credential details + QR pass
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _detailRow('Registration:', displayRegNo),
+                      const SizedBox(height: 6),
+                      _detailRow('Email:', email),
+                      const SizedBox(height: 6),
+                      _detailRow('Campus Hub:', hub),
+                      const SizedBox(height: 6),
+                      _detailRow('Account Status:', isVerified ? 'Verified Student' : 'Standard Member'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14),
+                _buildMockQRCode(username, isDark, borderColor),
+              ],
+            ),
+          ),
+
+          // Divider
+          Divider(color: borderColor, height: 16),
+
+          // Footer
+          Center(
+            child: Text(
+              'Tap anywhere to flip card',
+              style: AppTextStyles.monoXs.copyWith(
+                color: labelColor.withValues(alpha: 0.7),
+                fontSize: 9,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationBadge(bool isVerified, Color accentColor, bool isDark) {
+    if (isVerified) {
+      final greenColor = isDark ? const Color(0xFF27A644) : const Color(0xFF16A34A);
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: greenColor.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: greenColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: greenColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'VERIFIED',
+              style: AppTextStyles.monoXs.copyWith(
+                color: greenColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: accentColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: accentColor.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: accentColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              'STUDENT PASS',
+              style: AppTextStyles.monoXs.copyWith(
+                color: accentColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildPill(String text, bool isDark) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+    final borderColor = isDark ? const Color(0xFF22242B) : const Color(0xFFE5E7EB);
+    final bg = isDark ? const Color(0xFF161820) : const Color(0xFFF9FAFB);
+    final textColor = isDark ? const Color(0xFFD0D6E0) : const Color(0xFF4B5563);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Text(
+        text,
+        style: AppTextStyles.monoXs.copyWith(
+          color: textColor,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w500,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
+  }
+
   Widget _detailRow(String label, String value) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final valueColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
+    final labelColor = isDark ? const Color(0xFF8A8F98) : const Color(0xFF737373);
+    final valueColor = isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717);
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '$label ',
+          label,
           style: AppTextStyles.monoXs.copyWith(
             color: labelColor,
             fontSize: 9,
+            letterSpacing: 0.3,
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: AppTextStyles.monoSm.copyWith(
-              color: valueColor,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-            ),
-            overflow: TextOverflow.ellipsis,
+        const SizedBox(height: 1),
+        Text(
+          value,
+          style: AppTextStyles.monoSm.copyWith(
+            color: valueColor,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w600,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -1824,27 +2015,41 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
 
   Widget _buildCardActionBtn() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final textColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF171717);
-    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final borderColor = isDark ? const Color(0xFF22242B) : const Color(0xFFE5E7EB);
+    final textColor = isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717);
+    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
 
     if (widget.isOwnProfile) {
       return GestureDetector(
         onTap: widget.onEdit,
         child: Container(
-          padding: const EdgeInsets.all(5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(isDark ? 6 : 4),
             border: Border.all(color: borderColor, width: 1),
           ),
-          child: Icon(Icons.edit_outlined, color: textColor, size: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.edit_outlined, color: textColor, size: 13),
+              const SizedBox(width: 4),
+              Text(
+                'Edit',
+                style: AppTextStyles.label.copyWith(
+                  color: textColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     } else {
       return GestureDetector(
         onTap: widget.onToggleFollow,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
             color: widget.isFollowing ? Colors.transparent : accentColor,
             borderRadius: BorderRadius.circular(isDark ? 6 : 4),
@@ -1854,11 +2059,11 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
             ),
           ),
           child: Text(
-            widget.isFollowing ? 'UNFOLLOW' : 'FOLLOW',
-            style: AppTextStyles.monoXs.copyWith(
+            widget.isFollowing ? 'Following' : 'Follow',
+            style: AppTextStyles.label.copyWith(
               color: widget.isFollowing ? textColor : Colors.white,
-              fontSize: 8,
-              fontWeight: FontWeight.bold,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -1866,136 +2071,13 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
     }
   }
 
-  Widget _buildBack(String name, int level) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF);
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-
-    final regNo = widget.user?['registrationNumber']?.toString();
-    final bool isVerified = widget.user?['isVerified'] == true;
-    final createdAtStr = widget.user?['createdAt']?.toString();
-    String memberSince = 'Active';
-    if (createdAtStr != null && createdAtStr.isNotEmpty) {
-      try {
-        final dt = DateTime.parse(createdAtStr);
-        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        memberSince = '${months[dt.month - 1]} ${dt.year}';
-      } catch (_) {}
-    }
-    final rawHash = (name + (widget.user?['_id']?.toString() ?? 'GVIBE')).hashCode.abs();
-    final sigHash = '0x${rawHash.toRadixString(16).padRight(12, '0').toUpperCase()}';
-
+  Widget _buildMockQRCode(String username, bool isDark, Color borderColor) {
     return Container(
-      width: double.infinity,
-      height: 230,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? const Color(0xFF5E6AD2).withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.security, color: labelColor, size: 14),
-              const SizedBox(width: 6),
-              Text(
-                'Security Details',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: labelColor,
-                  fontSize: 9,
-                  letterSpacing: 0.5,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                isVerified ? 'Verified' : 'Pending',
-                style: AppTextStyles.monoXs.copyWith(
-                  color: isVerified ? accentColor : labelColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            height: 28,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF19201E) : const Color(0xFFF3F4F6),
-              borderRadius: BorderRadius.circular(isDark ? 4 : 3),
-            ),
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              'Encrypted Security Track',
-              style: AppTextStyles.monoXs.copyWith(color: labelColor, fontSize: 8),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _detailRow('Reg No:', (regNo != null && regNo.isNotEmpty) ? regNo : 'Pending'),
-                      const SizedBox(height: 4),
-                      _detailRow('Signature:', sigHash),
-                      const SizedBox(height: 4),
-                      _detailRow('Status:', isVerified ? 'Verified' : 'Pending'),
-                      const SizedBox(height: 4),
-                      _detailRow('Member Since:', memberSince),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                _buildMockQRCode(),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              'Tap card to flip',
-              style: AppTextStyles.monoXs.copyWith(
-                color: labelColor,
-                fontSize: 9,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMockQRCode() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-
-    return Container(
-      width: 76,
-      height: 76,
+      width: 78,
+      height: 78,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(isDark ? 6 : 4),
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
         border: Border.all(color: borderColor, width: 1),
       ),
       padding: const EdgeInsets.all(6),
@@ -2011,7 +2093,7 @@ class _DigitalStudentIDCardState extends State<_DigitalStudentIDCard> {
               return Container(
                 width: 7,
                 height: 7,
-                color: isPixel ? Colors.black : Colors.white,
+                color: isPixel ? const Color(0xFF0F1012) : Colors.white,
               );
             }),
           );

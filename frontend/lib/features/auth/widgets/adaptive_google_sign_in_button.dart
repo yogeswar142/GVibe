@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
-import 'package:google_sign_in_web/google_sign_in_web.dart' as gsi_web;
+import 'gsi_web_button_stub.dart'
+    if (dart.library.js_interop) 'gsi_web_button_web.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/gvibe_widgets.dart';
 
@@ -94,28 +95,11 @@ class _AdaptiveGoogleSignInButtonState extends State<AdaptiveGoogleSignInButton>
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      // On Web: Render Google's official GSI button widget (required by Google Web GIS SDK)
-      final plugin = GoogleSignInPlatform.instance;
-      if (plugin is gsi_web.GoogleSignInPlugin) {
-        return SizedBox(
-          height: 48,
-          width: double.infinity,
-          child: Center(
-            child: plugin.renderButton(
-              configuration: gsi_web.GSIButtonConfiguration(
-                theme: Theme.of(context).brightness == Brightness.dark
-                    ? gsi_web.GSIButtonTheme.filledBlack
-                    : gsi_web.GSIButtonTheme.outline,
-                size: gsi_web.GSIButtonSize.large,
-                shape: gsi_web.GSIButtonShape.rectangular,
-                text: widget.action == 'register'
-                    ? gsi_web.GSIButtonText.signupWith
-                    : gsi_web.GSIButtonText.signinWith,
-              ),
-            ),
-          ),
-        );
-      }
+      // On Web: Render Google's official GSI button widget (via conditional web import)
+      return buildWebGoogleSignInButton(
+        context: context,
+        action: widget.action,
+      );
     }
 
     // On Mobile (or fallback): Render custom GVibe button

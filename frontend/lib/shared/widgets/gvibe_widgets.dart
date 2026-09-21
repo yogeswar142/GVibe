@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/app_theme_extension.dart';
@@ -28,29 +29,50 @@ class GVibeAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ext = context.ext;
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: showGlow ? ext.avatarGlow : null,
-        border: showGlow
-            ? Border.all(color: cs.primary, width: 2)
-            : null, // no ring when inactive
-      ),
-      child: ClipOval(
-        child: imageUrl != null && imageUrl!.isNotEmpty
-            ? Image.network(
-                imageUrl!,
-                width: size,
-                height: size,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _placeholder(context),
-              )
-            : _placeholder(context),
-      ),
-    );
+    return showGlow
+        ? Container(
+            width: size + 4,
+            height: size + 4,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0D9488), Color(0xFFD97706)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: showGlow ? ext.avatarGlow : null,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: ClipOval(
+                child: imageUrl != null && imageUrl!.isNotEmpty
+                    ? Image.network(
+                        imageUrl!,
+                        width: size,
+                        height: size,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholder(context),
+                      )
+                    : _placeholder(context),
+              ),
+            ),
+          )
+        : Container(
+            width: size,
+            height: size,
+            decoration: const BoxDecoration(shape: BoxShape.circle),
+            child: ClipOval(
+              child: imageUrl != null && imageUrl!.isNotEmpty
+                  ? Image.network(
+                      imageUrl!,
+                      width: size,
+                      height: size,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(context),
+                    )
+                  : _placeholder(context),
+            ),
+          );
   }
 
   Widget _placeholder(BuildContext context) {
@@ -153,13 +175,12 @@ class _GVibeButtonState extends State<GVibeButton>
   }
 
   Widget _buildPrimary(BuildContext context, ColorScheme cs) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = widget.backgroundColor ?? cs.primary; // flat accent fill
     return Container(
       height: 44, // spec: 44px min tap height
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(isDark ? 8 : 22), // md for dark (8px), pill for light (22px)
+        borderRadius: BorderRadius.circular(8), // 8px per Bay & Gold Coastal spec
       ),
       child: Center(
         child: widget.isLoading
@@ -192,7 +213,7 @@ class _GVibeButtonState extends State<GVibeButton>
       height: 44,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(isDark ? 8 : 22),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: cs.outline, width: 1),
       ),
       child: Center(
@@ -413,10 +434,10 @@ class GVibeNavBar extends StatelessWidget {
     
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF010102) : const Color(0xFFFFFFFF),
+        color: isDark ? const Color(0xFF080C0B) : const Color(0xFFF5FAF9),
         border: Border(
           top: BorderSide(
-            color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
+            color: isDark ? const Color(0xFF1A2E2B) : const Color(0xFFDDF0EC),
             width: 1,
           ),
         ),
@@ -466,8 +487,8 @@ class _NavItem extends StatelessWidget {
     final isActive = index == current;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    final activeColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
-    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
+    final activeColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final inactiveColor = isDark ? const Color(0xFF3D5C58) : const Color(0xFF6B9E99);
     final color = isActive ? activeColor : inactiveColor;
     final icon = isActive ? activeIcon : inactiveIcon;
 
@@ -829,6 +850,77 @@ class GradientText extends StatelessWidget {
         text,
         style: (style ?? AppTextStyles.displaySm).copyWith(color: Colors.white),
       ),
+    );
+  }
+}
+
+// ─── Brand Title (Bay & Gold Gradient First Letter) ──────────────────────────
+/// Renders a top-bar or section title where the first letter is capitalized and
+/// styled with the signature Bay Teal → Turmeric Gold gradient, while the remaining
+/// letters use the standard on-surface text color.
+class BrandTitle extends StatelessWidget {
+  final String title;
+  final double fontSize;
+  final FontWeight fontWeight;
+  final double? letterSpacing;
+
+  const BrandTitle(
+    this.title, {
+    super.key,
+    this.fontSize = 22,
+    this.fontWeight = FontWeight.w700,
+    this.letterSpacing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (title.isEmpty) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final first = title[0].toUpperCase();
+    final rest = title.length > 1 ? title.substring(1) : '';
+
+    final gradient = isDark
+        ? const LinearGradient(
+            colors: [Color(0xFF0D9488), Color(0xFFD97706)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          )
+        : const LinearGradient(
+            colors: [Color(0xFF0F766E), Color(0xFFB45309)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          );
+
+    final textColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final effectiveSpacing = letterSpacing ?? (isDark ? -0.8 : -1.2);
+
+    final baseStyle = GoogleFonts.spaceGrotesk(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      letterSpacing: effectiveSpacing,
+    );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => gradient.createShader(
+            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+          ),
+          child: Text(
+            first,
+            style: baseStyle.copyWith(color: Colors.white),
+          ),
+        ),
+        if (rest.isNotEmpty)
+          Text(
+            rest,
+            style: baseStyle.copyWith(color: textColor),
+          ),
+      ],
     );
   }
 }

@@ -1,0 +1,550 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GVibe Discover - Find Your People</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #050707;
+      color: #E8F4F2;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-10 px-4 flex flex-col items-center justify-center bg-[#050707]">
+
+  <!-- Header Presentation Metadata -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.25)] text-xs text-[#0D9488] font-medium tracking-wide uppercase mb-3">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#0D9488]"></span>
+      GVibe Identity System V3 · Discover Flow
+    </div>
+    <h1 class="text-2xl md:text-3xl font-bold font-display text-white tracking-tight">GVibe Discover · "Find Your People"</h1>
+    <p class="text-sm text-[#7A9E9A] mt-1">Dual viewport presentation · 360 × 800dp side-by-side</p>
+  </div>
+
+  <!-- Dual Viewport Container -->
+  <div class="flex flex-col lg:flex-row items-center justify-center gap-8 xl:gap-12 w-full max-w-6xl">
+
+    <!-- ============================================== -->
+    <!-- DARK THEME FRAME (LEFT) -->
+    <!-- ============================================== -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-[360px] h-[800px] rounded-[40px] bg-[#080C0B] border-[6px] border-[#182220] shadow-2xl overflow-hidden flex flex-col justify-between">
+        
+        <!-- Status Bar -->
+        <div class="pt-3 px-6 flex items-center justify-between z-20">
+          <span class="text-xs font-semibold text-[#E8F4F2] tracking-tight">9:41</span>
+          <div class="flex items-center gap-1.5 text-[#E8F4F2]">
+            <!-- Cellular -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 15l-4.5-2.81C6.6 14.11 6 13.11 6 12c0-3.31 2.69-6 6-6s6 2.69 6 6c0 1.11-.6 2.11-1.5 3.19L12 18z" opacity="0.3"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <!-- Wifi -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.67 0 7.02 1.41 9.54 3.73L12 19.34 2.46 11.23C4.98 8.91 8.33 7.5 12 7.5z"></path>
+            </svg>
+            <!-- Battery -->
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M17 5H7c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 12H7V7h10v10zm3-8h1v6h-1V9z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Scrollable Inner Screen Content -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-4">
+          
+          <!-- Top Bar (56dp) -->
+          <div class="h-[56px] px-6 flex items-center justify-between">
+            <span class="font-display font-semibold text-[22px] text-[#E8F4F2] tracking-tight">discover</span>
+            <button class="text-[#7A9E9A] hover:text-[#0D9488] transition-colors p-1" aria-label="Filters">
+              <!-- Sliders-horizontal icon 22px -->
+              <svg class="w-[22px] h-[22px] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Search Bar (12px below top bar, 24px margins) -->
+          <div class="mt-[12px] px-6">
+            <div class="h-[44px] w-full rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] flex items-center px-[14px] gap-2.5">
+              <svg class="w-4 h-4 text-[#0D9488] shrink-0 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" readonly="" placeholder="search students, communities…" class="bg-transparent border-none outline-none text-[14px] text-[#E8F4F2] placeholder-[#7A9E9A] w-full font-normal">
+            </div>
+          </div>
+
+          <!-- Section: Campus Communities (20px below search) -->
+          <div class="mt-[20px]">
+            <div class="px-6">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#7A9E9A]">campus communities</h3>
+            </div>
+            
+            <!-- Horizontal scroll row -->
+            <div class="mt-[10px] pl-6 flex gap-[10px] overflow-x-auto no-scrollbar pr-3">
+              <!-- Card 1: Coding Club -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#131C1A] border border-[rgba(13,148,136,0.15)] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0D9488] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#E8F4F2] leading-tight truncate">Coding Club</div>
+                  <div class="text-[11px] font-normal text-[#7A9E9A] leading-tight mt-[2px]">142 members</div>
+                </div>
+              </div>
+
+              <!-- Card 2: Music Room -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#131C1A] border border-[rgba(13,148,136,0.15)] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0D9488] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#E8F4F2] leading-tight truncate">Music Room</div>
+                  <div class="text-[11px] font-normal text-[#7A9E9A] leading-tight mt-[2px]">89 members</div>
+                </div>
+              </div>
+
+              <!-- Card 3: Design Co. -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#131C1A] border border-[rgba(13,148,136,0.15)] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0D9488] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#E8F4F2] leading-tight truncate">Design Co.</div>
+                  <div class="text-[11px] font-normal text-[#7A9E9A] leading-tight mt-[2px]">67 members</div>
+                </div>
+              </div>
+
+              <!-- Card 4 (Peeking): AI & ML -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#131C1A] border border-[rgba(13,148,136,0.15)] p-3 flex flex-col justify-between opacity-80">
+                <svg class="w-6 h-6 text-[#0D9488] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                  <rect x="9" y="9" width="6" height="6"></rect>
+                  <line x1="9" y1="1" x2="9" y2="4"></line>
+                  <line x1="15" y1="1" x2="15" y2="4"></line>
+                  <line x1="9" y1="20" x2="9" y2="23"></line>
+                  <line x1="15" y1="20" x2="15" y2="23"></line>
+                  <line x1="20" y1="9" x2="23" y2="9"></line>
+                  <line x1="20" y1="14" x2="23" y2="14"></line>
+                  <line x1="1" y1="9" x2="4" y2="9"></line>
+                  <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#E8F4F2] leading-tight truncate">AI &amp; ML</div>
+                  <div class="text-[11px] font-normal text-[#7A9E9A] leading-tight mt-[2px]">110 members</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Trending on Campus (24px below communities) -->
+          <div class="mt-[24px]">
+            <div class="px-6">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#7A9E9A]">trending on campus</h3>
+            </div>
+            <div class="mt-[10px] pl-6 flex gap-2 overflow-x-auto no-scrollbar pr-3">
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#CODING</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#GITAM</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#DSA</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#HACKATHON</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#GAMING</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.20)] text-[13px] text-[#E8F4F2] flex items-center justify-center font-normal">#VIZAG</span>
+            </div>
+          </div>
+
+          <!-- Section: People You Might Know (24px below trending) -->
+          <div class="mt-[24px] px-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#7A9E9A]">people you might know</h3>
+              <button class="text-[12px] font-normal text-[#0D9488] hover:underline">see all</button>
+            </div>
+
+            <!-- Vertical list of 2 person cards (10px below label) -->
+            <div class="mt-[10px] space-y-2.5">
+              
+              <!-- Person 1: Ananya S. -->
+              <div class="h-[72px] rounded-[12px] bg-[#0D1412] border border-[rgba(13,148,136,0.12)] px-4 flex items-center justify-between">
+                <div class="flex items-center min-w-0 pr-2">
+                  <!-- Avatar circle 46px with ring and gold online dot -->
+                  <div class="relative shrink-0 w-[46px] h-[46px] rounded-full p-[2px] border-2 border-[#0D9488]">
+                    <div class="w-full h-full rounded-full bg-[#182220] flex items-center justify-center text-sm font-semibold text-[#0D9488]">
+                      AS
+                    </div>
+                    <!-- Online dot: 10px circle #D97706 gold, surface border 2px -->
+                    <span class="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full bg-[#D97706] ring-2 ring-[#0D1412]"></span>
+                  </div>
+                  <!-- Details -->
+                  <div class="ml-3 min-w-0">
+                    <div class="text-[14px] font-medium text-[#E8F4F2] leading-tight truncate">Ananya S.</div>
+                    <div class="text-[12px] font-normal text-[#7A9E9A] leading-tight mt-0.5 truncate">Arts &amp; Design · '26</div>
+                    <div class="text-[12px] font-normal text-[#7A9E9A] opacity-80 leading-tight mt-0.5 truncate">design nerd, coffee dependent ☕</div>
+                  </div>
+                </div>
+
+                <!-- Follow Button (Unfollow state) -->
+                <button class="shrink-0 h-[28px] px-3 rounded-full border border-[#0D9488] text-[12px] font-medium text-[#0D9488] bg-transparent hover:bg-[rgba(13,148,136,0.1)] transition-colors">
+                  follow
+                </button>
+              </div>
+
+              <!-- Person 2: Karthik R. -->
+              <div class="h-[72px] rounded-[12px] bg-[#0D1412] border border-[rgba(13,148,136,0.12)] px-4 flex items-center justify-between">
+                <div class="flex items-center min-w-0 pr-2">
+                  <!-- Avatar circle 46px with ring (offline - no dot) -->
+                  <div class="relative shrink-0 w-[46px] h-[46px] rounded-full p-[2px] border-2 border-[#0D9488]">
+                    <div class="w-full h-full rounded-full bg-[#182220] flex items-center justify-center text-sm font-semibold text-[#0D9488]">
+                      KR
+                    </div>
+                  </div>
+                  <!-- Details -->
+                  <div class="ml-3 min-w-0">
+                    <div class="text-[14px] font-medium text-[#E8F4F2] leading-tight truncate">Karthik R.</div>
+                    <div class="text-[12px] font-normal text-[#7A9E9A] leading-tight mt-0.5 truncate">ECE · '25</div>
+                    <div class="text-[12px] font-normal text-[#7A9E9A] opacity-80 leading-tight mt-0.5 truncate">building stuff, breaking stuff</div>
+                  </div>
+                </div>
+
+                <!-- Follow Button (Following state) -->
+                <button class="shrink-0 h-[28px] px-3 rounded-full bg-[#0A7A72] text-[12px] font-medium text-white shadow-sm">
+                  following
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Navigation (Fixed bottom 56dp, active: compass) -->
+        <div class="h-[56px] bg-[#0D1412] border-t border-[#182220] px-6 flex items-center justify-between shrink-0 z-20">
+          <!-- Home (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#3D5C58] hover:text-[#7A9E9A]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </button>
+          
+          <!-- Compass / Discover (ACTIVE: #0D9488) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#0D9488]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#0D9488" stroke="none"></polygon>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </button>
+          
+          <!-- Messages (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#3D5C58] hover:text-[#7A9E9A]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+          
+          <!-- Profile (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#3D5C58] hover:text-[#7A9E9A]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+      <!-- Frame Subtitle -->
+      <div class="mt-4 flex items-center gap-2 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#0D9488]"></span>
+        <span class="">Dark Theme · #080C0B Base</span>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- LIGHT THEME FRAME (RIGHT) -->
+    <!-- ============================================== -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-[360px] h-[800px] rounded-[40px] bg-[#F5FAF9] border-[6px] border-[#DCEBE8] shadow-2xl overflow-hidden flex flex-col justify-between">
+        
+        <!-- Status Bar -->
+        <div class="pt-3 px-6 flex items-center justify-between z-20">
+          <span class="text-xs font-semibold text-[#0C1F1D] tracking-tight">9:41</span>
+          <div class="flex items-center gap-1.5 text-[#0C1F1D]">
+            <!-- Cellular -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9zm0 15l-4.5-2.81C6.6 14.11 6 13.11 6 12c0-3.31 2.69-6 6-6s6 2.69 6 6c0 1.11-.6 2.11-1.5 3.19L12 18z" opacity="0.3"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <!-- Wifi -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.67 0 7.02 1.41 9.54 3.73L12 19.34 2.46 11.23C4.98 8.91 8.33 7.5 12 7.5z"></path>
+            </svg>
+            <!-- Battery -->
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M17 5H7c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 12H7V7h10v10zm3-8h1v6h-1V9z"></path>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Scrollable Inner Screen Content -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-4">
+          
+          <!-- Top Bar (56dp) -->
+          <div class="h-[56px] px-6 flex items-center justify-between">
+            <span class="font-display font-semibold text-[22px] text-[#0C1F1D] tracking-tight">discover</span>
+            <button class="text-[#3D6B66] hover:text-[#0F766E] transition-colors p-1" aria-label="Filters">
+              <!-- Sliders-horizontal icon 22px -->
+              <svg class="w-[22px] h-[22px] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+                <line x1="1" y1="14" x2="7" y2="14"></line>
+                <line x1="9" y1="8" x2="15" y2="8"></line>
+                <line x1="17" y1="16" x2="23" y2="16"></line>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Search Bar (12px below top bar, 24px margins) -->
+          <div class="mt-[12px] px-6">
+            <div class="h-[44px] w-full rounded-full bg-[#EDF7F5] border border-[#C4E4E0] flex items-center px-[14px] gap-2.5">
+              <svg class="w-4 h-4 text-[#0F766E] shrink-0 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" readonly="" placeholder="search students, communities…" class="bg-transparent border-none outline-none text-[14px] text-[#0C1F1D] placeholder-[#3D6B66] w-full font-normal">
+            </div>
+          </div>
+
+          <!-- Section: Campus Communities (20px below search) -->
+          <div class="mt-[20px]">
+            <div class="px-6">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#3D6B66]">campus communities</h3>
+            </div>
+            
+            <!-- Horizontal scroll row -->
+            <div class="mt-[10px] pl-6 flex gap-[10px] overflow-x-auto no-scrollbar pr-3">
+              <!-- Card 1: Coding Club -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0F766E] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#0C1F1D] leading-tight truncate">Coding Club</div>
+                  <div class="text-[11px] font-normal text-[#3D6B66] leading-tight mt-[2px]">142 members</div>
+                </div>
+              </div>
+
+              <!-- Card 2: Music Room -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0F766E] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18V5l12-2v13"></path>
+                  <circle cx="6" cy="18" r="3"></circle>
+                  <circle cx="18" cy="16" r="3"></circle>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#0C1F1D] leading-tight truncate">Music Room</div>
+                  <div class="text-[11px] font-normal text-[#3D6B66] leading-tight mt-[2px]">89 members</div>
+                </div>
+              </div>
+
+              <!-- Card 3: Design Co. -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] p-3 flex flex-col justify-between">
+                <svg class="w-6 h-6 text-[#0F766E] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                  <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                  <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#0C1F1D] leading-tight truncate">Design Co.</div>
+                  <div class="text-[11px] font-normal text-[#3D6B66] leading-tight mt-[2px]">67 members</div>
+                </div>
+              </div>
+
+              <!-- Card 4 (Peeking): AI & ML -->
+              <div class="w-[130px] h-[76px] shrink-0 rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] p-3 flex flex-col justify-between opacity-80">
+                <svg class="w-6 h-6 text-[#0F766E] stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                  <rect x="9" y="9" width="6" height="6"></rect>
+                  <line x1="9" y1="1" x2="9" y2="4"></line>
+                  <line x1="15" y1="1" x2="15" y2="4"></line>
+                  <line x1="9" y1="20" x2="9" y2="23"></line>
+                  <line x1="15" y1="20" x2="15" y2="23"></line>
+                  <line x1="20" y1="9" x2="23" y2="9"></line>
+                  <line x1="20" y1="14" x2="23" y2="14"></line>
+                  <line x1="1" y1="9" x2="4" y2="9"></line>
+                  <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+                <div>
+                  <div class="text-[13px] font-medium text-[#0C1F1D] leading-tight truncate">AI &amp; ML</div>
+                  <div class="text-[11px] font-normal text-[#3D6B66] leading-tight mt-[2px]">110 members</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Trending on Campus (24px below communities) -->
+          <div class="mt-[24px]">
+            <div class="px-6">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#3D6B66]">trending on campus</h3>
+            </div>
+            <div class="mt-[10px] pl-6 flex gap-2 overflow-x-auto no-scrollbar pr-3">
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#CODING</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#GITAM</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#DSA</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#HACKATHON</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#GAMING</span>
+              <span class="h-[34px] px-[14px] shrink-0 rounded-full bg-[#EDF7F5] border border-[#C4E4E0] text-[13px] text-[#0C1F1D] flex items-center justify-center font-normal">#VIZAG</span>
+            </div>
+          </div>
+
+          <!-- Section: People You Might Know (24px below trending) -->
+          <div class="mt-[24px] px-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-[12px] font-medium uppercase tracking-wider text-[#3D6B66]">people you might know</h3>
+              <button class="text-[12px] font-normal text-[#0F766E] hover:underline">see all</button>
+            </div>
+
+            <!-- Vertical list of 2 person cards (10px below label) -->
+            <div class="mt-[10px] space-y-2.5">
+              
+              <!-- Person 1: Ananya S. -->
+              <div class="h-[72px] rounded-[12px] bg-[#FFFFFF] shadow-[0_1px_6px_rgba(13,148,136,0.08)] px-4 flex items-center justify-between">
+                <div class="flex items-center min-w-0 pr-2">
+                  <!-- Avatar circle 46px with ring and gold online dot -->
+                  <div class="relative shrink-0 w-[46px] h-[46px] rounded-full p-[2px] border-2 border-[#0F766E]">
+                    <div class="w-full h-full rounded-full bg-[#E0F0ED] flex items-center justify-center text-sm font-semibold text-[#0F766E]">
+                      AS
+                    </div>
+                    <!-- Online dot: 10px circle #B45309 gold, surface border 2px -->
+                    <span class="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full bg-[#B45309] ring-2 ring-[#FFFFFF]"></span>
+                  </div>
+                  <!-- Details -->
+                  <div class="ml-3 min-w-0">
+                    <div class="text-[14px] font-medium text-[#0C1F1D] leading-tight truncate">Ananya S.</div>
+                    <div class="text-[12px] font-normal text-[#3D6B66] leading-tight mt-0.5 truncate">Arts &amp; Design · '26</div>
+                    <div class="text-[12px] font-normal text-[#6B9E99] leading-tight mt-0.5 truncate">design nerd, coffee dependent ☕</div>
+                  </div>
+                </div>
+
+                <!-- Follow Button (Unfollow state) -->
+                <button class="shrink-0 h-[28px] px-3 rounded-full border border-[#0F766E] text-[12px] font-medium text-[#0F766E] bg-transparent hover:bg-[rgba(15,118,110,0.06)] transition-colors">
+                  follow
+                </button>
+              </div>
+
+              <!-- Person 2: Karthik R. -->
+              <div class="h-[72px] rounded-[12px] bg-[#FFFFFF] shadow-[0_1px_6px_rgba(13,148,136,0.08)] px-4 flex items-center justify-between">
+                <div class="flex items-center min-w-0 pr-2">
+                  <!-- Avatar circle 46px with ring (offline - no dot) -->
+                  <div class="relative shrink-0 w-[46px] h-[46px] rounded-full p-[2px] border-2 border-[#0F766E]">
+                    <div class="w-full h-full rounded-full bg-[#E0F0ED] flex items-center justify-center text-sm font-semibold text-[#0F766E]">
+                      KR
+                    </div>
+                  </div>
+                  <!-- Details -->
+                  <div class="ml-3 min-w-0">
+                    <div class="text-[14px] font-medium text-[#0C1F1D] leading-tight truncate">Karthik R.</div>
+                    <div class="text-[12px] font-normal text-[#3D6B66] leading-tight mt-0.5 truncate">ECE · '25</div>
+                    <div class="text-[12px] font-normal text-[#6B9E99] leading-tight mt-0.5 truncate">building stuff, breaking stuff</div>
+                  </div>
+                </div>
+
+                <!-- Follow Button (Following state) -->
+                <button class="shrink-0 h-[28px] px-3 rounded-full bg-[#0C6B63] text-[12px] font-medium text-white shadow-sm">
+                  following
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Navigation (Fixed bottom 56dp, active: compass) -->
+        <div class="h-[56px] bg-[#FFFFFF] border-t border-[#C4E4E0] px-6 flex items-center justify-between shrink-0 z-20">
+          <!-- Home (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#6B9E99] hover:text-[#3D6B66]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </button>
+          
+          <!-- Compass / Discover (ACTIVE: #0F766E) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#0F766E]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="#0F766E" stroke="none"></polygon>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </button>
+          
+          <!-- Messages (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#6B9E99] hover:text-[#3D6B66]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+          
+          <!-- Profile (Inactive) -->
+          <button class="w-10 h-10 flex items-center justify-center text-[#6B9E99] hover:text-[#3D6B66]">
+            <svg class="w-6 h-6 stroke-current stroke-2 fill-none" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+      <!-- Frame Subtitle -->
+      <div class="mt-4 flex items-center gap-2 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#B45309]"></span>
+        <span class="">Light Theme · #F5FAF9 Base</span>
+      </div>
+    </div>
+
+  </div>
+
+
+
+
+</body></html>

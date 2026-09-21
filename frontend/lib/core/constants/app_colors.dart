@@ -1,112 +1,128 @@
 import 'package:flutter/material.dart';
 
-/// GVibe Design System — Deep-Navy Cinematic Palette
-/// Merges Linear's dark-surface-ladder with Vercel's hairline-on-white restraint,
-/// tuned toward clstr.in's #070B14 theme tone.
-/// Semantic tokens for both dark (default) and light modes.
+/// GVibe Design System — Bay & Gold Coastal Palette (V3)
+/// Primary: Deep Bay Teal (#0D9488) · Secondary: Turmeric Gold (#D97706)
+/// Dark canvas: #080C0B · Light canvas: #F5FAF9
+/// 60-30-10 rule: deep mineral surfaces / seafoam text / teal accents
 class AppColors {
   AppColors._();
 
-  // ─── Primitive Palette — Dark (Linear-inspired) ─────────────────────────────
+  // ─── Primitive Palette — Dark (Bay & Gold Coastal) ───────────────────────────
 
   // Canvas / surface ladder
-  static const Color darkCanvas       = Color(0xFF010102);
-  static const Color darkSurface1     = Color(0xFF0F1011);
-  static const Color darkSurface2     = Color(0xFF141516);
-  static const Color darkSurface3     = Color(0xFF18191A);
+  static const Color darkCanvas             = Color(0xFF080C0B);
+  static const Color darkSurface1           = Color(0xFF0D1412);
+  static const Color darkSurface2           = Color(0xFF131C1A);
+  static const Color darkSurface3           = Color(0xFF182220);
 
-  // Hairlines
-  static const Color darkHairline     = Color(0xFF23252A);
-  static const Color darkHairlineStrong = Color(0xFF34343A);
+  // Hairlines (teal-tinted translucent borders)
+  static const Color darkHairline           = Color(0xFF1A2E2B); // approx rgba(13,148,136,0.14) on #080C0B
+  static const Color darkHairlineStrong     = Color(0xFF1F3835); // approx rgba(13,148,136,0.18)
+  static const Color darkHairlineElevated   = Color(0xFF263F3A); // approx rgba(13,148,136,0.28)
 
-  // Ink scale
-  static const Color darkInk          = Color(0xFFF7F8F8);
-  static const Color darkInkMuted     = Color(0xFFD0D6E0);
-  static const Color darkInkSubtle    = Color(0xFF8A8F98);
-  static const Color darkInkFaint     = Color(0xFF62666D);
+  // Ink scale (seafoam white family)
+  static const Color darkInk                = Color(0xFFE8F4F2); // on-surface primary
+  static const Color darkInkMuted           = Color(0xFF7A9E9A); // secondary text
+  static const Color darkInkSubtle          = Color(0xFF3D5C58); // placeholder
+  static const Color darkInkFaint           = Color(0xFF2A3F3C); // faint hints
 
-  // Accent
-  static const Color accentIndigo     = Color(0xFF5E6AD2);
-  static const Color accentIndigoHover   = Color(0xFF828FFF);
-  static const Color accentIndigoPressed = Color(0xFF5E69D1);
-  static const Color accentContainer  = Color(0xFF1A1F4D); // dark accent bg
+  // Bay Teal Accents
+  static const Color bayTeal                = Color(0xFF0D9488); // primary interactive
+  static const Color bayTealHover           = Color(0xFF0F766E); // pressed/hover state
+  static const Color bayTealContainer       = Color(0xFF0A2D2A); // dark accent bg
+  static const Color bayTealLight           = Color(0xFF4FDBC8); // tertiary teal glow
+
+  // Turmeric Gold Accents (micro-accent only)
+  static const Color turmericGold           = Color(0xFFD97706); // secondary accent
+  static const Color turmericGoldLight      = Color(0xFFF59E0B); // lighter gold
+  static const Color turmericGoldMuted      = Color(0xFF432100); // gold container dark
 
   // Status
-  static const Color statusSuccess    = Color(0xFF27A644);
-  static const Color statusWarning    = Color(0xFFF5B942);
-  static const Color statusDanger     = Color(0xFFF0555A);
+  static const Color statusSuccess          = Color(0xFF27A644);
+  static const Color statusWarning          = Color(0xFFF59E0B);
+  static const Color statusDanger           = Color(0xFFFF6B6B);
 
   // Overlay
-  static const Color darkOverlay      = Color(0xB7000000); // rgba(0,0,0,0.72)
+  static const Color darkOverlay            = Color(0xA6000000); // rgba(0,0,0,0.65)
 
-  // ─── Primitive Palette — Light (Vercel-inspired) ────────────────────────────
+  // ─── Primitive Palette — Light (Bay & Gold Coastal) ──────────────────────────
 
-  static const Color lightCanvas      = Color(0xFFFAFAFA);
-  static const Color lightSurface0    = Color(0xFFFFFFFF);
-  static const Color lightSurfaceSunken = Color(0xFFF2F2F2);
+  static const Color lightCanvas            = Color(0xFFF5FAF9);
+  static const Color lightSurface0          = Color(0xFFFFFFFF);
+  static const Color lightSurfaceSunken     = Color(0xFFEDF7F5);
+  static const Color lightSurfaceHighestVal = Color(0xFFE0EFEC);
 
-  static const Color lightHairline    = Color(0xFFEBEBEB);
-  static const Color lightHairlineStrong = Color(0xFFD7D9E0);
+  static const Color lightHairline          = Color(0xFFDDF0EC);
+  static const Color lightHairlineStrong    = Color(0xFFB8DDD8);
 
-  static const Color lightInk         = Color(0xFF171717);
-  static const Color lightInkMuted    = Color(0xFF4D4D4D);
-  static const Color lightInkSubtle   = Color(0xFF8F8F8F);
-  static const Color lightInkFaint    = Color(0xFFA1A1A1);
+  static const Color lightInk               = Color(0xFF0C1F1D); // primary text
+  static const Color lightInkMuted          = Color(0xFF3D6B66); // secondary text
+  static const Color lightInkSubtle         = Color(0xFF6B9E99); // placeholder
+  static const Color lightInkFaint          = Color(0xFF9BBFBB); // faint
 
-  static const Color lightAccent      = Color(0xFF171717); // Stark black primary
-  static const Color lightAccentHover = Color(0xFF333333);
-  static const Color lightAccentPressed = Color(0xFF000000);
-  static const Color lightAccentContainer = Color(0xFFEAEAEA);
+  static const Color lightTeal              = Color(0xFF0F766E); // primary teal on light
+  static const Color lightTealHover         = Color(0xFF0D6B63);
+  static const Color lightTealContainer     = Color(0xFFCCF0EB);
 
-  static const Color lightStatusSuccess = Color(0xFF0070F3); // Vercel blue
-  static const Color lightStatusWarning = Color(0xFFF5A623);
-  static const Color lightStatusDanger  = Color(0xFFEE0000);
+  static const Color lightGold              = Color(0xFFB45309); // deepened gold on light
+  static const Color lightGoldContainer     = Color(0xFFFEF3C7);
 
-  static const Color lightOverlay     = Color(0x80171717); // rgba(23,23,23,0.50)
+  static const Color lightStatusSuccess     = Color(0xFF059669);
+  static const Color lightStatusWarning     = Color(0xFFD97706);
+  static const Color lightStatusDanger      = Color(0xFFDC2626);
 
-  // ─── Utility ────────────────────────────────────────────────────────────────
-  static const Color white            = Color(0xFFFFFFFF);
-  static const Color black            = Color(0xFF000000);
-  static const Color transparent      = Colors.transparent;
+  static const Color lightOverlay           = Color(0x330C1F1D);
 
-  // ─── Semantic Tokens (Dark) — names kept for backward compatibility ─────────
-  static const Color background       = darkCanvas;       // 0xFF070B14
-  static const Color surface          = darkSurface1;     // 0xFF0D1220
-  static const Color surfaceHigh      = darkSurface2;     // 0xFF131A2B
-  static const Color surfaceHighest   = darkSurface3;     // 0xFF1A2236
+  // ─── Utility ─────────────────────────────────────────────────────────────────
+  static const Color white                  = Color(0xFFFFFFFF);
+  static const Color black                  = Color(0xFF000000);
+  static const Color transparent            = Colors.transparent;
 
-  static const Color primary          = accentIndigo;     // 0xFF6C7BF7
-  static const Color primaryDark      = accentIndigoPressed;
-  static const Color primaryContainer = accentContainer;  // 0xFF1A1F4D
-  static const Color secondary        = accentIndigoHover;
+  // ─── Semantic Tokens (Dark) ──────────────────────────────────────────────────
+  static const Color background             = darkCanvas;
+  static const Color surface               = darkSurface1;
+  static const Color surfaceHigh           = darkSurface2;
+  static const Color surfaceHighest        = darkSurface3;
 
-  static const Color outline          = darkHairline;     // 0xFF212A3D
-  static const Color outlineStrong    = darkHairlineStrong;
+  static const Color primary               = bayTeal;
+  static const Color primaryDark           = bayTealHover;
+  static const Color primaryContainer      = bayTealContainer;
+  static const Color secondary             = turmericGold;
 
-  static const Color textPrimary      = darkInk;          // 0xFFF4F6FA
-  static const Color textSecondary    = darkInkMuted;     // 0xFFC2C9D9
-  static const Color textMuted        = darkInkSubtle;    // 0xFF838EA6
-  static const Color textFaint        = darkInkFaint;     // 0xFF545E75
+  static const Color outline               = darkHairline;
+  static const Color outlineStrong         = darkHairlineStrong;
+  static const Color outlineElevated       = darkHairlineElevated;
 
-  // Legacy aliases
-  static const Color accent           = accentIndigo;
-  static const Color accentDark       = accentIndigoPressed;
-  static const Color like             = statusDanger;     // heart = danger red
-  static const Color orange           = statusDanger;
-  static const Color pink             = accentIndigo;
-  static const Color cyberCyan        = accentIndigoHover;
-  static const Color error            = statusDanger;
+  static const Color textPrimary           = darkInk;
+  static const Color textSecondary         = darkInkMuted;
+  static const Color textMuted             = darkInkSubtle;
+  static const Color textFaint             = darkInkFaint;
+
+  // Legacy aliases (kept for call-site compatibility)
+  static const Color accent                = bayTeal;
+  static const Color accentDark            = bayTealHover;
+  static const Color like                  = turmericGold;   // heart = gold
+  static const Color orange                = turmericGold;
+  static const Color pink                  = bayTealLight;
+  static const Color cyberCyan             = bayTealLight;
+  static const Color error                 = statusDanger;
+
+  // Legacy indigo aliases (redirected to teal)
+  static const Color accentIndigo          = bayTeal;
+  static const Color accentIndigoHover     = bayTealLight;
+  static const Color accentIndigoPressed   = bayTealHover;
+  static const Color accentContainer       = bayTealContainer;
 
   // ─── Semantic Tokens (Light) ─────────────────────────────────────────────────
   static const Color lightBackground       = lightCanvas;
   static const Color lightSurface          = lightSurface0;
   static const Color lightSurfaceHigh      = lightSurfaceSunken;
-  static const Color lightSurfaceHighest   = Color(0xFFE8EAF0);
+  static const Color lightSurfaceHighest   = lightSurfaceHighestVal;
 
-  static const Color lightPrimary          = lightAccent;
-  static const Color lightPrimaryDark      = lightAccentPressed;
-  static const Color lightPrimaryContainer = lightAccentContainer;
-  static const Color lightSecondary        = lightAccentHover;
+  static const Color lightPrimary          = lightTeal;
+  static const Color lightPrimaryDark      = lightTealHover;
+  static const Color lightPrimaryContainer = lightTealContainer;
+  static const Color lightSecondary        = lightGold;
 
   static const Color lightOutline          = lightHairline;
   static const Color lightOutlineStrong    = lightHairlineStrong;
@@ -116,19 +132,24 @@ class AppColors {
   static const Color lightTextMuted        = lightInkSubtle;
   static const Color lightTextFaint        = lightInkFaint;
 
-  static const Color lightLike             = lightStatusDanger;
+  static const Color lightLike             = lightGold;
 
   // ─── Gradient Definitions ────────────────────────────────────────────────────
-  // Spec: flat fills everywhere — no decorative gradients on components.
-  // Kept as single-stop flat for backward compat with call sites.
+  /// Brand gradient: Deep Bay Teal → Turmeric Gold (used for avatar halos, brand G)
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [bayTeal, turmericGold],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [accentIndigo, accentIndigo],
+    colors: [bayTeal, bayTeal],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient primaryGradientLight = LinearGradient(
-    colors: [lightAccent, lightAccent],
+    colors: [lightTeal, lightTeal],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -157,30 +178,30 @@ class AppColors {
     end: Alignment.bottomRight,
   );
 
-  // ─── Shadows — accent-colored glow, no heavy drop shadows on flat cards ─────
-  static List<BoxShadow> cardShadowDark = const [];  // flat + hairline, spec says no shadows on cards
+  // ─── Shadows — teal glow per Bay & Gold Coastal spec ─────────────────────────
+  static List<BoxShadow> cardShadowDark = const [];   // flat + teal hairline
 
-  static List<BoxShadow> cardShadowLight = const []; // flat + hairline
+  static List<BoxShadow> cardShadowLight = const [];  // flat + teal hairline
 
   static List<BoxShadow> glowShadowDark = [
     BoxShadow(
-      color: accentIndigo.withValues(alpha: 0.18),
-      blurRadius: 16,
+      color: bayTeal.withValues(alpha: 0.25),
+      blurRadius: 20,
       spreadRadius: 0,
     ),
   ];
 
   static List<BoxShadow> glowShadowLight = [
     BoxShadow(
-      color: lightAccent.withValues(alpha: 0.14),
-      blurRadius: 12,
+      color: lightTeal.withValues(alpha: 0.18),
+      blurRadius: 16,
       spreadRadius: 0,
     ),
   ];
 
   static List<BoxShadow> avatarGlowDark = [
     BoxShadow(
-      color: accentIndigo.withValues(alpha: 0.35),
+      color: bayTeal.withValues(alpha: 0.35),
       blurRadius: 10,
       spreadRadius: 1,
     ),
@@ -188,19 +209,19 @@ class AppColors {
 
   static List<BoxShadow> avatarGlowLight = [
     BoxShadow(
-      color: lightAccent.withValues(alpha: 0.25),
+      color: lightTeal.withValues(alpha: 0.25),
       blurRadius: 8,
       spreadRadius: 0.5,
     ),
   ];
 
-  // Bottom sheet / dialog shadow — spec allows this one floating shadow
+  // Bottom sheet / dialog shadow
   static const List<BoxShadow> sheetShadow = [
     BoxShadow(
-      color: Color(0x33000000), // ~20% black
-      blurRadius: 24,
-      offset: Offset(0, -8),
-      spreadRadius: -8,
+      color: Color(0xA6000000), // ~65% black per spec
+      blurRadius: 32,
+      offset: Offset(0, -12),
+      spreadRadius: -4,
     ),
   ];
 

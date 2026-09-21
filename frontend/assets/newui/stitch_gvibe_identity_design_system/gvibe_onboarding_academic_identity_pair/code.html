@@ -1,0 +1,239 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GVibe Onboarding - Academic Identity Pair</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #060908;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-space {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .device-frame {
+      width: 360px;
+      height: 800px;
+      position: relative;
+      overflow: hidden;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 lg:p-10 text-slate-100">
+
+  <!-- Showcase Header -->
+  <div class="mb-8 text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D1412] border border-[#0D9488]/30 mb-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+      <span class="text-[11px] font-medium tracking-wide uppercase text-[#D97706]">GVibe Identity System V3</span>
+    </div>
+    <h1 class="text-2xl font-space font-bold tracking-tight text-[#E8F4F2]">Bay &amp; Gold Coastal · Onboarding Flow</h1>
+    <p class="text-xs text-[#7A9E9A] mt-1 font-normal">Step 2 of 5: Academic Identity · 360 × 800dp side-by-side presentation</p>
+  </div>
+
+  <!-- Dual Device Viewport Container -->
+  <div class="flex flex-wrap items-center justify-center gap-8 lg:gap-12 w-full max-w-[840px]">
+
+    <!-- ============================================== -->
+    <!-- DARK THEME PHONE FRAME (360x800dp)            -->
+    <!-- ============================================== -->
+    <div class="device-frame rounded-[36px] bg-[#080C0B] border border-[#0D9488]/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between p-6">
+      
+      <!-- Top & Content Area -->
+      <div class="w-full">
+        <!-- Step Indicator (32px from top -> represented by top padding + indicator) -->
+        <div class="pt-2">
+          <div class="flex items-center gap-[6px] w-full">
+            <div class="h-1 flex-1 rounded-full bg-[#0D9488]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#0D9488]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#182220]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#182220]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#182220]"></div>
+          </div>
+        </div>
+
+        <!-- Heading Section (24px below indicator) -->
+        <div class="mt-6">
+          <h2 class="font-space font-semibold text-[26px] leading-[32px] tracking-tight text-[#E8F4F2] text-left">who are you on campus?</h2>
+          <p class="mt-2 text-[14px] leading-snug text-[#7A9E9A] text-left font-normal">this helps us find your people</p>
+        </div>
+
+        <!-- Form Fields (28px below heading) -->
+        <div class="mt-7 flex flex-col space-y-4">
+          <!-- Field 1: Branch -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#3D5C58] mb-[6px] text-left">branch</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.20)] px-4 flex items-center justify-between">
+              <span class="text-[15px] text-[#E8F4F2] truncate pr-2">Computer Science &amp; Engineering</span>
+              <svg class="w-4 h-4 text-[#7A9E9A] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Field 2: Academic Year -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#3D5C58] mb-[6px] text-left">academic year</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.20)] px-4 flex items-center justify-between">
+              <span class="text-[15px] text-[#E8F4F2] truncate pr-2">2nd Year — B.Tech</span>
+              <svg class="w-4 h-4 text-[#7A9E9A] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Field 3: Reg Number -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#3D5C58] mb-[6px] text-left">reg number</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.20)] px-4 flex items-center">
+              <span class="text-[15px] text-[#E8F4F2] tracking-normal font-mono">BU21CSEN0100123</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interests Section (32px below fields) -->
+        <div class="mt-8">
+          <label class="block text-[11px] font-medium tracking-wider uppercase text-[#3D5C58] mb-[10px] text-left">your interests</label>
+          <div class="flex flex-wrap gap-2">
+            <!-- Selected (3 pills) -->
+            <span class="h-[34px] px-4 rounded-full bg-[#0D9488] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Technology</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#0D9488] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Coding</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#0D9488] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Art</span>
+            <!-- Unselected pills -->
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Music</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Gaming</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Sports</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Coffee</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Photography</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#131C1A] text-[#7A9E9A] border border-[rgba(13,148,136,0.20)] text-[13px] font-normal inline-flex items-center justify-center">Anime</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Pinned Controls (32px above edge) -->
+      <div class="w-full pb-2">
+        <button type="button" class="w-full h-[48px] rounded-[16px] bg-[#0A7A72] text-[#FFFFFF] text-[15px] font-medium flex items-center justify-center active:scale-[0.99] transition-transform">
+          continue
+        </button>
+        <div class="mt-3 text-center">
+          <a href="#" class="text-[13px] text-[#3D5C58] hover:text-[#7A9E9A] transition-colors font-normal">save and continue later</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- LIGHT THEME PHONE FRAME (360x800dp)           -->
+    <!-- ============================================== -->
+    <div class="device-frame rounded-[36px] bg-[#F5FAF9] border border-[#C4E4E0] shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col justify-between p-6">
+      
+      <!-- Top & Content Area -->
+      <div class="w-full">
+        <!-- Step Indicator (32px from top -> represented by top padding + indicator) -->
+        <div class="pt-2">
+          <div class="flex items-center gap-[6px] w-full">
+            <div class="h-1 flex-1 rounded-full bg-[#0F766E]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#0F766E]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#E0F0ED]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#E0F0ED]"></div>
+            <div class="h-1 flex-1 rounded-full bg-[#E0F0ED]"></div>
+          </div>
+        </div>
+
+        <!-- Heading Section (24px below indicator) -->
+        <div class="mt-6">
+          <h2 class="font-space font-semibold text-[26px] leading-[32px] tracking-tight text-[#0C1F1D] text-left">who are you on campus?</h2>
+          <p class="mt-2 text-[14px] leading-snug text-[#3D6B66] text-left font-normal">this helps us find your people</p>
+        </div>
+
+        <!-- Form Fields (28px below heading) -->
+        <div class="mt-7 flex flex-col space-y-4">
+          <!-- Field 1: Branch -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#6B9E99] mb-[6px] text-left">branch</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#EDF7F5] border border-[#C4E4E0] px-4 flex items-center justify-between">
+              <span class="text-[15px] text-[#0C1F1D] truncate pr-2">Computer Science &amp; Engineering</span>
+              <svg class="w-4 h-4 text-[#6B9E99] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Field 2: Academic Year -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#6B9E99] mb-[6px] text-left">academic year</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#EDF7F5] border border-[#C4E4E0] px-4 flex items-center justify-between">
+              <span class="text-[15px] text-[#0C1F1D] truncate pr-2">2nd Year — B.Tech</span>
+              <svg class="w-4 h-4 text-[#6B9E99] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Field 3: Reg Number -->
+          <div>
+            <label class="block text-[11px] font-medium tracking-wider uppercase text-[#6B9E99] mb-[6px] text-left">reg number</label>
+            <div class="h-[48px] w-full rounded-[14px] bg-[#EDF7F5] border border-[#C4E4E0] px-4 flex items-center">
+              <span class="text-[15px] text-[#0C1F1D] tracking-normal font-mono">BU21CSEN0100123</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interests Section (32px below fields) -->
+        <div class="mt-8">
+          <label class="block text-[11px] font-medium tracking-wider uppercase text-[#6B9E99] mb-[10px] text-left">your interests</label>
+          <div class="flex flex-wrap gap-2">
+            <!-- Selected (3 pills) -->
+            <span class="h-[34px] px-4 rounded-full bg-[#0F766E] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Technology</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#0F766E] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Coding</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#0F766E] text-[#FFFFFF] text-[13px] font-normal inline-flex items-center justify-center">Art</span>
+            <!-- Unselected pills -->
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Music</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Gaming</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Sports</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Coffee</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Photography</span>
+            <span class="h-[34px] px-4 rounded-full bg-[#EDF7F5] text-[#3D6B66] border border-[#C4E4E0] text-[13px] font-normal inline-flex items-center justify-center">Anime</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Pinned Controls (32px above edge) -->
+      <div class="w-full pb-2">
+        <button type="button" class="w-full h-[48px] rounded-[16px] text-[#FFFFFF] text-[15px] font-medium flex items-center justify-center active:scale-[0.99] transition-transform bg-[#0C6B63]">
+          continue
+        </button>
+        <div class="mt-3 text-center">
+          <a href="#" class="text-[13px] text-[#6B9E99] hover:text-[#3D6B66] transition-colors font-normal">save and continue later</a>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Legend Indicator -->
+  <div class="mt-8 flex items-center justify-center gap-6 text-[11px] text-[#7A9E9A]">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-[#0D9488]"></span>
+      <span class="">Dark Theme · #080C0B</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+      <span class="">Light Theme · #F5FAF9</span>
+    </div>
+  </div>
+
+
+
+
+
+</body></html>

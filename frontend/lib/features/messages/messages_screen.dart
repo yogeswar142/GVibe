@@ -198,7 +198,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
       body: Column(
         children: [
           _buildTopBar(context),
-          _buildOnlineRow(context),
           _buildTabBar(context),
           Expanded(
             child: TabBarView(
@@ -215,40 +214,22 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final countColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-
     return Container(
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
+      padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 10),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Messages',
-                style: AppTextStyles.displayMd.copyWith(
-                  color: nameColor,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: isDark ? -0.8 : -1.2,
-                ),
-              ),
-              Text(
-                _loading ? 'Loading...' : '${_convos.length} conversation${_convos.length == 1 ? '' : 's'}',
-                style: AppTextStyles.bodySm.copyWith(
-                  color: countColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          const BrandTitle(
+            'Messages',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
           ),
           const Spacer(),
           const ThemeToggleButton(),
           const SizedBox(width: 8),
           _IconButton(
-            icon: Icons.edit_outlined,
+            icon: Icons.edit_square,
             onTap: () async {
               final result = await showCommunitySheet(context);
               if (result != null) _fetchCommunities();
@@ -263,15 +244,22 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     if (_following.isEmpty) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final nameColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
-    final titleColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF666666);
+    final nameColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final titleColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final avatarBg = isDark ? const Color(0xFF1A2624) : const Color(0xFFEDF7F5);
+    final tealColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final goldColor = isDark ? const Color(0xFFD97706) : const Color(0xFFB45309);
+    final dividerColor = isDark ? const Color(0xFF1E2E2B) : const Color(0xFFE0F0ED);
 
     return Container(
-      height: 104,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(top: 14, bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC), width: 0.5)),
+        border: Border(
+          bottom: BorderSide(
+            color: dividerColor,
+            width: 1.0,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,11 +267,18 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
             child: Text(
-              'DIRECT CHATS',
-              style: AppTextStyles.monoXs.copyWith(color: titleColor, letterSpacing: 0.5, fontWeight: FontWeight.w600),
+              'ONLINE NOW',
+              style: AppTextStyles.label.copyWith(
+                color: titleColor,
+                fontSize: 11,
+                letterSpacing: 1.0,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          Expanded(
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 64,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -305,25 +300,62 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                       children: [
                         Stack(
                           children: [
-                            GVibeAvatar(
-                              imageUrl: avatar,
-                              initials: name.isNotEmpty ? name[0] : '?',
-                              size: 40,
-                              showGlow: isOnline,
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: avatarBg,
+                                border: Border.all(
+                                  color: isOnline
+                                      ? tealColor.withValues(alpha: 0.4)
+                                      : Colors.transparent,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: avatar != null && avatar.isNotEmpty
+                                    ? Image.network(
+                                        avatar,
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Center(
+                                          child: Text(
+                                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                            style: TextStyle(
+                                              color: tealColor,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                          style: TextStyle(
+                                            color: tealColor,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                              ),
                             ),
                             if (isOnline)
                               Positioned(
                                 right: 0,
                                 bottom: 0,
                                 child: Container(
-                                  width: 10,
-                                  height: 10,
+                                  width: 9,
+                                  height: 9,
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF34C77B),
+                                    color: goldColor,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: Theme.of(context).scaffoldBackgroundColor,
-                                      width: 1.5,
+                                      width: 2,
                                     ),
                                   ),
                                 ),
@@ -333,7 +365,11 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         const SizedBox(height: 4),
                         Text(
                           firstName,
-                          style: AppTextStyles.bodyXs.copyWith(color: nameColor, fontSize: 11, fontWeight: FontWeight.w500),
+                          style: AppTextStyles.bodyXs.copyWith(
+                            color: nameColor,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w400,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -351,10 +387,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
 
   Widget _buildTabBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final activeColor = isDark ? Colors.white : const Color(0xFF171717);
-    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final indicatorColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final borderColor = isDark ? const Color(0xFF182220) : const Color(0xFFDDF0EC);
+    final activeColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final inactiveColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
 
     return Container(
       decoration: BoxDecoration(
@@ -363,16 +398,23 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
       ),
       child: TabBar(
         controller: _tabController,
-        indicatorColor: indicatorColor,
+        indicatorColor: activeColor,
         indicatorWeight: 2,
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelStyle: AppTextStyles.tabActive.copyWith(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: AppTextStyles.tabInactive,
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: AppTextStyles.tabActive.copyWith(
+          fontWeight: FontWeight.w600,
+          color: activeColor,
+          fontSize: 13,
+        ),
+        unselectedLabelStyle: AppTextStyles.tabInactive.copyWith(
+          fontSize: 13,
+          color: inactiveColor,
+        ),
         labelColor: activeColor,
         unselectedLabelColor: inactiveColor,
         tabs: const [
-          Tab(text: 'Direct'),
-          Tab(text: 'Communities'),
+          Tab(text: 'direct'),
+          Tab(text: 'communities'),
         ],
       ),
     );
@@ -380,11 +422,11 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
 
   Widget _buildDirectList(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final separatorColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final emptyColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final accentColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
-    final iconBg      = isDark ? const Color(0xFF1A1F4D) : const Color(0xFFF3F4F6);
-    final titleColor  = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
+    final separatorColor = isDark ? const Color(0xFF182220) : const Color(0xFFE0F0ED);
+    final emptyColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final accentColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final iconBg      = isDark ? const Color(0xFF0D1412) : const Color(0xFFEDF7F5);
+    final titleColor  = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
 
     if (_loading) {
       return Center(
@@ -431,14 +473,20 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
       onRefresh: _fetchConversations,
       child: ListView.separated(
         padding: EdgeInsets.zero,
-        itemCount: _convos.length,
-        separatorBuilder: (_, __) => Divider(
-          color: separatorColor,
-          height: 0.5,
-          indent: 82,
-        ),
+        itemCount: _convos.length + 1,
+        separatorBuilder: (_, index) {
+          if (index == 0) return const SizedBox.shrink();
+          return Divider(
+            color: separatorColor,
+            height: 0.5,
+            indent: 80,
+          );
+        },
         itemBuilder: (_, i) {
-          final convo = _convos[i];
+          if (i == 0) {
+            return _buildOnlineRow(context);
+          }
+          final convo = _convos[i - 1];
 
           // The conversation has sender + receiver populated objects.
           // Find which one is NOT the current user = the partner.
@@ -604,35 +652,77 @@ class _ChatRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final nameColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final msgColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
-    final timeColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final unreadBadgeBg = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final nameColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final msgColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final timeColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF6B9E99);
+    final tealColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final goldColor = isDark ? const Color(0xFFD97706) : const Color(0xFFB45309);
+    final avatarBg = isDark ? const Color(0xFF131C1A) : const Color(0xFFEDF7F5);
+
+    final isEncrypted = message.contains('Encrypted') || message.startsWith('🔒');
+    final displayText = isEncrypted ? 'Encrypted message' : message;
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Container(
+        height: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           children: [
+            // Left: 46px avatar with 2px teal ring
             Stack(
               children: [
-                GVibeAvatar(
-                  imageUrl: avatarUrl,
-                  initials: name.isNotEmpty ? name[0] : '?',
-                  size: 52,
-                  showGlow: isOnline,
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tealColor, width: 2),
+                  ),
+                  padding: const EdgeInsets.all(2),
+                  child: ClipOval(
+                    child: Container(
+                      color: avatarBg,
+                      child: avatarUrl != null && avatarUrl!.isNotEmpty
+                          ? Image.network(
+                              avatarUrl!,
+                              width: 42,
+                              height: 42,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    color: tealColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  color: tealColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
                 if (isOnline)
                   Positioned(
-                    right: 1,
-                    bottom: 1,
+                    right: 0.5,
+                    bottom: 0.5,
                     child: Container(
-                      width: 12,
-                      height: 12,
+                      width: 9,
+                      height: 9,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF34C77B), // success
+                        color: goldColor,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Theme.of(context).scaffoldBackgroundColor,
@@ -643,60 +733,91 @@ class _ChatRow extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
+
+            // Middle: Name and message preview
             Expanded(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        name,
-                        style: AppTextStyles.headlineSm.copyWith(
-                          color: nameColor,
-                          fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w600,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        time,
-                        style: AppTextStyles.monoXs.copyWith(
-                          color: hasUnread ? unreadBadgeBg : timeColor,
-                          fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    name,
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: nameColor,
+                      fontWeight: hasUnread ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 3),
                   Row(
                     children: [
+                      if (isEncrypted) ...[
+                        Icon(
+                          Icons.lock_outline_rounded,
+                          size: 12,
+                          color: tealColor,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
-                          message,
-                          style: AppTextStyles.bodyMd.copyWith(
+                          displayText,
+                          style: AppTextStyles.bodySm.copyWith(
                             fontSize: 13,
-                            color: hasUnread ? nameColor : msgColor,
-                            fontWeight: hasUnread ? FontWeight.w500 : FontWeight.w400,
+                            fontStyle: isEncrypted ? FontStyle.italic : FontStyle.normal,
+                            color: msgColor,
+                            fontWeight: FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (hasUnread) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE5484D), // Red dot indicator
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ],
               ),
+            ),
+            const SizedBox(width: 10),
+
+            // Right: Time and unread badge
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  time,
+                  style: AppTextStyles.bodyXs.copyWith(
+                    color: timeColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                if (hasUnread)
+                  Container(
+                    constraints: const BoxConstraints(minWidth: 18),
+                    height: 18,
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: tealColor,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      unreadCount > 0 ? '$unreadCount' : '1',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 18),
+              ],
             ),
           ],
         ),

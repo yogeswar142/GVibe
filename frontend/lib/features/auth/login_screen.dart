@@ -80,10 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildBackground(BuildContext context, bool isDark) {
     if (isDark) {
-      // Linear: extremely subtle ambient dark glow at the top center
+      // Bay & Gold Coastal: subtle teal ambient glow at the top center
       return Stack(
         children: [
-          Container(color: const Color(0xFF010102)),
+          Container(color: const Color(0xFF080C0B)),
           Positioned(
             top: -150,
             left: MediaQuery.of(context).size.width * 0.1,
@@ -92,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 300,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x135E6AD2), // Very soft lavender glow
+                color: Color(0x140D9488), // Soft teal glow ~8%
               ),
             ),
           ),
@@ -105,10 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       );
     } else {
-      // Vercel: soft blooming multi-stop mesh gradient at the top/center
+      // Light: clean seafoam canvas with subtle teal blush
       return Stack(
         children: [
-          Container(color: const Color(0xFFFAFAFA)),
+          Container(color: const Color(0xFFF5FAF9)),
           Positioned(
             top: -120,
             left: -50,
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 250,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x1F00DFD8), // Cyan
+                color: Color(0x1A0D9488), // Teal bloom
               ),
             ),
           ),
@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 280,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x1FFF0080), // Magenta
+                color: Color(0x0FD97706), // Subtle gold bloom
               ),
             ),
           ),
@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 240,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0x1A7928CA), // Purple
+                color: Color(0x120D9488), // Teal center
               ),
             ),
           ),
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final linkColor = isDark ? cs.primary : const Color(0xFF0070F3);
+    final linkColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
 
     return Scaffold(
       body: Stack(
@@ -180,23 +180,38 @@ class _LoginScreenState extends State<LoginScreen> {
                       Center(
                         child: Column(
                           children: [
-                            Text(
-                              'GVIBE',
+                            // GVibe wordmark — G in teal gradient, Vibe in warm white
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'G',
                               style: AppTextStyles.displayLg.copyWith(
-                                color: isDark ? const Color(0xFFF7F8F8) : const Color(0xFF171717),
-                                letterSpacing: -2.0,
-                                fontWeight: FontWeight.w800,
+                                foreground: Paint()
+                                  ..shader = const LinearGradient(
+                                    colors: [Color(0xFF0D9488), Color(0xFFD97706)],
+                                  ).createShader(
+                                    const Rect.fromLTWH(0, 0, 28, 40),
+                                  ),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Campus Network Platform',
-                              style: AppTextStyles.monoXs.copyWith(
-                                color: isDark ? const Color(0xFF8A8F98) : const Color(0xFF8F8F8F),
-                                letterSpacing: 1.0,
-                                fontSize: 9,
+                            TextSpan(
+                              text: 'Vibe',
+                              style: AppTextStyles.displayLg.copyWith(
+                                color: isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D),
                               ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'your campus, your people',
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: isDark ? const Color(0xFF3D5C58) : const Color(0xFF6B9E99),
+                          letterSpacing: 0.2,
+                        ),
+                      ),
                           ],
                         ),
                       ),
@@ -210,7 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Welcome back',
+                              'welcome back',
                               style: AppTextStyles.displaySm.copyWith(
                                 color: cs.onSurface,
                                 fontWeight: FontWeight.w700,
@@ -219,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Sign in to continue to your dashboard',
+                              'sign in to continue',
                               style: AppTextStyles.bodySm.copyWith(
                                 color: cs.onSurfaceVariant,
                               ),
@@ -306,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                             // Sign In Button
                             GVibeButton(
-                              label: 'Sign In',
+                              label: 'sign in',
                               onPressed: _login,
                               isLoading: _loading,
                             ),
@@ -319,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   child: Text(
-                                    'or continue with',
+                                    'or',
                                     style: AppTextStyles.bodyXs.copyWith(
                                       color: cs.onSurfaceVariant,
                                     ),
@@ -363,7 +378,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              "New to GVibe? ",
+                              "don't have an account? ",
                               style: AppTextStyles.bodyMd.copyWith(
                                 color: cs.onSurfaceVariant,
                               ),
@@ -371,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             GestureDetector(
                               onTap: () => context.go(AppRouter.signup),
                               child: Text(
-                                'Create account',
+                                'sign up',
                                 style: AppTextStyles.bodyMd.copyWith(
                                   color: linkColor,
                                   fontWeight: FontWeight.w600,

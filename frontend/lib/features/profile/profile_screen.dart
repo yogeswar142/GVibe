@@ -34,8 +34,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Map<String, dynamic>? _analyticsData;
   bool _analyticsLoading = false;
 
-  final List<String> _tabs = ['POSTS', 'VIBES', 'ANALYTICS'];
-
   @override
   void initState() {
     super.initState();
@@ -326,10 +324,213 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _showShareDigitalPassPopup() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final name = _user?['name']?.toString() ?? 'Student';
+    final username = _user?['username']?.toString() ?? name.toLowerCase().replaceAll(' ', '_');
+    final regNo = _user?['registrationNumber']?.toString();
+    final hub = _user?['hub']?.toString() ?? 'GITAM Campus';
+    final email = _user?['email']?.toString() ?? '$username@student.gitam.edu';
+    final bool isVerified = _user?['isVerified'] == true;
+    final displayRegNo = (regNo != null && regNo.isNotEmpty) ? regNo : 'Pending';
+
+    final cardBg = isDark ? const Color(0xFF0D1412) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF182220) : const Color(0xFFC4E4E0);
+    final labelColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final textColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final tealColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderColor, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.65 : 0.12),
+                    blurRadius: 28,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top Header
+                  Row(
+                    children: [
+                      Icon(Icons.qr_code_2_rounded, size: 16, color: tealColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'CAMPUS PASS · ACCESS ID',
+                        style: AppTextStyles.label.copyWith(
+                          color: textColor,
+                          fontSize: 11,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Middle Row: Credential details + Mock QR
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _passField('Registration:', displayRegNo, labelColor, textColor),
+                            const SizedBox(height: 8),
+                            _passField('Student:', name, labelColor, textColor),
+                            const SizedBox(height: 8),
+                            _passField('Email:', email, labelColor, textColor),
+                            const SizedBox(height: 8),
+                            _passField('Campus Hub:', hub, labelColor, textColor),
+                            const SizedBox(height: 8),
+                            _passField(
+                              'Account Status:',
+                              isVerified ? 'Verified Student' : 'Standard Member',
+                              labelColor,
+                              isVerified ? tealColor : textColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      _buildMockQRCode(username, isDark, borderColor),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Divider
+                  Divider(color: borderColor, height: 1),
+                  const SizedBox(height: 10),
+
+                  // Footer
+                  Center(
+                    child: Text(
+                      'Official GITAM Student Digital Pass',
+                      style: AppTextStyles.bodyXs.copyWith(
+                        color: labelColor,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Close Symbol ('X') Button at top-right
+            Positioned(
+              top: -12,
+              right: -12,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF131C1A) : const Color(0xFFEDF7F5),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tealColor, width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _passField(String label, String value, Color labelColor, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyles.monoXs.copyWith(
+            color: labelColor,
+            fontSize: 9.5,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          value,
+          style: AppTextStyles.bodySm.copyWith(
+            color: valueColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMockQRCode(String username, bool isDark, Color borderColor) {
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(isDark ? 8 : 6),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      padding: const EdgeInsets.all(6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(8, (r) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(8, (c) {
+              bool isCorner = (r < 3 && c < 3) || (r < 3 && c >= 5) || (r >= 5 && c < 3);
+              bool isInnerCorner = (r == 1 && c == 1) || (r == 1 && c == 6) || (r == 6 && c == 1);
+              bool isPixel = (isCorner && !isInnerCorner) || (!isCorner && ((r + c) % 3 == 0 || (r * c) % 2 == 0));
+              return Container(
+                width: 7,
+                height: 7,
+                color: isPixel ? const Color(0xFF0F1012) : Colors.white,
+              );
+            }),
+          );
+        }),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF0070F3);
+    final primaryColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
     final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
 
     return Scaffold(
@@ -367,26 +568,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: ListView(
                           padding: EdgeInsets.zero,
                           children: [
-                            _DigitalStudentIDCard(
-                              user: _user,
-                              isOwnProfile: _isOwnProfile,
-                              onEdit: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Profile editing coming soon'),
-                                    backgroundColor: primaryColor,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(isDark ? 8 : 6),
-                                    ),
-                                  ),
-                                );
-                              },
-                              onToggleFollow: _toggleFollow,
-                              isFollowing: _isFollowing,
-                            ),
-                            _buildUserBio(),
-                            _buildStatsGrid(),
+                            _buildStudentIdentityHeader(),
                             _buildTabBar(),
                             _buildTabContent(),
                           ],
@@ -398,14 +580,93 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  void _showProfileSettingsMenu() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF0D1412) : const Color(0xFFFFFFFF);
+    final borderColor = isDark ? const Color(0xFF182220) : const Color(0xFFE0F0ED);
+    final textColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final mutedColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final dangerColor = isDark ? const Color(0xFFFF6B6B) : const Color(0xFFDC2626);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1F3835) : const Color(0xFFB8DDD8),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const BrandTitle(
+              'Settings',
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.privacy_tip_outlined, color: textColor, size: 22),
+              title: Text(
+                'Privacy Settings',
+                style: AppTextStyles.bodyMd.copyWith(color: textColor, fontWeight: FontWeight.w500),
+              ),
+              subtitle: Text(
+                'Control profile visibility and messaging preferences',
+                style: AppTextStyles.bodyXs.copyWith(color: mutedColor),
+              ),
+              trailing: Icon(Icons.chevron_right_rounded, color: mutedColor),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _showPrivacySettingsDialog();
+              },
+            ),
+            Divider(color: borderColor, height: 1),
+            if (_isOwnProfile)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.logout_rounded, color: dangerColor, size: 22),
+                title: Text(
+                  'Log Out',
+                  style: AppTextStyles.bodyMd.copyWith(color: dangerColor, fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Sign out of your account on this device',
+                  style: AppTextStyles.bodyXs.copyWith(color: mutedColor),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _logout();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildTopBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    final logoColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final errorColor = isDark ? const Color(0xFFE5484D) : const Color(0xFFD93D42);
+    final logoColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
 
     return Container(
-      padding: EdgeInsets.fromLTRB(_isOwnProfile ? 20 : 8, MediaQuery.of(context).padding.top + 12, 20, 12),
+      padding: EdgeInsets.fromLTRB(_isOwnProfile ? 20 : 8, MediaQuery.of(context).padding.top + 12, 20, 10),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
@@ -416,128 +677,319 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(width: 4),
           ],
-          Text(
-            _isOwnProfile ? 'GVibe' : 'Profile',
-            style: AppTextStyles.displaySm.copyWith(
-              color: logoColor,
-              fontWeight: FontWeight.w700,
-              fontSize: 26,
-              letterSpacing: isDark ? -0.8 : -1.2,
-            ),
+          const BrandTitle(
+            'Profile',
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.4,
           ),
           const Spacer(),
           const ThemeToggleButton(),
-          if (_isOwnProfile) ...[          
-            const SizedBox(width: 8),
-            _IconButton(
-              icon: Icons.settings_outlined,
-              onTap: _showPrivacySettingsDialog,
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              onTap: _logout,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          const SizedBox(width: 8),
+          _IconButton(
+            icon: Icons.menu_rounded,
+            onTap: _showProfileSettingsMenu,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getShortBranch(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'CSE';
+    final upper = raw.toUpperCase().trim();
+    if (upper.contains('COMPUTER') || upper.contains('CSE')) return 'CSE';
+    if (upper.contains('COMMUNICATION') || upper.contains('ECE')) return 'ECE';
+    if (upper.contains('MECHANICAL') || upper.contains('MECH')) return 'MECH';
+    if (upper.contains('CIVIL')) return 'CIVIL';
+    if (upper.contains('INFORMATION') || upper.contains('IT')) return 'IT';
+    if (upper.contains('ELECTRICAL') || upper.contains('EEE')) return 'EEE';
+    if (upper.contains('BIOTECH')) return 'BT';
+    if (upper.contains('AERO')) return 'AERO';
+    if (upper.contains('DATA SCIENCE')) return 'DS';
+    if (upper.contains('AI')) return 'AI';
+    if (raw.length <= 6) return raw.toUpperCase();
+    return raw.split(' ').map((w) => w.isNotEmpty ? w[0] : '').join().toUpperCase();
+  }
+
+  Widget _buildStudentIdentityHeader() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final handleColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final bioColor = isDark ? const Color(0xFFC4D9D6) : const Color(0xFF2C4844);
+    final tealColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final btnBg = isDark ? const Color(0xFF131C1A) : const Color(0xFFEDF7F5);
+    final btnBorder = isDark ? const Color(0xFF1A2E2B) : const Color(0xFFC4E4E0);
+
+    final avatar = _user?['avatar']?.toString();
+    final name = _user?['name']?.toString() ?? 'Student';
+    final username = _user?['username']?.toString() ?? name.toLowerCase().replaceAll(' ', '_');
+    final dept = _user?['branch']?.toString() ?? _user?['dept']?.toString() ?? 'CSE';
+    final rawYear = _user?['academicLevel']?.toString() ?? _user?['year']?.toString() ?? '';
+    final shortBranch = _getShortBranch(dept);
+    final cleanYear = rawYear.replaceAll(RegExp(r'[^0-9]'), '');
+    final yearSuffix = cleanYear.length >= 2 ? " '${cleanYear.substring(cleanYear.length - 2)}" : '';
+    final branchDisplay = '$shortBranch$yearSuffix';
+
+    final bio = _user?['bio']?.toString() ?? 'building things, breaking things 🛠️';
+    final initials = name.trim().isNotEmpty
+        ? (name.trim().split(' ').length > 1
+            ? '${name.trim().split(' ')[0][0]}${name.trim().split(' ')[1][0]}'.toUpperCase()
+            : name.trim().substring(0, name.trim().length.clamp(0, 2)).toUpperCase())
+        : 'AG';
+
+    // Interests
+    final userInterests = (_user?['interests'] as List?)?.map((e) => e.toString()).toList() ??
+        ['Technology', 'Coding', 'Art', 'Music', 'Coffee'];
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 16),
+              // Avatar: 78px with 2.5px teal border and 3px padding
+              Container(
+                width: 78,
+                height: 78,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F1011) : const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(isDark ? 8 : 6),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC),
-                    width: 1,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tealColor, width: 2.5),
+                ),
+                padding: const EdgeInsets.all(3),
+                child: ClipOval(
+                  child: Container(
+                    color: isDark ? const Color(0xFF131C1A) : const Color(0xFFEDF7F5),
+                    child: avatar != null && avatar.isNotEmpty
+                        ? Image.network(
+                            avatar,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Text(
+                                initials,
+                                style: AppTextStyles.headlineMd.copyWith(
+                                  color: tealColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Text(
+                              initials,
+                              style: AppTextStyles.headlineMd.copyWith(
+                                color: tealColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.logout_rounded, color: errorColor, size: 14),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Logout',
-                      style: AppTextStyles.labelLg.copyWith(
-                        color: errorColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
+              ),
+              const SizedBox(height: 12),
+
+              // Name (Space Grotesk 600, 20px)
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.headlineMd.copyWith(
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 20,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // Handle + shortform branch: <username> · <shortformofbranch>
+              Text(
+                '@$username · $branchDisplay',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm.copyWith(
+                  color: handleColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Bio
+              if (bio.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    bio,
+                    textAlign: TextAlign.center,
+                    style: AppTextStyles.bodyMd.copyWith(
+                      color: bioColor,
+                      fontSize: 14,
+                      height: 1.4,
                     ),
-                  ],
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              const SizedBox(height: 16),
+
+              // Stats Row: following | followers | posts
+              _buildStatsRow(),
+              const SizedBox(height: 16),
+
+              // Action Buttons: edit profile & share profile
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 340),
+                  child: Row(
+                    children: [
+                      if (_isOwnProfile) ...[
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Profile editing coming soon'),
+                                  backgroundColor: tealColor,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: btnBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: btnBorder, width: 1),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'edit profile',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _showShareDigitalPassPopup,
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: btnBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: btnBorder, width: 1),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'share profile',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ] else ...[
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _toggleFollow,
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _isFollowing ? btnBg : tealColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: _isFollowing ? btnBorder : tealColor, width: 1),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                _isFollowing ? 'following' : 'follow',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: _isFollowing ? textColor : Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              final targetId = widget.userId;
+                              if (targetId != null) context.push('/chat/$targetId');
+                            },
+                            child: Container(
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: btnBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: btnBorder, width: 1),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'message',
+                                style: AppTextStyles.bodySm.copyWith(
+                                  color: textColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ] else ...[
-            const SizedBox(width: 8),
-            _IconButton(
-              icon: Icons.notifications_outlined,
-              onTap: () {},
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+              const SizedBox(height: 16),
 
-  Widget _buildUserBio() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bioColor = isDark ? const Color(0xFFE2E4E9) : const Color(0xFF333333);
-    final bio = _user?['bio']?.toString() ?? '';
-    if (bio.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      child: Text(
-        bio,
-        style: AppTextStyles.bodyMd.copyWith(
-          color: bioColor,
-          height: 1.6,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          _statCard(_formatCount(_userPosts.length), 'Posts'),
-          const SizedBox(width: 10),
-          _statCard(_formatCount(_followersCount), 'Followers', onTap: () {
-            final userId = widget.userId ?? _loggedInUserId;
-            if (userId != null) context.push('/profile/$userId/followers');
-          }),
-          const SizedBox(width: 10),
-          _statCard(_formatCount(_followingCount), 'Following', onTap: () {
-            final userId = widget.userId ?? _loggedInUserId;
-            if (userId != null) context.push('/profile/$userId/following');
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(String value, String label, {VoidCallback? onTap}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final valueColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    final labelColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: GVibeCard(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          child: Column(
-            children: [
-              Text(
-                value,
-                style: AppTextStyles.displaySm.copyWith(
-                  color: valueColor,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+              // Tags (interests): box size based on text length, multiple per line in Wrap
+              Center(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: userInterests.map((interest) {
+                    return Container(
+                      height: 28,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: tealColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: tealColor.withValues(alpha: 0.40), width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            interest,
+                            style: AppTextStyles.bodyXs.copyWith(
+                              color: tealColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: AppTextStyles.bodyXs.copyWith(color: labelColor),
-              ),
+              const SizedBox(height: 18),
             ],
           ),
         ),
@@ -545,47 +997,152 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildStatsRow() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final activeColor = isDark ? Colors.white : const Color(0xFF171717);
-    final inactiveColor = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-    final activeBorderColor = isDark ? const Color(0xFF5E6AD2) : const Color(0xFF171717);
+    final numColor = isDark ? const Color(0xFFE8F4F2) : const Color(0xFF0C1F1D);
+    final labelColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final dividerColor = isDark ? const Color(0xFF182220) : const Color(0xFFE0F0ED);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: borderColor, width: 1),
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  final userId = widget.userId ?? _loggedInUserId;
+                  if (userId != null) context.push('/profile/$userId/following');
+                },
+                child: Column(
+                  children: [
+                    Text(
+                      _formatCount(_followingCount),
+                      style: AppTextStyles.headlineSm.copyWith(
+                        color: numColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'FOLLOWING',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: labelColor,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(width: 1, height: 32, color: dividerColor),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  final userId = widget.userId ?? _loggedInUserId;
+                  if (userId != null) context.push('/profile/$userId/followers');
+                },
+                child: Column(
+                  children: [
+                    Text(
+                      _formatCount(_followersCount),
+                      style: AppTextStyles.headlineSm.copyWith(
+                        color: numColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'FOLLOWERS',
+                      style: AppTextStyles.monoXs.copyWith(
+                        color: labelColor,
+                        fontSize: 10,
+                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(width: 1, height: 32, color: dividerColor),
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    _formatCount(_userPosts.length),
+                    style: AppTextStyles.headlineSm.copyWith(
+                      color: numColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'POSTS',
+                    style: AppTextStyles.monoXs.copyWith(
+                      color: labelColor,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);
+    final inactiveColor = isDark ? const Color(0xFF7A9E9A) : const Color(0xFF3D6B66);
+    final borderColor = isDark ? const Color(0xFF182220) : const Color(0xFFE0F0ED);
+
+    final tabs = ['posts', 'vibes', 'analytics'];
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
-        children: _tabs.asMap().entries.map((e) {
-          final isActive = e.key == _activeTab;
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: tabs.asMap().entries.map((entry) {
+          final index = entry.key;
+          final label = entry.value;
+          final isActive = _activeTab == index;
+
           return Expanded(
             child: GestureDetector(
-              onTap: () => setState(() => _activeTab = e.key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+              onTap: () => setState(() => _activeTab = index),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: const EdgeInsets.only(bottom: 10, top: 4),
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: isActive ? activeBorderColor : Colors.transparent,
+                      color: isActive ? activeColor : Colors.transparent,
                       width: 2,
                     ),
                   ),
                 ),
                 child: Center(
                   child: Text(
-                    e.value,
-                    style: AppTextStyles.label.copyWith(
+                    label,
+                    style: AppTextStyles.bodyMd.copyWith(
                       color: isActive ? activeColor : inactiveColor,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 11,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: 13,
                     ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
                   ),
                 ),
               ),
@@ -595,6 +1152,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
+
 
   Widget _buildTabContent() {
     switch (_activeTab) {

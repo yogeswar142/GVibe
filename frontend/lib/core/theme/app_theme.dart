@@ -5,11 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_theme_extension.dart';
 
-/// GVibe ThemeData — Dark-navy cinematic + Vercel hairline-on-white light mode.
-/// Design tokens from GVIBE_REDESIGN.md.
-/// Radius: xs=6 · sm=10 · md=14 · lg=20 · pill=999.
-/// Spacing base 4px. Screen edge 20. Card padding 16.
-/// Elevation: flat + hairline everywhere; only sheets/dialogs float.
+/// GVibe ThemeData — Bay & Gold Coastal (V3)
+/// Primary: Deep Bay Teal #0D9488 · Secondary micro-accent: Turmeric Gold #D97706
+/// Dark canvas: #080C0B · Light canvas: #F5FAF9
+/// Radius: base=8 · container=16 · sheet=24 · pill=999
+/// Elevation: flat + teal hairline everywhere; only sheets/dialogs float.
 class AppTheme {
   AppTheme._();
 
@@ -19,34 +19,34 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background, // #070B14
+      scaffoldBackgroundColor: AppColors.background, // #080C0B
 
       colorScheme: const ColorScheme.dark(
-        surface:                   AppColors.surface,          // #0D1220
-        surfaceContainerHighest:   AppColors.surfaceHighest,   // #1A2236
-        surfaceContainerHigh:      AppColors.surfaceHigh,      // #131A2B
-        primary:                   AppColors.primary,          // #6C7BF7
-        primaryContainer:          AppColors.primaryContainer, // #1A1F4D
-        secondary:                 AppColors.secondary,        // #8792FF
+        surface:                   AppColors.surface,          // #0D1412
+        surfaceContainerHighest:   AppColors.surfaceHighest,   // #182220
+        surfaceContainerHigh:      AppColors.surfaceHigh,      // #131C1A
+        primary:                   AppColors.primary,          // #0D9488 Bay Teal
+        primaryContainer:          AppColors.primaryContainer, // #0A2D2A
+        secondary:                 AppColors.secondary,        // #D97706 Turmeric Gold
         onPrimary:                 AppColors.white,
-        onSecondary:               AppColors.white,
-        onSurface:                 AppColors.textPrimary,      // #F4F6FA
-        onSurfaceVariant:          AppColors.textSecondary,    // #C2C9D9
-        error:                     AppColors.error,            // #F0555A
-        outline:                   AppColors.outline,          // #212A3D
-        outlineVariant:            AppColors.outlineStrong,    // #2E3850
+        onSecondary:               AppColors.darkCanvas,
+        onSurface:                 AppColors.textPrimary,      // #E8F4F2
+        onSurfaceVariant:          AppColors.textSecondary,    // #7A9E9A
+        error:                     AppColors.error,            // #FF6B6B
+        outline:                   AppColors.outline,          // teal hairline
+        outlineVariant:            AppColors.outlineStrong,
       ),
 
       extensions: const [AppThemeExtension.dark],
 
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,
       ),
 
-      // ── AppBar: canvas bg, zero elevation; hairline shown by scroll ────────
+      // ── AppBar: canvas bg, zero elevation ─────────────────────────────────
       appBarTheme: const AppBarTheme(
-        backgroundColor:     AppColors.background,  // canvas
+        backgroundColor:     AppColors.background,
         foregroundColor:     AppColors.textPrimary,
         elevation:           0,
         scrolledUnderElevation: 0,
@@ -60,13 +60,13 @@ class AppTheme {
         ),
       ),
 
-      // ── Input: surface-2 fill, hairline border, radius sm=8, accent focus ─
+      // ── Input: surface-2 fill, teal hairline border, radius 8px, teal focus
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceHigh, // surface-2
+        fillColor: AppColors.surfaceHigh, // #131C1A
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8), // sm
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.outline, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
@@ -75,7 +75,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          // 2px accent ring at 30% opacity — no fill-color change on focus
+          // 2px teal ring at 15% opacity + focus ring per spec
           borderSide: BorderSide(
             color: AppColors.primary.withValues(alpha: 0.30),
             width: 2,
@@ -89,84 +89,84 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
-        hintStyle: GoogleFonts.inter(
-          color: AppColors.textMuted, // ink-subtle
+        hintStyle: GoogleFonts.plusJakartaSans(
+          color: AppColors.textMuted, // #3D5C58
           fontSize: 14,
         ),
-        labelStyle: GoogleFonts.inter(
-          color: AppColors.textSecondary, // ink-muted
+        labelStyle: GoogleFonts.plusJakartaSans(
+          color: AppColors.textSecondary,
           fontSize: 13,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
 
-      // ── Button (primary): accent fill, on-accent text, radius md=8, 44px ──
+      // ── Button (primary): Bay Teal fill, white text, radius 8px ──────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,   // #5E6AD2
+          backgroundColor: AppColors.primary,   // #0D9488
           foregroundColor: AppColors.white,
-          minimumSize: const Size(double.infinity, 44), // spec: 44px min tap
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8), // md
-          ),
-          elevation: 0,
-          textStyle: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w500, // button token
-          ),
-        ),
-      ),
-
-      // ── Button (secondary): surface-2 fill, ink text, 1px hairline ────────
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textPrimary,
-          backgroundColor: AppColors.surfaceHigh, // surface-2
           minimumSize: const Size(double.infinity, 44),
-          side: const BorderSide(color: AppColors.outline, width: 1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          textStyle: GoogleFonts.inter(
+          elevation: 0,
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
 
-      // ── Card: surface-1 bg, 1px hairline, radius lg=12, 0 elevation ────────
+      // ── Button (secondary): surface-2 fill, teal outline ─────────────────
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.surfaceHigh,
+          minimumSize: const Size(double.infinity, 44),
+          side: const BorderSide(color: AppColors.outlineElevated, width: 1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          textStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+
+      // ── Card: surface-1 bg, teal hairline, radius 16px (container) ────────
       cardTheme: CardThemeData(
-        color: AppColors.surface, // surface-1 #0F1011
+        color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12), // lg
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.outline, width: 1),
         ),
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
       ),
 
-      // ── Divider: hairline everywhere ───────────────────────────────────────
+      // ── Divider: teal hairline ─────────────────────────────────────────────
       dividerTheme: const DividerThemeData(
-        color: AppColors.outline,  // #212A3D
+        color: AppColors.outline,
         thickness: 1,
         space: 1,
       ),
 
-      // ── Chip: pill radius, selected = accent fill ──────────────────────────
+      // ── Chip: pill radius, selected = teal fill ───────────────────────────
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceHigh,  // surface-2 default
-        selectedColor:   AppColors.primary,       // accent when selected
+        backgroundColor: AppColors.surfaceHigh,  // #131C1A inactive
+        selectedColor:   AppColors.primary,       // #0D9488 active fill
         disabledColor:   AppColors.surfaceHighest,
-        labelStyle: GoogleFonts.inter(
+        labelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textSecondary, // #7A9E9A
         ),
-        secondaryLabelStyle: GoogleFonts.inter(
+        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.white, // on-accent
+          fontWeight: FontWeight.w600,
+          color: AppColors.white,
         ),
         side: const BorderSide(color: AppColors.outline, width: 1),
         shape: RoundedRectangleBorder(
@@ -175,27 +175,27 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       ),
 
-      // ── Bottom sheet: surface-3 bg, floating shadow per spec ──────────────
+      // ── Bottom sheet: surface-3 bg, teal elevated border, large radius ────
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surfaceHighest, // surface-3 #1A2236
+        backgroundColor: AppColors.surfaceHighest, // #182220
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)), // large per spec
         ),
         elevation: 0,
         shadowColor: Colors.transparent,
         dragHandleColor: AppColors.outlineStrong,
       ),
 
-      // ── Navigation bar: surface-1 bg, hairline top, active = accent only ──
+      // ── Navigation bar: canvas bg, teal active, no pill indicator ─────────
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.surface, // surface-1
-        indicatorColor: Colors.transparent, // no pill bg — just color shift
+        backgroundColor: AppColors.background,  // canvas so it blends
+        indicatorColor: Colors.transparent,
         indicatorShape: const RoundedRectangleBorder(),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final active = states.contains(WidgetState.selected);
-          return GoogleFonts.inter(
+          return GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            fontWeight: active ? FontWeight.w500 : FontWeight.w400,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
             color: active ? AppColors.primary : AppColors.textMuted,
           );
         }),
@@ -223,33 +223,33 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.lightBackground, // #FAFAFA
+      scaffoldBackgroundColor: AppColors.lightBackground, // #F5FAF9
 
       colorScheme: const ColorScheme.light(
         surface:                   AppColors.lightSurface,           // #FFFFFF
-        surfaceContainerHighest:   AppColors.lightSurfaceHighest,
-        surfaceContainerHigh:      AppColors.lightSurfaceHigh,       // #F2F3F5
-        primary:                   AppColors.lightPrimary,           // #5B63F0
-        primaryContainer:          AppColors.lightPrimaryContainer,  // #EBEBFD
-        secondary:                 AppColors.lightSecondary,         // #4750D6
+        surfaceContainerHighest:   AppColors.lightSurfaceHighest,    // #E0EFEC
+        surfaceContainerHigh:      AppColors.lightSurfaceHigh,       // #EDF7F5
+        primary:                   AppColors.lightPrimary,           // #0F766E
+        primaryContainer:          AppColors.lightPrimaryContainer,  // #CCF0EB
+        secondary:                 AppColors.lightSecondary,         // #B45309
         onPrimary:                 AppColors.white,
         onSecondary:               AppColors.white,
-        onSurface:                 AppColors.lightTextPrimary,       // #14161C
-        onSurfaceVariant:          AppColors.lightTextSecondary,     // #4B4F5A
-        error:                     AppColors.lightStatusDanger,      // #D93A3F
-        outline:                   AppColors.lightOutline,           // #E7E8EC
-        outlineVariant:            AppColors.lightOutlineStrong,     // #D7D9E0
+        onSurface:                 AppColors.lightTextPrimary,       // #0C1F1D
+        onSurfaceVariant:          AppColors.lightTextSecondary,     // #3D6B66
+        error:                     AppColors.lightStatusDanger,      // #DC2626
+        outline:                   AppColors.lightOutline,           // #DDF0EC
+        outlineVariant:            AppColors.lightOutlineStrong,     // #B8DDD8
       ),
 
       extensions: const [AppThemeExtension.light],
 
-      textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+      textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme).apply(
         bodyColor: AppColors.lightTextPrimary,
         displayColor: AppColors.lightTextPrimary,
       ),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor:     AppColors.lightBackground, // #FAFAFA canvas
+        backgroundColor:     AppColors.lightBackground, // #F5FAF9
         foregroundColor:     AppColors.lightTextPrimary,
         elevation:           0,
         scrolledUnderElevation: 0,
@@ -265,54 +265,54 @@ class AppTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.lightSurface, // Vercel: clean white card elevated input
+        fillColor: AppColors.lightSurface, // clean white input
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6), // sm
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.lightOutline, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.lightOutline, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(
             color: AppColors.lightPrimary.withValues(alpha: 0.30),
             width: 2,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.lightStatusDanger, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.lightStatusDanger, width: 1.5),
         ),
-        hintStyle: GoogleFonts.inter(
-          color: AppColors.lightTextMuted, // ink-subtle
+        hintStyle: GoogleFonts.plusJakartaSans(
+          color: AppColors.lightTextMuted,
           fontSize: 14,
         ),
-        labelStyle: GoogleFonts.inter(
+        labelStyle: GoogleFonts.plusJakartaSans(
           color: AppColors.lightTextSecondary,
           fontSize: 13,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.lightPrimary,  // #171717 (stark black)
+          backgroundColor: AppColors.lightPrimary,  // #0F766E
           foregroundColor: AppColors.white,
           minimumSize: const Size(double.infinity, 44),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100), // Vercel pill
+            borderRadius: BorderRadius.circular(8), // consistent 8px both themes
           ),
           elevation: 0,
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -320,24 +320,24 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.lightTextPrimary,
-          backgroundColor: AppColors.lightSurface, // Vercel: white button
+          backgroundColor: AppColors.lightSurface,
           minimumSize: const Size(double.infinity, 44),
           side: const BorderSide(color: AppColors.lightOutline, width: 1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100), // Vercel pill
+            borderRadius: BorderRadius.circular(8),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
 
       cardTheme: CardThemeData(
-        color: AppColors.lightSurface, // #FFFFFF
+        color: AppColors.lightSurface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12), // Vercel md card
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.lightOutline, width: 1),
         ),
         margin: EdgeInsets.zero,
@@ -345,36 +345,36 @@ class AppTheme {
       ),
 
       dividerTheme: const DividerThemeData(
-        color: AppColors.lightOutline, // #E7E8EC
+        color: AppColors.lightOutline,
         thickness: 1,
         space: 1,
       ),
 
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.lightSurfaceHigh,   // surface-sunken default
-        selectedColor:   AppColors.lightPrimary,        // accent when selected
+        backgroundColor: AppColors.lightSurfaceHigh,
+        selectedColor:   AppColors.lightPrimary,     // #0F766E active
         disabledColor:   AppColors.lightSurfaceHighest,
-        labelStyle: GoogleFonts.inter(
+        labelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
           color: AppColors.lightTextSecondary,
         ),
-        secondaryLabelStyle: GoogleFonts.inter(
+        secondaryLabelStyle: GoogleFonts.plusJakartaSans(
           fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
           color: AppColors.white,
         ),
         side: const BorderSide(color: AppColors.lightOutline, width: 1),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(999), // pill
+          borderRadius: BorderRadius.circular(999),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       ),
 
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.lightSurface, // #FFFFFF
+        backgroundColor: AppColors.lightSurface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         elevation: 0,
         shadowColor: Colors.transparent,
@@ -382,14 +382,14 @@ class AppTheme {
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.lightSurface, // #FFFFFF
+        backgroundColor: AppColors.lightBackground, // #F5FAF9
         indicatorColor: Colors.transparent,
         indicatorShape: const RoundedRectangleBorder(),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final active = states.contains(WidgetState.selected);
-          return GoogleFonts.inter(
+          return GoogleFonts.plusJakartaSans(
             fontSize: 11,
-            fontWeight: active ? FontWeight.w500 : FontWeight.w400,
+            fontWeight: active ? FontWeight.w600 : FontWeight.w400,
             color: active ? AppColors.lightPrimary : AppColors.lightTextMuted,
           );
         }),

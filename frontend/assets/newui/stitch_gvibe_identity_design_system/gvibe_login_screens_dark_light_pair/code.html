@@ -1,0 +1,326 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GVibe Login Screens - Dark &amp; Light Pair</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #060908;
+      color: #E8F4F2;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Wordmark gradients */
+    .g-grad-dark {
+      background: linear-gradient(90deg, #0D9488 0%, #D97706 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .g-grad-light {
+      background: linear-gradient(90deg, #0F766E 0%, #B45309 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Subtle viewport mock borders */
+    .device-shadow {
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(13, 148, 136, 0.12);
+    }
+    .device-shadow-light {
+      box-shadow: 0 25px 60px -15px rgba(13, 148, 136, 0.16), 0 0 0 1px rgba(196, 228, 224, 0.8);
+    }
+
+    /* Reset inputs appearance */
+    input {
+      outline: none;
+      background: transparent;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-10 px-4 flex flex-col items-center justify-center bg-[#060908]">
+
+  <!-- Header presentation banner -->
+  <header class="text-center mb-8 select-none">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#131C1A] border border-[rgba(13,148,136,0.22)] text-xs font-medium text-[#D97706] mb-3">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+      GVIBE IDENTITY SYSTEM V3
+    </div>
+    <h1 class="text-2xl font-bold font-display tracking-tight text-[#E8F4F2]">
+      Bay &amp; Gold Coastal · Login Pair
+    </h1>
+    <p class="text-xs text-[#7A9E9A] mt-1">
+      Dual viewport authentication flow · 360 × 800dp side-by-side
+    </p>
+  </header>
+
+  <!-- Side-by-Side Presentation Container -->
+  <main class="flex flex-wrap items-center justify-center gap-8 lg:gap-12 w-full max-w-5xl">
+
+    <!-- ══════════════════════════════════════════════
+         DARK THEME PHONE FRAME (LEFT)
+         Canvas: #080C0B
+         ══════════════════════════════════════════════ -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-[360px] h-[800px] rounded-[36px] overflow-hidden bg-[#080C0B] device-shadow flex flex-col border border-[rgba(13,148,136,0.18)]">
+        
+        <!-- Content Container -->
+        <div class="relative w-full h-full flex flex-col px-6">
+
+          <!-- TOP SECTION (Starts at 15% from top = 120px) -->
+          <div class="pt-[120px] flex flex-col items-center text-center select-none">
+            <!-- Wordmark: "G" gradient teal→gold + "Vibe" flat #E8F4F2 -->
+            <div class="flex items-center justify-center text-[36px] font-bold font-display tracking-[-0.5px] leading-none">
+              <span class="g-grad-dark">G</span><span class="text-[#E8F4F2]">Vibe</span>
+            </div>
+            
+            <!-- welcome back (8px gap) -->
+            <p class="mt-2 text-[14px] font-normal text-[#7A9E9A] leading-none">
+              welcome back
+            </p>
+          </div>
+
+          <!-- FORM SECTION (48px below top section) -->
+          <div class="mt-[48px] flex flex-col">
+
+            <!-- FIELD 1 — Email -->
+            <div class="w-full h-[48px] rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.20)] px-3.5 flex items-center gap-2.5 transition-colors focus-within:border-[rgba(13,148,136,0.50)]">
+              <!-- Mail icon (teal #0D9488, 18px) -->
+              <svg class="w-[18px] h-[18px] text-[#0D9488] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
+              <!-- Input with typed value -->
+              <input type="email" value="anudeep@student.gitam.edu" placeholder="student email" class="w-full text-[15px] font-normal text-[#E8F4F2] placeholder-[#3D5C58]" readonly="">
+            </div>
+
+            <!-- FIELD 2 — Password (16px below field 1) -->
+            <div class="w-full h-[48px] rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.20)] px-3.5 mt-4 flex items-center gap-2.5 transition-colors focus-within:border-[rgba(13,148,136,0.50)]">
+              <!-- Lock icon (teal #0D9488, 18px) -->
+              <svg class="w-[18px] h-[18px] text-[#0D9488] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <!-- Password typed value -->
+              <input type="password" value="secretpassword" placeholder="password" class="w-full text-[15px] font-normal tracking-widest text-[#E8F4F2] placeholder-[#3D5C58]" readonly="">
+              <!-- Eye-off icon in muted (#7A9E9A) -->
+              <button type="button" class="text-[#7A9E9A] hover:text-[#0D9488] shrink-0">
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                  <line x1="2" x2="22" y1="2" y2="22"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- "forgot password?" (right-aligned, 8px below password field) -->
+            <div class="w-full flex justify-end mt-2">
+              <a href="#forgot" class="text-[12px] font-normal text-[#0D9488] hover:underline">
+                forgot password?
+              </a>
+            </div>
+
+            <!-- PRIMARY BUTTON (24px below forgot password) -->
+            <button style="background-color: rgb(10, 122, 114); border-radius: 16px;" class="w-full h-[48px] hover:bg-[#0F766E] text-[#FFFFFF] text-[15px] font-medium flex items-center justify-center mt-6 shadow-sm transition-colors">
+              sign in
+            </button>
+
+            <!-- DIVIDER (20px below button) -->
+            <div class="w-full flex items-center mt-5">
+              <div class="flex-1 h-[1px] bg-[rgba(13,148,136,0.20)]"></div>
+              <span class="px-3 text-[12px] font-normal text-[#7A9E9A]">or</span>
+              <div class="flex-1 h-[1px] bg-[rgba(13,148,136,0.20)]"></div>
+            </div>
+
+            <!-- GOOGLE BUTTON (16px below divider) -->
+            <button class="w-full h-[48px] rounded-[14px] bg-[#131C1A] border border-[rgba(13,148,136,0.25)] hover:bg-[#182220] text-[#E8F4F2] text-[15px] font-normal flex items-center justify-center gap-3 mt-4 transition-colors">
+              <!-- Google "G" logo SVG (20px) -->
+              <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"></path>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"></path>
+              </svg>
+              <span class="">continue with Google</span>
+            </button>
+
+            <!-- GITAM VERIFY NOTICE (16px below Google button) -->
+            <div class="flex justify-center mt-4">
+              <div class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[rgba(13,148,136,0.10)] border border-[rgba(13,148,136,0.25)]">
+                <!-- shield-check icon (teal #0D9488, 14px) -->
+                <svg class="w-3.5 h-3.5 text-[#0D9488] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                <span class="text-[12px] font-normal text-[#0D9488]">
+                  GITAM verified only
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- BOTTOM LINK (pinned 32px above bottom edge, centered) -->
+          <div class="mt-auto pb-[32px] text-center">
+            <span class="text-[13px] font-normal text-[#7A9E9A]">don't have an account? </span>
+            <a href="#signup" class="text-[13px] font-medium text-[#0D9488] hover:underline">sign up</a>
+          </div>
+
+        </div>
+
+      </div>
+      <!-- Label below frame -->
+      <div class="flex items-center gap-2 mt-4 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#0D9488]"></span>
+        <span class="">Dark Theme · #080C0B</span>
+      </div>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════
+         LIGHT THEME PHONE FRAME (RIGHT)
+         Canvas: #F5FAF9
+         ══════════════════════════════════════════════ -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-[360px] h-[800px] rounded-[36px] overflow-hidden bg-[#F5FAF9] device-shadow-light flex flex-col border border-[#C4E4E0]">
+        
+        <!-- Content Container -->
+        <div class="relative w-full h-full flex flex-col px-6">
+
+          <!-- TOP SECTION (Starts at 15% from top = 120px) -->
+          <div class="pt-[120px] flex flex-col items-center text-center select-none">
+            <!-- Wordmark: "G" gradient teal→gold + "Vibe" flat #0C1F1D -->
+            <div class="flex items-center justify-center text-[36px] font-bold font-display tracking-[-0.5px] leading-none">
+              <span class="g-grad-light">G</span><span class="text-[#0C1F1D]">Vibe</span>
+            </div>
+            
+            <!-- welcome back (8px gap) -->
+            <p class="mt-2 text-[14px] font-normal text-[#3D6B66] leading-none">
+              welcome back
+            </p>
+          </div>
+
+          <!-- FORM SECTION (48px below top section) -->
+          <div class="mt-[48px] flex flex-col">
+
+            <!-- FIELD 1 — Email -->
+            <div class="w-full h-[48px] rounded-[14px] bg-[#EDF7F5] border border-[#C4E4E0] px-3.5 flex items-center gap-2.5 transition-colors focus-within:border-[#0F766E]">
+              <!-- Mail icon (teal #0F766E, 18px) -->
+              <svg class="w-[18px] h-[18px] text-[#0F766E] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
+              <!-- Input with typed value -->
+              <input type="email" value="anudeep@student.gitam.edu" placeholder="student email" class="w-full text-[15px] font-normal text-[#0C1F1D] placeholder-[#6B9E99]" readonly="">
+            </div>
+
+            <!-- FIELD 2 — Password (16px below field 1) -->
+            <div class="w-full h-[48px] rounded-[14px] bg-[#EDF7F5] border border-[#C4E4E0] px-3.5 mt-4 flex items-center gap-2.5 transition-colors focus-within:border-[#0F766E]">
+              <!-- Lock icon (teal #0F766E, 18px) -->
+              <svg class="w-[18px] h-[18px] text-[#0F766E] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <!-- Password typed value -->
+              <input type="password" value="secretpassword" placeholder="password" class="w-full text-[15px] font-normal tracking-widest text-[#0C1F1D] placeholder-[#6B9E99]" readonly="">
+              <!-- Eye-off icon in muted (#6B9E99) -->
+              <button type="button" class="text-[#6B9E99] hover:text-[#0F766E] shrink-0">
+                <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                  <line x1="2" x2="22" y1="2" y2="22"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- "forgot password?" (right-aligned, 8px below password field) -->
+            <div class="w-full flex justify-end mt-2">
+              <a href="#forgot" class="text-[12px] font-normal text-[#0F766E] hover:underline">
+                forgot password?
+              </a>
+            </div>
+
+            <!-- PRIMARY BUTTON (24px below forgot password) -->
+            <button style="background-color: rgb(12, 107, 99); border-radius: 16px;" class="w-full h-[48px] hover:bg-[#0D9488] text-[#FFFFFF] text-[15px] font-medium flex items-center justify-center mt-6 shadow-sm transition-colors">
+              sign in
+            </button>
+
+            <!-- DIVIDER (20px below button) -->
+            <div class="w-full flex items-center mt-5">
+              <div class="flex-1 h-[1px] bg-[#C4E4E0]"></div>
+              <span class="px-3 text-[12px] font-normal text-[#6B9E99]">or</span>
+              <div class="flex-1 h-[1px] bg-[#C4E4E0]"></div>
+            </div>
+
+            <!-- GOOGLE BUTTON (16px below divider) -->
+            <button class="w-full h-[48px] rounded-[14px] bg-[#FFFFFF] border border-[#C4E4E0] hover:bg-[#EDF7F5] text-[#0C1F1D] text-[15px] font-normal flex items-center justify-center gap-3 mt-4 shadow-sm transition-colors">
+              <!-- Google "G" logo SVG (20px) -->
+              <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"></path>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"></path>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"></path>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"></path>
+              </svg>
+              <span class="">continue with Google</span>
+            </button>
+
+            <!-- GITAM VERIFY NOTICE (16px below Google button) -->
+            <div class="flex justify-center mt-4">
+              <div class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#EDF7F5] border border-[#C4E4E0]">
+                <!-- shield-check icon (teal #0F766E, 14px) -->
+                <svg class="w-3.5 h-3.5 text-[#0F766E] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+                <span class="text-[12px] font-normal text-[#0F766E]">
+                  GITAM verified only
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- BOTTOM LINK (pinned 32px above bottom edge, centered) -->
+          <div class="mt-auto pb-[32px] text-center">
+            <span class="text-[13px] font-normal text-[#3D6B66]">don't have an account? </span>
+            <a href="#signup" class="text-[13px] font-medium text-[#0F766E] hover:underline">sign up</a>
+          </div>
+
+        </div>
+
+      </div>
+      <!-- Label below frame -->
+      <div class="flex items-center gap-2 mt-4 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#B45309]"></span>
+        <span class="">Light Theme · #F5FAF9</span>
+      </div>
+    </div>
+
+  </main>
+
+
+
+
+
+
+
+</body></html>

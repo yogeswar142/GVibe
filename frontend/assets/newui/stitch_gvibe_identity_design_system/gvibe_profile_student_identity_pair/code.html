@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GVibe Profile - Student Identity Pair</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #030605;
+      color: #E8F4F2;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .font-display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    /* Hide scrollbars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .phone-frame {
+      width: 360px;
+      height: 800px;
+      border-radius: 40px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-start py-10 px-4 md:px-8">
+
+  <!-- Header presentation banner -->
+  <div class="text-center mb-8 max-w-2xl">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium tracking-wide mb-3 bg-[#0D9488]/10 text-[#0D9488] border border-[#0D9488]/30">
+      <span class="w-1.5 h-1.5 rounded-full bg-[#0D9488]"></span>
+      GVIBE IDENTITY SYSTEM V3 · PROFILE FLOW
+    </div>
+    <h1 class="font-display text-2xl md:text-3xl font-bold tracking-tight text-white mb-2">
+      GVibe Profile • "Student Identity"
+    </h1>
+    <p class="text-sm text-[#7A9E9A]">
+      Dual viewport presentation · 360 × 800dp side-by-side · Anudeep G. (@anudeepgrs)
+    </p>
+  </div>
+
+  <!-- Dual Device Container -->
+  <div class="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12 w-full max-w-5xl">
+
+    <!-- ========================================================= -->
+    <!-- LEFT FRAME: DARK THEME (#080C0B)                          -->
+    <!-- ========================================================= -->
+    <div class="flex flex-col items-center">
+      <div class="phone-frame bg-[#080C0B] text-[#E8F4F2] border border-[#182220]">
+        
+        <!-- STATUS BAR -->
+        <div class="w-full h-11 px-6 flex items-center justify-between z-20 select-none pt-2">
+          <span class="text-xs font-medium text-[#E8F4F2] tracking-tight">9:41</span>
+          <div class="flex items-center gap-1.5 text-[#E8F4F2]">
+            <!-- Cellular -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25c-.2.2-.2.51 0 .71.2.2.51.2.71 0l.7-.7C7.29 19.38 9.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+            </svg>
+            <!-- Wifi -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.5 0 6.69 1.41 9.02 3.7L12 19.33 2.98 11.2c2.33-2.29 5.52-3.7 9.02-3.7z"/>
+            </svg>
+            <!-- Battery -->
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <rect x="2" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor"/>
+              <path d="M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- TOP BAR (56dp) -->
+        <div class="w-full h-14 px-6 flex items-center justify-between select-none">
+          <!-- Left: settings-2 icon -->
+          <button class="text-[#7A9E9A] hover:text-[#E8F4F2] transition-colors p-1" aria-label="Settings">
+            <svg class="w-[22px] h-[22px] stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <!-- Center: profile Space Grotesk 600, 22px -->
+          <h2 class="font-display font-semibold text-[22px] text-[#E8F4F2] tracking-tight">profile</h2>
+          <!-- Right: share icon -->
+          <button class="text-[#7A9E9A] hover:text-[#E8F4F2] transition-colors p-1" aria-label="Share">
+            <svg class="w-[22px] h-[22px] stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- SCROLLABLE BODY AREA -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-4">
+          
+          <!-- PROFILE HEADER (24px below top bar) -->
+          <div class="mt-6 flex flex-col items-center px-6 text-center">
+            
+            <!-- Avatar: 72px circle, outer ring 2.5px teal (#0D9488), 3px gap, Initials AG -->
+            <div class="relative w-[78px] h-[78px] rounded-full flex items-center justify-center p-[3px] border-[2.5px] border-[#0D9488]">
+              <div class="w-full h-full rounded-full bg-[#131C1A] flex items-center justify-center text-teal-400 font-display font-semibold text-lg tracking-wider border border-[#182220]">
+                AG
+              </div>
+            </div>
+
+            <!-- Name (12px below avatar): Space Grotesk 600, 20px -->
+            <h3 class="font-display font-semibold text-[20px] text-[#E8F4F2] mt-3 tracking-tight">
+              Anudeep G.
+            </h3>
+
+            <!-- Handle + branch (4px below name): Inter 400, 13px, muted -->
+            <p class="text-[13px] text-[#7A9E9A] mt-1 font-normal">
+              @anudeepgrs · CSE '26
+            </p>
+
+            <!-- Bio (8px below handle): Inter 400, 14px, secondary text, max 2 lines -->
+            <p class="text-[14px] text-[#C4D9D6] mt-2 font-normal max-w-[260px] leading-snug">
+              building things, breaking things 🛠️
+            </p>
+
+            <!-- STATS ROW (16px below bio) -->
+            <div class="w-full mt-4 flex items-center justify-between max-w-[280px]">
+              <!-- STAT 1: 248 following -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#E8F4F2] leading-tight">248</span>
+                <span class="text-[11px] text-[#7A9E9A] tracking-wider uppercase font-normal mt-0.5">following</span>
+              </div>
+              <!-- Vertical Divider 32px height -->
+              <div class="w-[1px] h-8 bg-[#182220]"></div>
+              <!-- STAT 2: 1.2k followers -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#E8F4F2] leading-tight">1.2k</span>
+                <span class="text-[11px] text-[#7A9E9A] tracking-wider uppercase font-normal mt-0.5">followers</span>
+              </div>
+              <!-- Vertical Divider 32px height -->
+              <div class="w-[1px] h-8 bg-[#182220]"></div>
+              <!-- STAT 3: 34 posts -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#E8F4F2] leading-tight">34</span>
+                <span class="text-[11px] text-[#7A9E9A] tracking-wider uppercase font-normal mt-0.5">posts</span>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS (16px below stats, 24px side margins, 10px gap) -->
+            <div class="w-full mt-4 flex items-center gap-[10px]">
+              <!-- Button 1: Edit Profile -->
+              <button class="flex-1 h-[44px] rounded-[12px] bg-[#131C1A] border border-[#0D9488]/25 text-[#E8F4F2] text-[13px] font-medium flex items-center justify-center hover:bg-[#182220] transition-colors">
+                edit profile
+              </button>
+              <!-- Button 2: Share Profile -->
+              <button class="flex-1 h-[44px] rounded-[12px] bg-[#131C1A] border border-[#0D9488]/25 text-[#E8F4F2] text-[13px] font-medium flex items-center justify-center hover:bg-[#182220] transition-colors">
+                share profile
+              </button>
+            </div>
+
+            <!-- INTERESTS (16px below buttons, wrapping pill row) -->
+            <div class="w-full mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0D9488]/15 border border-[#0D9488]/40 text-[#0D9488]">Technology</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0D9488]/15 border border-[#0D9488]/40 text-[#0D9488]">Coding</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0D9488]/15 border border-[#0D9488]/40 text-[#0D9488]">Art</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0D9488]/15 border border-[#0D9488]/40 text-[#0D9488]">Music</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0D9488]/15 border border-[#0D9488]/40 text-[#0D9488]">Coffee</span>
+            </div>
+
+          </div>
+
+          <!-- POSTS SECTION (20px below interests) -->
+          <div class="mt-5 w-full">
+            <!-- Tab Row -->
+            <div class="flex items-center px-6 gap-5">
+              <!-- Active: posts -->
+              <div class="relative pb-2 cursor-pointer">
+                <span class="text-[13px] font-medium text-[#0D9488]">posts</span>
+                <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0D9488] rounded-full"></div>
+              </div>
+              <!-- Inactive: vibes -->
+              <div class="pb-2 cursor-pointer">
+                <span class="text-[13px] font-normal text-[#7A9E9A]">vibes</span>
+              </div>
+            </div>
+
+            <!-- 3x3 Grid of Post Thumbnails (8px below tab row) -->
+            <div class="grid grid-cols-3 gap-[2px] mt-2 w-full">
+              <!-- Cell 1 (with 8% teal overlay for recent/selected) -->
+              <div class="aspect-square bg-[#131C1A] relative flex items-center justify-center group overflow-hidden">
+                <div class="absolute inset-0 bg-[#0D9488]/[0.08] pointer-events-none"></div>
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 2 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 3 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 4 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 5 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 6 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 7 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 8 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 9 -->
+              <div class="aspect-square bg-[#131C1A] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#3D5C58]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FIXED BOTTOM NAVIGATION (56dp) -->
+        <div class="w-full h-14 bg-[#0D1412] border-t border-[#182220] px-6 flex items-center justify-between select-none z-20">
+          <!-- Home (Inactive) -->
+          <button class="text-[#3D5C58] hover:text-[#7A9E9A] transition-colors p-1" aria-label="Home">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </button>
+          <!-- Compass (Inactive) -->
+          <button class="text-[#3D5C58] hover:text-[#7A9E9A] transition-colors p-1" aria-label="Discover">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </button>
+          <!-- Messages (Inactive) -->
+          <button class="text-[#3D5C58] hover:text-[#7A9E9A] transition-colors p-1" aria-label="Messages">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+          <!-- Profile (Active: user-circle filled teal #0D9488) -->
+          <button class="text-[#0D9488] p-1" aria-label="Profile">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 4a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm-6.19 12.31A7.962 7.962 0 0112 16c2.31 0 4.39.98 5.84 2.54A7.968 7.968 0 0112 20a7.968 7.968 0 01-6.19-1.69z"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+      <!-- Theme Label -->
+      <div class="mt-3 flex items-center gap-2 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#0D9488]"></span>
+        <span>Dark Theme · #080C0B Base</span>
+      </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- RIGHT FRAME: LIGHT THEME (#F5FAF9)                         -->
+    <!-- ========================================================= -->
+    <div class="flex flex-col items-center">
+      <div class="phone-frame bg-[#F5FAF9] text-[#0C1F1D] border border-[#C4E4E0]">
+        
+        <!-- STATUS BAR -->
+        <div class="w-full h-11 px-6 flex items-center justify-between z-20 select-none pt-2">
+          <span class="text-xs font-medium text-[#0C1F1D] tracking-tight">9:41</span>
+          <div class="flex items-center gap-1.5 text-[#0C1F1D]">
+            <!-- Cellular -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 18.25c-.2.2-.2.51 0 .71.2.2.51.2.71 0l.7-.7C7.29 19.38 9.53 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+            </svg>
+            <!-- Wifi -->
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+              <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3.5c3.5 0 6.69 1.41 9.02 3.7L12 19.33 2.98 11.2c2.33-2.29 5.52-3.7 9.02-3.7z"/>
+            </svg>
+            <!-- Battery -->
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <rect x="2" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+              <rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor"/>
+              <path d="M20 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- TOP BAR (56dp) -->
+        <div class="w-full h-14 px-6 flex items-center justify-between select-none">
+          <!-- Left: settings-2 icon -->
+          <button class="text-[#3D6B66] hover:text-[#0C1F1D] transition-colors p-1" aria-label="Settings">
+            <svg class="w-[22px] h-[22px] stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+          <!-- Center: profile Space Grotesk 600, 22px -->
+          <h2 class="font-display font-semibold text-[22px] text-[#0C1F1D] tracking-tight">profile</h2>
+          <!-- Right: share icon -->
+          <button class="text-[#3D6B66] hover:text-[#0C1F1D] transition-colors p-1" aria-label="Share">
+            <svg class="w-[22px] h-[22px] stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- SCROLLABLE BODY AREA -->
+        <div class="flex-1 overflow-y-auto no-scrollbar pb-4">
+          
+          <!-- PROFILE HEADER (24px below top bar) -->
+          <div class="mt-6 flex flex-col items-center px-6 text-center">
+            
+            <!-- Avatar: 72px circle, outer ring 2.5px teal (#0F766E), 3px gap, Initials AG -->
+            <div class="relative w-[78px] h-[78px] rounded-full flex items-center justify-center p-[3px] border-[2.5px] border-[#0F766E]">
+              <div class="w-full h-full rounded-full bg-[#EDF7F5] flex items-center justify-center text-[#0F766E] font-display font-semibold text-lg tracking-wider border border-[#C4E4E0]">
+                AG
+              </div>
+            </div>
+
+            <!-- Name (12px below avatar): Space Grotesk 600, 20px -->
+            <h3 class="font-display font-semibold text-[20px] text-[#0C1F1D] mt-3 tracking-tight">
+              Anudeep G.
+            </h3>
+
+            <!-- Handle + branch (4px below name): Inter 400, 13px, muted -->
+            <p class="text-[13px] text-[#3D6B66] mt-1 font-normal">
+              @anudeepgrs · CSE '26
+            </p>
+
+            <!-- Bio (8px below handle): Inter 400, 14px, secondary text, max 2 lines -->
+            <p class="text-[14px] text-[#2C4844] mt-2 font-normal max-w-[260px] leading-snug">
+              building things, breaking things 🛠️
+            </p>
+
+            <!-- STATS ROW (16px below bio) -->
+            <div class="w-full mt-4 flex items-center justify-between max-w-[280px]">
+              <!-- STAT 1: 248 following -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#0C1F1D] leading-tight">248</span>
+                <span class="text-[11px] text-[#3D6B66] tracking-wider uppercase font-normal mt-0.5">following</span>
+              </div>
+              <!-- Vertical Divider 32px height -->
+              <div class="w-[1px] h-8 bg-[#E0F0ED]"></div>
+              <!-- STAT 2: 1.2k followers -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#0C1F1D] leading-tight">1.2k</span>
+                <span class="text-[11px] text-[#3D6B66] tracking-wider uppercase font-normal mt-0.5">followers</span>
+              </div>
+              <!-- Vertical Divider 32px height -->
+              <div class="w-[1px] h-8 bg-[#E0F0ED]"></div>
+              <!-- STAT 3: 34 posts -->
+              <div class="flex-1 flex flex-col items-center">
+                <span class="font-display font-semibold text-[18px] text-[#0C1F1D] leading-tight">34</span>
+                <span class="text-[11px] text-[#3D6B66] tracking-wider uppercase font-normal mt-0.5">posts</span>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTONS (16px below stats, 24px side margins, 10px gap) -->
+            <div class="w-full mt-4 flex items-center gap-[10px]">
+              <!-- Button 1: Edit Profile -->
+              <button class="flex-1 h-[44px] rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] text-[#0C1F1D] text-[13px] font-medium flex items-center justify-center hover:bg-[#E0F0ED] transition-colors">
+                edit profile
+              </button>
+              <!-- Button 2: Share Profile -->
+              <button class="flex-1 h-[44px] rounded-[12px] bg-[#EDF7F5] border border-[#C4E4E0] text-[#0C1F1D] text-[13px] font-medium flex items-center justify-center hover:bg-[#E0F0ED] transition-colors">
+                share profile
+              </button>
+            </div>
+
+            <!-- INTERESTS (16px below buttons, wrapping pill row) -->
+            <div class="w-full mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0F766E]/10 border border-[#0F766E]/35 text-[#0F766E]">Technology</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0F766E]/10 border border-[#0F766E]/35 text-[#0F766E]">Coding</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0F766E]/10 border border-[#0F766E]/35 text-[#0F766E]">Art</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0F766E]/10 border border-[#0F766E]/35 text-[#0F766E]">Music</span>
+              <span class="h-[28px] px-3 rounded-full text-[12px] font-normal inline-flex items-center justify-center bg-[#0F766E]/10 border border-[#0F766E]/35 text-[#0F766E]">Coffee</span>
+            </div>
+
+          </div>
+
+          <!-- POSTS SECTION (20px below interests) -->
+          <div class="mt-5 w-full">
+            <!-- Tab Row -->
+            <div class="flex items-center px-6 gap-5">
+              <!-- Active: posts -->
+              <div class="relative pb-2 cursor-pointer">
+                <span class="text-[13px] font-medium text-[#0F766E]">posts</span>
+                <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0F766E] rounded-full"></div>
+              </div>
+              <!-- Inactive: vibes -->
+              <div class="pb-2 cursor-pointer">
+                <span class="text-[13px] font-normal text-[#3D6B66]">vibes</span>
+              </div>
+            </div>
+
+            <!-- 3x3 Grid of Post Thumbnails (8px below tab row) -->
+            <div class="grid grid-cols-3 gap-[2px] mt-2 w-full">
+              <!-- Cell 1 (with 8% teal overlay for recent/selected) -->
+              <div class="aspect-square bg-[#E0F0ED] relative flex items-center justify-center group overflow-hidden">
+                <div class="absolute inset-0 bg-[#0F766E]/[0.08] pointer-events-none"></div>
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 2 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 3 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 4 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 5 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 6 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 7 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 8 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+              <!-- Cell 9 -->
+              <div class="aspect-square bg-[#E0F0ED] flex items-center justify-center">
+                <svg class="w-5 h-5 text-[#6B9E99]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FIXED BOTTOM NAVIGATION (56dp) -->
+        <div class="w-full h-14 bg-[#FFFFFF] border-t border-[#C4E4E0] px-6 flex items-center justify-between select-none z-20">
+          <!-- Home (Inactive) -->
+          <button class="text-[#6B9E99] hover:text-[#0C1F1D] transition-colors p-1" aria-label="Home">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+          </button>
+          <!-- Compass (Inactive) -->
+          <button class="text-[#6B9E99] hover:text-[#0C1F1D] transition-colors p-1" aria-label="Discover">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+            </svg>
+          </button>
+          <!-- Messages (Inactive) -->
+          <button class="text-[#6B9E99] hover:text-[#0C1F1D] transition-colors p-1" aria-label="Messages">
+            <svg class="w-6 h-6 stroke-current stroke-[1.8] fill-none" viewBox="0 0 24 24">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </button>
+          <!-- Profile (Active: user-circle filled teal #0F766E) -->
+          <button class="text-[#0F766E] p-1" aria-label="Profile">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 4a3.5 3.5 0 100 7 3.5 3.5 0 000-7zm-6.19 12.31A7.962 7.962 0 0112 16c2.31 0 4.39.98 5.84 2.54A7.968 7.968 0 0112 20a7.968 7.968 0 01-6.19-1.69z"/>
+            </svg>
+          </button>
+        </div>
+
+      </div>
+      <!-- Theme Label -->
+      <div class="mt-3 flex items-center gap-2 text-xs text-[#7A9E9A]">
+        <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+        <span>Light Theme · #F5FAF9 Base</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Design System & Metadata Footnote -->
+  <div class="mt-8 text-center text-xs text-[#7A9E9A]/70 max-w-lg">
+    GVibe Identity System V3 · Deep Bay Teal & Turmeric Gold · Student Identity & Portfolio Profile
+  </div>
+
+</body>
+</html>

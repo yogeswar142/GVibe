@@ -3,7 +3,7 @@ import 'app_colors.dart';
 
 /// Custom ThemeExtension holding semantic tokens beyond standard Material ColorScheme.
 /// Struct and field names unchanged — zero call-site impact.
-/// Updated values: navy/indigo palette + accent glow shadows.
+/// Updated values: Bay & Gold Coastal palette — teal glow shadows, gold like.
 @immutable
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   const AppThemeExtension({
@@ -34,38 +34,38 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
 
   // ─── Dark Theme Extension ──────────────────────────────────────────────────
   static const AppThemeExtension dark = AppThemeExtension(
-    outline:              AppColors.outline,           // #212A3D
-    textMuted:            AppColors.textMuted,         // #838EA6 (ink-subtle)
-    like:                 AppColors.like,              // #F0555A
-    surfaceHighest:       AppColors.surfaceHighest,    // #1A2236
-    primaryContainer:     AppColors.primaryContainer,  // #1A1F4D
+    outline:              AppColors.outline,           // teal hairline
+    textMuted:            AppColors.textMuted,         // #3D5C58
+    like:                 AppColors.turmericGold,      // gold heart
+    surfaceHighest:       AppColors.surfaceHighest,    // #182220
+    primaryContainer:     AppColors.primaryContainer,  // #0A2D2A
     primaryGradient:      AppColors.primaryGradient,
     profileHeaderGradient: AppColors.profileHeaderGradientDark,
-    cardShadow:           [],                    // flat + hairline per spec
+    cardShadow:           [],                          // flat + teal hairline per spec
     glowShadow:           [
-      BoxShadow(color: Color(0x2E6C7BF7), blurRadius: 20), // accent at ~18%
+      BoxShadow(color: Color(0x400D9488), blurRadius: 20), // teal at ~25%
     ],
     avatarGlow:           [
-      BoxShadow(color: Color(0x596C7BF7), blurRadius: 12, spreadRadius: 2), // accent at ~35%
+      BoxShadow(color: Color(0x590D9488), blurRadius: 12, spreadRadius: 2), // teal at ~35%
     ],
     subtleBackground:     AppColors.subtleDarkGradient,
   );
 
   // ─── Light Theme Extension ─────────────────────────────────────────────────
   static const AppThemeExtension light = AppThemeExtension(
-    outline:              AppColors.lightOutline,           // #E7E8EC
-    textMuted:            AppColors.lightTextMuted,         // #868B99
-    like:                 AppColors.lightLike,              // #D93A3F
+    outline:              AppColors.lightOutline,           // light teal hairline
+    textMuted:            AppColors.lightTextMuted,         // #6B9E99
+    like:                 AppColors.lightGold,              // deepened gold on light
     surfaceHighest:       AppColors.lightSurfaceHighest,
-    primaryContainer:     AppColors.lightPrimaryContainer,  // #EBEBFD
+    primaryContainer:     AppColors.lightPrimaryContainer,  // #CCF0EB
     primaryGradient:      AppColors.primaryGradientLight,
     profileHeaderGradient: AppColors.profileHeaderGradientLight,
-    cardShadow:           [],                         // flat + hairline per spec
+    cardShadow:           [],                               // flat + teal hairline per spec
     glowShadow:           [
-      BoxShadow(color: Color(0x245B63F0), blurRadius: 16), // light accent ~14%
+      BoxShadow(color: Color(0x2E0F766E), blurRadius: 16), // light teal ~18%
     ],
     avatarGlow:           [
-      BoxShadow(color: Color(0x3D5B63F0), blurRadius: 10, spreadRadius: 1), // ~24%
+      BoxShadow(color: Color(0x3D0F766E), blurRadius: 10, spreadRadius: 1), // ~24%
     ],
     subtleBackground:     AppColors.subtleLightGradient,
   );

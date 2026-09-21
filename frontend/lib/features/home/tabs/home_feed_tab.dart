@@ -113,21 +113,17 @@ class _HomeFeedTabState extends State<HomeFeedTab>
 
   Widget _buildTopBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF171717);
-    
+
     return Container(
       padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 12, 20, 12),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Row(
         children: [
-          Text(
+          BrandTitle(
             'GVibe',
-            style: AppTextStyles.displaySm.copyWith(
-              color: titleColor,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              letterSpacing: isDark ? -0.8 : -1.2,
-            ),
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            letterSpacing: isDark ? -0.8 : -1.2,
           ),
           const Spacer(),
           const ThemeToggleButton(

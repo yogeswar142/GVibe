@@ -120,7 +120,13 @@ class ApiService {
       }
     }
 
-    // 3. Static Ngrok tunnel URL
+    // 3. Production Render URL
+    const renderUrl = 'https://gvibe-p002.onrender.com/api';
+    if (!candidates.contains(renderUrl)) {
+      candidates.add(renderUrl);
+    }
+
+    // 4. Static Ngrok tunnel URL (local dev fallback)
     const ngrokUrl = 'https://levitative-unpresumptuously-claire.ngrok-free.dev/api';
     if (!candidates.contains(ngrokUrl)) {
       candidates.add(ngrokUrl);

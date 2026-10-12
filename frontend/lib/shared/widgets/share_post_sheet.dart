@@ -65,7 +65,7 @@ class _SharePostSheetState extends State<SharePostSheet> {
     } catch (_) {
       if (mounted) {
         setState(() {
-          _shareUrl = 'https://gvibe.onrender.com/api/posts/$postId';
+          _shareUrl = 'https://gvibe-p002.onrender.com/api/posts/$postId';
           _loading = false;
         });
       }

@@ -17,8 +17,7 @@ compatibility_date = "2024-09-23"
 #
 [[kv_namespaces]]
 binding  = "SHORT_LINKS_KV"
-id       = "REPLACE_WITH_PRODUCTION_KV_ID"
-preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+id       = "6fe72ea08d7c481cbed78eaef6a8863d"
 
 # ── Queues ────────────────────────────────────────────────────
 # Free plan: 10,000 operations/day (3 ops per message: write+read+delete)

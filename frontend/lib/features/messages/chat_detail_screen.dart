@@ -201,6 +201,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _dmSub = SocketService.instance.dmStream.listen((dm) async {
       if (dm.senderId != widget.threadId && dm.receiverId != widget.threadId) return;
 
+      // Deduplication guard: ignore if message ID is already rendered
+      if (dm.id.isNotEmpty && _messages.any((m) => m.id == dm.id)) {
+        return;
+      }
+
       final isMe = dm.senderId == _myId;
 
       // If we are the sender, check if we already have an optimistic message in the list

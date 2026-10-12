@@ -113,6 +113,20 @@ class SocketService {
   final _onlineController    = StreamController<String>.broadcast();
   final _offlineController   = StreamController<String>.broadcast();
 
+  // Deduplication set to ensure a message is never emitted twice to dmStream
+  final _recentDmIds = <String>{};
+
+  void _emitDm(DmMessage msg) {
+    if (msg.id.isNotEmpty) {
+      if (_recentDmIds.contains(msg.id)) return;
+      _recentDmIds.add(msg.id);
+      if (_recentDmIds.length > 200) {
+        _recentDmIds.remove(_recentDmIds.first);
+      }
+    }
+    _dmController.add(msg);
+  }
+
   Stream<DmMessage>        get dmStream          => _dmController.stream;
   Stream<CommunityMessage> get communityStream   => _communityController.stream;
   Stream<TypingEvent>      get dmTypingStream    => _dmTypingController.stream;
@@ -178,7 +192,7 @@ class SocketService {
         if (success && data is Map && data['data'] != null) {
           try {
             final payload = Map<String, dynamic>.from(data['data'] as Map);
-            _dmController.add(DmMessage.fromMap(payload));
+            _emitDm(DmMessage.fromMap(payload));
           } catch (_) {}
         }
         if (!completer.isCompleted) completer.complete(success);
@@ -209,7 +223,7 @@ class SocketService {
       if (success && response.data['data'] != null) {
         try {
           final payload = Map<String, dynamic>.from(response.data['data'] as Map);
-          _dmController.add(DmMessage.fromMap(payload));
+          _emitDm(DmMessage.fromMap(payload));
         } catch (_) {}
       }
       return success;
@@ -265,7 +279,7 @@ class SocketService {
 
       ..on('dm:receive', (data) {
         try {
-          _dmController.add(DmMessage.fromMap(Map<String, dynamic>.from(data as Map)));
+          _emitDm(DmMessage.fromMap(Map<String, dynamic>.from(data as Map)));
         } catch (e) {
           debugPrint('dm:receive parse error: $e');
         }

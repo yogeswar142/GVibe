@@ -58,8 +58,11 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthAndNavigate() async {
     if (!mounted) return;
     
-    // Await the connection check running in parallel
-    final isOnline = await _connectionCheck;
+    // Await the connection check running in parallel with safety timeout
+    final isOnline = await _connectionCheck.timeout(
+      const Duration(seconds: 4),
+      onTimeout: () => true, // Proceed optimistically so UI is never stuck
+    );
     if (!mounted) return;
 
     if (!isOnline) {

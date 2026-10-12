@@ -113,6 +113,22 @@
       document.getElementById("splash-branding")?.remove();
       document.body.style.background = "transparent";
     }
+
+    // Automatically remove web splash as soon as Flutter renders
+    window.addEventListener('flutter-first-frame', function() {
+      removeSplashFromWeb();
+    });
+
+    // DWDS / Dev runner fallback: trigger main if delayed
+    window.addEventListener('load', function() {
+      setTimeout(removeSplashFromWeb, 2500);
+      setTimeout(function() {
+        if (!window.$dartMainExecuted && typeof window.$dartRunMain === 'function') {
+          console.log('⚡ Triggering Flutter web main execution fallback');
+          window.$dartRunMain();
+        }
+      }, 1500);
+    });
   </script>
 </head>
 <body>

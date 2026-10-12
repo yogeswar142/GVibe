@@ -203,10 +203,7 @@ class AuthService {
       }
 
       // Mobile (Android / iOS): Use authenticate() with native account picker
-      final GoogleSignInAccount? googleUser = await GoogleSignIn.instance.authenticate();
-      if (googleUser == null) {
-        return null; // User cancelled
-      }
+      final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
 
       final GoogleSignInAuthentication googleAuthInfo = googleUser.authentication;
       final String? idToken = googleAuthInfo.idToken;

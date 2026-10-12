@@ -124,13 +124,19 @@ class ApiService {
   /// Dynamically tests candidate URLs (configured, emulator local, and static Ngrok tunnel)
   /// and locks onto the first responding URL.
   Future<bool> checkConnection() async {
-    final configuredUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:5000/api';
+    final configuredUrl = dotenv.env['API_BASE_URL'] ?? 'https://gvibe-p002.onrender.com/api';
     final candidates = <String>[];
 
-    // 1. Configured URL
+    // 1. Primary: configured URL from .env
     candidates.add(configuredUrl);
 
-    // 2. Android emulator translation if configured is localhost
+    // 2. Production Render URL fallback
+    const renderUrl = 'https://gvibe-p002.onrender.com/api';
+    if (!candidates.contains(renderUrl)) {
+      candidates.add(renderUrl);
+    }
+
+    // 3. Android emulator translation if configured is localhost
     if (!kIsWeb && Platform.isAndroid) {
       if (configuredUrl.contains('localhost') || configuredUrl.contains('127.0.0.1')) {
         final emuUrl = configuredUrl.replaceAll('localhost', '10.0.2.2').replaceAll('127.0.0.1', '10.0.2.2');
@@ -140,25 +146,19 @@ class ApiService {
       }
     }
 
-    // 3. Production Render URL
-    const renderUrl = 'https://gvibe-p002.onrender.com/api';
-    if (!candidates.contains(renderUrl)) {
-      candidates.add(renderUrl);
-    }
-
     // 4. Static Ngrok tunnel URL (local dev fallback)
     const ngrokUrl = 'https://levitative-unpresumptuously-claire.ngrok-free.dev/api';
     if (!candidates.contains(ngrokUrl)) {
       candidates.add(ngrokUrl);
     }
 
-    // Local development endpoint (always tested for Chrome web and local debugging)
+    // 5. Local development endpoint (only tested as last fallback, never inserted at index 0)
     const localUrl = 'http://localhost:5000/api';
     if (!candidates.contains(localUrl)) {
-      candidates.insert(0, localUrl);
+      candidates.add(localUrl);
     }
 
-    // If we already successfully resolved one, test it first
+    // If we already successfully resolved one during this session, test it first
     if (_resolvedBaseUrl != null) {
       candidates.remove(_resolvedBaseUrl!);
       candidates.insert(0, _resolvedBaseUrl!);
@@ -170,8 +170,8 @@ class ApiService {
       try {
         final testDio = Dio(BaseOptions(
           baseUrl: candidate,
-          connectTimeout: const Duration(milliseconds: 12000),
-          receiveTimeout: const Duration(milliseconds: 12000),
+          connectTimeout: const Duration(milliseconds: 3500),
+          receiveTimeout: const Duration(milliseconds: 3500),
         ));
         final response = await testDio.get('/');
         final data = response.data;

@@ -42,8 +42,7 @@ max_retries       = 3    # Retry failed batches up to 3 times
 # Secrets (INTERNAL_SECRET) must be set via:
 #   npx wrangler secret put INTERNAL_SECRET
 [vars]
-# Override API_BASE_URL at deploy time for production
-API_BASE_URL = "https://levitative-unpresumptuously-claire.ngrok-free.dev"
+API_BASE_URL = "https://gvibe-p002.onrender.com"
 
 # ── Routing ───────────────────────────────────────────────────
 # Worker is deployed on workers.dev during development/testing.

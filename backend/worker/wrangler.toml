@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────
+# GVibe Cloudflare Worker — Wrangler Configuration
+# ─────────────────────────────────────────────────────────────
+name = "gvibe-worker"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# ── KV Namespace ──────────────────────────────────────────────
+# Stores: shortCode → { destinationUrl, creatorId }
+# TTL: 86400s (1 day). Short links are immutable once created.
+#
+# SETUP: Run these commands to create the KV namespace, then
+# paste the returned IDs below:
+#
+#   npx wrangler kv namespace create SHORT_LINKS_KV
+#   npx wrangler kv namespace create SHORT_LINKS_KV --preview
+#
+[[kv_namespaces]]
+binding  = "SHORT_LINKS_KV"
+id       = "REPLACE_WITH_PRODUCTION_KV_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+
+# ── Queues ────────────────────────────────────────────────────
+# Free plan: 10,000 operations/day (3 ops per message: write+read+delete)
+# That means ~3,333 analytics events/day are safe on the free tier.
+# Message retention: 24 hours on free plan.
+# Each message = 1 click event (< 512 bytes), well within 128 KB limit.
+#
+# SETUP: Run this command to create the queue:
+#   npx wrangler queues create gvibe-link-analytics
+#
+[[queues.producers]]
+binding = "ANALYTICS_QUEUE"
+queue   = "gvibe-link-analytics"
+
+[[queues.consumers]]
+queue             = "gvibe-link-analytics"
+max_batch_size    = 25   # Batch up to 25 events before flushing
+max_batch_timeout = 15   # Or flush after 15 seconds, whichever comes first
+max_retries       = 3    # Retry failed batches up to 3 times
+
+# ── Environment variables (non-secret) ───────────────────────
+# Secrets (INTERNAL_SECRET) must be set via:
+#   npx wrangler secret put INTERNAL_SECRET
+[vars]
+# Override API_BASE_URL at deploy time for production
+API_BASE_URL = "https://levitative-unpresumptuously-claire.ngrok-free.dev"
+
+# ── Routing ───────────────────────────────────────────────────
+# Worker is deployed on workers.dev during development/testing.
+# To connect a custom domain later, add a [[routes]] block:
+#
+# [[routes]]
+# pattern = "yourdomain.com/s/*"
+# zone_name = "yourdomain.com"
+#
+# [[routes]]
+# pattern = "yourdomain.com/live/*"
+# zone_name = "yourdomain.com"

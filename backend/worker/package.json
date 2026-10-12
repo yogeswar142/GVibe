@@ -1,0 +1,14 @@
+{
+  "name": "gvibe-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for GVibe — edge short-link redirects, live-location preview, durable analytics via Queues",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4",
+    "wrangler": "^3"
+  }
+}

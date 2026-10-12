@@ -263,6 +263,11 @@ exports.redirectLiveLocation = async (req, res) => {
       } catch (_) {}
     });
 
+    // ⚠️  IMPORTANT: never cache this response — it contains a redirect
+    // to the user's current GPS coordinates.
+    res.set('Cache-Control', 'no-store, no-cache, private, must-revalidate');
+    res.set('Pragma', 'no-cache');
+
     // HTTP 302 Redirect to the student's latest real-time coordinates on Google Maps
     const mapsUrl = `https://maps.google.com/?q=${session.latitude},${session.longitude}`;
     res.redirect(302, mapsUrl);

@@ -53,6 +53,12 @@ const postSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  // Audit trail: IP of author when post was created (hidden by default)
+  ipAddress: {
+    type: String,
+    default: null,
+    select: false,
+  },
 }, { timestamps: true });
 
 // ── Indexes ───────────────────────────────────────────────────────────────────

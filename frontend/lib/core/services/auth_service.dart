@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'api_service.dart';
 import 'socket_service.dart';
-import 'encryption_service.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
@@ -90,17 +89,9 @@ class AuthService {
   static Future<void> saveUser(Map<String, dynamic> userData) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Check if the user is switching accounts to clear key cache
-    final existingUid = prefs.getString(_userIdKey);
-    final newUid = userData['_id']?.toString() ?? userData['id']?.toString();
-    if (existingUid != null && existingUid != newUid) {
-      EncryptionService.instance.clearCache();
-      // NOTE: We no longer delete keys on account switch because keys are user-namespaced.
-      // This preserves historical DM readability when logging back into a previous account.
-    }
-
     await prefs.setString(_userKey, jsonEncode(userData));
     // Persist userId separately for quick access without full JSON decode
+    final newUid = userData['_id']?.toString() ?? userData['id']?.toString();
     if (newUid != null) await prefs.setString(_userIdKey, newUid);
 
     // BUG-02 fix: connect socket only now, after user identity is settled.
@@ -122,65 +113,39 @@ class AuthService {
 
   // Clear all auth data (logout)
   static Future<void> logout() async {
-    // BUG-02 fix: disconnect socket FIRST before clearing credentials
-    // so no in-flight events fire with a stale identity.
-    SocketService.instance.disconnect();
-    EncryptionService.instance.clearCache();
-    // NOTE: We no longer delete keys on logout to preserve historical DM readability
-    // when logging back into the same account on this device.
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_userKey);
-    await prefs.remove(_userIdKey);
+    // 1. Disconnect socket
     try {
-      await GoogleSignIn.instance.disconnect();
+      SocketService.instance.disconnect();
     } catch (_) {}
-    try {
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
-  }
 
-  /// BUG-01 fix: Clears the local E2EE keypair and re-uploads a fresh public
-  /// key to the server. Call this after every login/registration to guarantee
-  /// the device key and the server's stored key are always in sync.
-  static Future<void> uploadFreshKeys(ApiService api) async {
-    try {
-      EncryptionService.instance.clearCache();
-      await EncryptionService.instance.clearSecureKeys();
-      final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
-      await api.dio.put('/messages/keys/public', data: {'x25519': myPub});
-      debugPrint('🔑 [E2EE] Fresh key pair generated and uploaded: $myPub');
-    } catch (e) {
-      debugPrint('🔑 [E2EE Error] Failed to upload fresh key: $e');
-    }
-  }
-
-  /// Syncs E2EE keys dynamically without wiping existing ones, preserving history.
-  /// If missing or mismatched on the server, uploads/syncs them.
-  static Future<void> syncEncryptionKeys(ApiService api) async {
+    // 2. Clear credentials from persistent storage
     try {
       final prefs = await SharedPreferences.getInstance();
-      final myId = prefs.getString(_userIdKey);
-      if (myId == null || myId.isEmpty) {
-        return;
-      }
-
-      final myLocalPub = await EncryptionService.instance.getMyPublicKeyBase64();
-      
-      final response = await api.dio.get('/messages/keys/$myId');
-      if (response.data['success'] == true) {
-        final serverPub = response.data['data']?['x25519']?.toString();
-        if (serverPub == myLocalPub) {
-          debugPrint('🔑 [E2EE] Keys are in sync with server. No rotation needed.');
-          return;
-        }
-      }
-      
-      await api.dio.put('/messages/keys/public', data: {'x25519': myLocalPub});
-      debugPrint('🔑 [E2EE] Uploaded local public key to server for sync: $myLocalPub');
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_userKey);
+      await prefs.remove(_userIdKey);
     } catch (e) {
-      debugPrint('🔑 [E2EE Sync Error] Failed to sync keys: $e. Skipping rotation to protect history.');
+      debugPrint('Error clearing storage on logout: $e');
     }
+
+    // 3. Clear Google Sign-In session safely without blocking execution or crashing on web
+    try {
+      if (kIsWeb) {
+        await GoogleSignIn.instance
+            .signOut()
+            .timeout(const Duration(milliseconds: 500))
+            .catchError((_) => null);
+      } else {
+        await GoogleSignIn.instance
+            .signOut()
+            .timeout(const Duration(milliseconds: 500))
+            .catchError((_) => null);
+        await GoogleSignIn.instance
+            .disconnect()
+            .timeout(const Duration(milliseconds: 500))
+            .catchError((_) => null);
+      }
+    } catch (_) {}
   }
 
   // Orchestrate Google Sign-in: tries real Google Auth first, falls back to simulation on dev errors

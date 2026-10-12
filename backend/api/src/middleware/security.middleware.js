@@ -37,6 +37,8 @@ const corsOptions = {
     // Allow requests with no origin (mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
     if (allowedOrigins.has(origin)) return callback(null, true);
+    // Allow localhost/127.0.0.1 on any port for local development & Flutter web debugging
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
     callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

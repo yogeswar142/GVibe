@@ -28,11 +28,7 @@ class DmMessage {
   final String senderName;
   final String? senderAvatar;
   final String receiverId;
-  final String ciphertext;
-  final String nonce;
-  final String mac;
-  final String senderPublicKey;
-  final String receiverPublicKey;
+  final String content;
   final DateTime createdAt;
 
   const DmMessage({
@@ -41,27 +37,19 @@ class DmMessage {
     required this.senderName,
     this.senderAvatar,
     required this.receiverId,
-    required this.ciphertext,
-    required this.nonce,
-    required this.mac,
-    required this.senderPublicKey,
-    required this.receiverPublicKey,
+    required this.content,
     required this.createdAt,
   });
 
   factory DmMessage.fromMap(Map<String, dynamic> m) {
-    final sender = m['sender'] as Map<String, dynamic>? ?? {};
+    final sender = m['sender'] is Map ? m['sender'] as Map : {};
     return DmMessage(
       id:           m['_id']?.toString() ?? '',
-      senderId:     sender['_id']?.toString() ?? m['senderId']?.toString() ?? '',
+      senderId:     sender['_id']?.toString() ?? m['senderId']?.toString() ?? (m['sender'] is String ? m['sender'].toString() : ''),
       senderName:   sender['name']?.toString() ?? '',
       senderAvatar: sender['avatar']?.toString(),
-      receiverId:   m['receiverId']?.toString() ?? '',
-      ciphertext:   m['ciphertext']?.toString() ?? '',
-      nonce:        m['nonce']?.toString() ?? '',
-      mac:          m['mac']?.toString() ?? '',
-      senderPublicKey: m['senderPublicKey']?.toString() ?? '',
-      receiverPublicKey: m['receiverPublicKey']?.toString() ?? '',
+      receiverId:   m['receiverId']?.toString() ?? (m['receiver'] is Map ? m['receiver']['_id']?.toString() : m['receiver']?.toString()) ?? '',
+      content:      m['content']?.toString() ?? '',
       createdAt:    DateTime.tryParse(m['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
@@ -146,11 +134,12 @@ class SocketService {
 
     _currentToken = jwtToken;
 
-    final socketUrl = dotenv.env['SOCKET_URL']
-        ?? ApiService.baseUrl.replaceAll('/api', '');
+    final socketUrl = (dotenv.env['SOCKET_URL'] != null && !dotenv.env['SOCKET_URL']!.contains('onrender.com'))
+        ? dotenv.env['SOCKET_URL']!
+        : ApiService.baseUrl.replaceAll('/api', '');
 
     _socket = io.io(socketUrl, io.OptionBuilder()
-      .setTransports(['websocket'])
+      .setTransports(['websocket', 'polling'])
       .disableAutoConnect()
       .setAuth({'token': jwtToken})
       .enableForceNew()
@@ -174,32 +163,60 @@ class SocketService {
 
   // ── DM Actions ────────────────────────────────────────────────────────────
 
-  /// Send an E2EE DM. The payload is already encrypted by [EncryptionService].
+  /// Send a Direct Message. Tries real-time Socket.io with immediate REST fallback.
   Future<bool> sendDM({
     required String receiverId,
-    required String ciphertext,
-    required String nonce,
-    required String mac,
-    required String senderPublicKey,
-    required String receiverPublicKey,
-  }) {
-    final completer = Completer<bool>();
-    _socket?.emitWithAck('dm:send', {
-      'receiverId': receiverId,
-      'ciphertext': ciphertext,
-      'nonce':      nonce,
-      'mac':        mac,
-      'senderPublicKey': senderPublicKey,
-      'receiverPublicKey': receiverPublicKey,
-    }, ack: (data) {
-      final success = (data as Map?)?['success'] == true;
-      if (!completer.isCompleted) completer.complete(success);
-    });
-    // Timeout fallback — 15s to handle slow mobile networks (BUG-06 fix)
-    Future.delayed(const Duration(seconds: 15), () {
-      if (!completer.isCompleted) completer.complete(false);
-    });
-    return completer.future;
+    required String content,
+  }) async {
+    if (_socket != null && _socket!.connected) {
+      final completer = Completer<bool>();
+      _socket!.emitWithAck('dm:send', {
+        'receiverId': receiverId,
+        'content':    content,
+      }, ack: (data) {
+        final success = (data as Map?)?['success'] == true;
+        if (success && data is Map && data['data'] != null) {
+          try {
+            final payload = Map<String, dynamic>.from(data['data'] as Map);
+            _dmController.add(DmMessage.fromMap(payload));
+          } catch (_) {}
+        }
+        if (!completer.isCompleted) completer.complete(success);
+      });
+      // Fast fallback to REST after 3 seconds if socket ack stalls
+      Future.delayed(const Duration(seconds: 3), () async {
+        if (!completer.isCompleted) {
+          debugPrint('⚠️ [Socket] dm:send timeout. Falling back to REST API...');
+          final restSuccess = await _sendDmViaRest(receiverId, content);
+          completer.complete(restSuccess);
+        }
+      });
+      return completer.future;
+    }
+
+    // Socket disconnected: deliver directly via REST API
+    debugPrint('ℹ️ [Socket] Disconnected. Sending DM directly via REST API...');
+    return _sendDmViaRest(receiverId, content);
+  }
+
+  Future<bool> _sendDmViaRest(String receiverId, String content) async {
+    try {
+      final response = await ApiService().dio.post(
+        '/messages/dms/$receiverId',
+        data: {'content': content},
+      );
+      final success = response.data['success'] == true;
+      if (success && response.data['data'] != null) {
+        try {
+          final payload = Map<String, dynamic>.from(response.data['data'] as Map);
+          _dmController.add(DmMessage.fromMap(payload));
+        } catch (_) {}
+      }
+      return success;
+    } catch (e) {
+      debugPrint('❌ [REST DM] Failed to send message via REST: $e');
+      return false;
+    }
   }
 
   void sendReadAck(String senderId) {

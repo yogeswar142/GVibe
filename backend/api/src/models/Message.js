@@ -22,19 +22,20 @@ const messageSchema = new mongoose.Schema({
   },
 
   // ── Payload ──────────────────────────────────────────────────────
-  // For community (plaintext) messages
+  // Unified content for both DMs and Community chats (transmitted over TLS/WSS)
   content: {
     type: String,
-    default: null,
+    required: [true, 'Message content is required'],
+    trim: true,
     maxlength: 4000,
   },
 
-  // For E2EE DMs — encrypted on the client, opaque to the server
-  ciphertext: { type: String, default: null },
-  nonce:      { type: String, default: null },
-  mac:        { type: String, default: null },
-  senderPublicKey:   { type: String, default: null },
-  receiverPublicKey: { type: String, default: null },
+  // Audit trail: IP of sender at creation time (hidden from standard queries)
+  ipAddress: {
+    type: String,
+    default: null,
+    select: false,
+  },
 
   // ── Read receipts ─────────────────────────────────────────────────
   // DM: simple boolean; Community: list of userIds who have read it

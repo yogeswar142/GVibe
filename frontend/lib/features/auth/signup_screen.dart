@@ -249,7 +249,6 @@ class _SignupScreenState extends State<SignupScreen> {
                                     final userData = data['data'];
                                     await AuthService.saveToken(userData['token']);
                                     await AuthService.saveUser(userData);
-                                    await AuthService.syncEncryptionKeys(ApiService());
                                     if (mounted) {
                                       context.go(AppRouter.onboarding);
                                     }

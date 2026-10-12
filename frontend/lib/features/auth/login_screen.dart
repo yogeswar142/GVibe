@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'dart:ui';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
@@ -64,12 +65,33 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = response.data['data'];
         await AuthService.saveToken(data['token']);
         await AuthService.saveUser(data);
-        // BUG-01 fix: sync E2EE keys dynamically after every login
-        // so device key and server key are in sync without breaking history.
-        await AuthService.syncEncryptionKeys(ApiService());
         if (mounted) context.go(AppRouter.home);
       } else {
         setState(() => _error = response.data['message'] ?? 'Login failed');
+      }
+    } on DioException catch (e) {
+      setState(() => _error = ApiService.getErrorMessage(e));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _devLogin() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response = await ApiService().dio.post('/auth/dev-login', data: {
+        'email': 'yamara@student.gitam.edu',
+      });
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
+        await AuthService.saveToken(data['token']);
+        await AuthService.saveUser(data);
+        if (mounted) context.go(AppRouter.home);
+      } else {
+        setState(() => _error = response.data['message'] ?? 'Dev login failed');
       }
     } on DioException catch (e) {
       setState(() => _error = ApiService.getErrorMessage(e));
@@ -352,13 +374,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 final userData = data['data'];
                                 await AuthService.saveToken(userData['token']);
                                 await AuthService.saveUser(userData);
-                                await AuthService.syncEncryptionKeys(ApiService());
-                                if (mounted) {
-                                  if (userData['profileComplete'] == true) {
-                                    context.go(AppRouter.home);
-                                  } else {
-                                    context.go(AppRouter.onboarding);
-                                  }
+                                if (!mounted) return;
+                                if (userData['profileComplete'] == true) {
+                                  context.go(AppRouter.home);
+                                } else {
+                                  context.go(AppRouter.onboarding);
                                 }
                               },
                               onError: (err) {
@@ -367,6 +387,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                 }
                               },
                             ),
+
+                            if (kDebugMode) ...[
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 46,
+                                child: OutlinedButton.icon(
+                                  key: const ValueKey('dev_quick_login_btn'),
+                                  onPressed: _loading ? null : _devLogin,
+                                  icon: const Icon(Icons.bolt_rounded, size: 20, color: Color(0xFF0D9488)),
+                                  label: const Text(
+                                    '⚡ Dev Login (yamara@student.gitam.edu)',
+                                    style: TextStyle(
+                                      color: Color(0xFF0D9488),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(color: Color(0xFF0D9488), width: 1.5),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

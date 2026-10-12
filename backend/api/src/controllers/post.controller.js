@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const ShortLink = require('../models/ShortLink');
 const UserAnalytics = require('../models/UserAnalytics');
 const crypto = require('crypto');
+const { getClientIp } = require('../utils/ip.util');
 
 const generateShortCode = () => {
   const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -99,6 +100,7 @@ exports.createPost = async (req, res) => {
       type: type || 'text',
       category: sanitizedCategory,
       tags,
+      ipAddress: getClientIp(req),
     });
 
     const populatedPost = await Post.findById(post._id)

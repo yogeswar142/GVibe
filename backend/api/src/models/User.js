@@ -48,12 +48,11 @@ const userSchema = new mongoose.Schema({
   followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
-  // E2EE: X25519 public key uploaded by the Flutter client at login.
-  // The matching private key is stored ONLY in FlutterSecureStorage on-device.
-  publicKey: {
-    x25519: { type: String, default: null },
-    updatedAt: { type: Date, default: null },
-  },
+  // Audit & Security Trails (IP and Device footprint)
+  lastLoginIp:  { type: String, default: null, select: false },
+  lastActiveIp: { type: String, default: null, select: false },
+  lastLoginAt:  { type: Date, default: null },
+  deviceInfo:   { type: String, default: null, select: false },
 
   // Socket.io presence (last seen, used for "Online" indicators)
   lastSeen: { type: Date, default: null },

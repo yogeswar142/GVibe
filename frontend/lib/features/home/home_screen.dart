@@ -7,8 +7,6 @@ import '../messages/messages_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/socket_service.dart';
-import '../../core/services/api_service.dart';
-import '../../core/services/encryption_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -33,15 +31,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // This call is a safe fallback for cold-start (app killed and reopened
       // while already logged in, bypassing the login screen).
       SocketService.instance.connect(token);
-      // On cold-start the key was already uploaded at login time. We only do
-      // a lightweight re-upload here if the key is somehow missing from the server.
-      try {
-        final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
-        await ApiService().dio.put('/messages/keys/public', data: {'x25519': myPub});
-        debugPrint('🔑 [E2EE] Home: fallback public key confirmed on server: $myPub');
-      } catch (e) {
-        debugPrint('🔑 [E2EE Error] Home: fallback key upload failed: $e');
-      }
     }
   }
 

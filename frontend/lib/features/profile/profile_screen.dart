@@ -227,8 +227,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    await AuthService.logout();
-    if (mounted) context.go(AppRouter.login);
+    try {
+      await AuthService.logout();
+    } catch (e) {
+      debugPrint('Logout error: $e');
+    }
+    if (mounted) {
+      context.go(AppRouter.login);
+    } else {
+      AppRouter.router.go(AppRouter.login);
+    }
   }
 
   Future<void> _showPrivacySettingsDialog() async {
@@ -650,9 +658,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   'Sign out of your account on this device',
                   style: AppTextStyles.bodyXs.copyWith(color: mutedColor),
                 ),
-                onTap: () {
+                onTap: () async {
                   Navigator.of(ctx).pop();
-                  _logout();
+                  await _logout();
                 },
               ),
           ],

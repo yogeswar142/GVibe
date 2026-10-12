@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getDMs,
+  sendDM,
   getConversations,
   createCommunity,
   getMyCommunities,
@@ -8,12 +9,9 @@ const {
   getCommunityMessages,
   joinCommunity,
   leaveCommunity,
-  uploadPublicKey,
-  getPublicKey,
   getCommunityDetails,
   updateMemberRole,
   kickCommunityMember,
-  logDecryptFailure,
 } = require('../controllers/message.controller');
 const { protect }         = require('../middleware/auth.middleware');
 const { messageLimiter }  = require('../middleware/security.middleware');
@@ -26,11 +24,7 @@ router.use(protect);
 // ── Direct Messages ──────────────────────────────────────────────────────────
 router.get('/conversations',          getConversations);        // inbox list
 router.get('/dms/:userId',            getDMs);                  // ?before=<id>
-
-// ── E2EE Public Keys ─────────────────────────────────────────────────────────
-router.put('/keys/public',            uploadPublicKey);
-router.get('/keys/:userId',           getPublicKey);
-router.post('/debug/log-decrypt-failure', logDecryptFailure);
+router.post('/dms/:userId',           messageLimiter, sendDM);  // send DM (REST fallback/primary)
 
 // ── Communities ──────────────────────────────────────────────────────────────
 router.route('/communities')

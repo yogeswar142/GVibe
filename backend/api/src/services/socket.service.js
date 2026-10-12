@@ -19,6 +19,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Message = require('../models/Message');
 const Community = require('../models/Community');
+const { getSocketIp } = require('../utils/ip.util');
 
 let io; // exported so REST controllers can emit when needed
 
@@ -74,6 +75,8 @@ const initSocket = (httpServer) => {
       origin: (origin, callback) => {
         // Mobile apps send no origin — always allow
         if (!origin || allowedOrigins.has(origin)) return callback(null, true);
+        // Allow localhost/127.0.0.1 on any port for local development & Flutter web debugging
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return callback(null, true);
         callback(new Error(`Socket CORS: origin '${origin}' not allowed`));
       },
       methods: ['GET', 'POST'],
@@ -96,8 +99,12 @@ const initSocket = (httpServer) => {
     // ── Personal room: targetable from REST handlers too ──────────────────
     socket.join(userId);
 
-    // ── Mark user online ──────────────────────────────────────────────────
-    await User.findByIdAndUpdate(userId, { lastSeen: null }); // null = online
+    // ── Mark user online and update active IP ──────────────────────────────
+    const clientIp = getSocketIp(socket);
+    await User.findByIdAndUpdate(userId, { 
+      lastSeen: null,
+      lastActiveIp: clientIp,
+    }); // null = online
     // BUG-07 fix: emit presence only to this user's followers, not everyone
     try {
       const self = await User.findById(userId).select('followers').lean();
@@ -119,47 +126,47 @@ const initSocket = (httpServer) => {
 
     // ─────────────────────────────────────────────────────────────────────
     // EVENT: dm:send
-    // Payload: { receiverId, ciphertext, nonce, mac }
-    // The server stores the opaque ciphertext and forwards it — never reads it.
+    // Payload: { receiverId, content }
+    // Transmitted over TLS/WSS and persisted securely with sender IP audit trail.
     // ─────────────────────────────────────────────────────────────────────
     socket.on('dm:send', async (data, ack) => {
       try {
         if (!checkLimit(_dmBuckets, 30)) {
           return ack?.({ success: false, error: 'Rate limit: slow down (30 DMs/min max)' });
         }
-        const { receiverId, ciphertext, nonce, mac, senderPublicKey, receiverPublicKey } = data;
+        const { receiverId, content, ciphertext } = data;
+        const msgText = (content && typeof content === 'string' && content.trim()) ||
+                        (ciphertext && typeof ciphertext === 'string' && ciphertext.trim());
 
-        if (!receiverId || !ciphertext || !nonce || !mac || !senderPublicKey || !receiverPublicKey) {
+        if (!receiverId || !msgText) {
           return ack?.({ success: false, error: 'Missing required fields' });
         }
 
-        // Persist encrypted payload
+        const senderIp = getSocketIp(socket);
+
+        // Persist message with audit IP
         const message = await Message.create({
           sender: userId,
           receiver: receiverId,
-          ciphertext,
-          nonce,
-          mac,
-          senderPublicKey,
-          receiverPublicKey,
+          content: msgText,
+          ipAddress: senderIp,
         });
 
-        console.log(`💬 [Socket E2EE] DM sent by ${socket.user.name} (${userId}) (Pub: ${senderPublicKey}) to ${receiverId} (Pub: ${receiverPublicKey})`);
+        console.log(`💬 [Socket] DM sent by ${socket.user.name} (${userId}) to ${receiverId}`);
 
         const payload = {
           _id: message._id,
           sender: { _id: socket.user._id, name: socket.user.name, avatar: socket.user.avatar },
           receiverId,
-          ciphertext,
-          nonce,
-          mac,
-          senderPublicKey,
-          receiverPublicKey,
+          content: message.content,
           createdAt: message.createdAt,
         };
 
         // Emit to receiver's personal room (works across their devices)
         io.to(receiverId).emit('dm:receive', payload);
+
+        // Also emit to sender's personal room so sender inbox and all active devices update instantly
+        io.to(userId).emit('dm:receive', payload);
 
         // Confirm to sender
         ack?.({ success: true, data: payload });
@@ -216,10 +223,12 @@ const initSocket = (httpServer) => {
           return ack?.({ success: false, error: 'Not a member of this community' });
         }
 
+        const senderIp = getSocketIp(socket);
         const message = await Message.create({
           sender: userId,
           community: communityId,
           content: content.trim(),
+          ipAddress: senderIp,
         });
 
         console.log(`💬 [Socket] Community message sent by ${socket.user.name} (${userId}) to community ${communityId}`);

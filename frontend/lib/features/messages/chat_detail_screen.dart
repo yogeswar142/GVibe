@@ -7,22 +7,19 @@ import '../../core/constants/app_text_styles.dart';
 import '../../shared/widgets/gvibe_widgets.dart';
 import '../../core/services/api_service.dart';
 import '../../core/services/socket_service.dart';
-import '../../core/services/encryption_service.dart';
 
 // ── Local message model ───────────────────────────────────────────────────────
 
 class _ChatMsg {
   final String? id;
   final bool isMe;
-  final bool isSystem;
-  final String text;         // decrypted plaintext (or system label)
+  final String text;         // message plaintext
   final String time;
   final bool decryptFailed;
 
   const _ChatMsg({
     this.id,
     required this.isMe,
-    this.isSystem = false,
     required this.text,
     required this.time,
     this.decryptFailed = false,
@@ -45,7 +42,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   final List<_ChatMsg> _messages = [];
   Map<String, dynamic>? _recipientProfile;
-  String? _recipientPublicKey; // Base64 X25519 key for encrypting outbound msgs
   String? _myId;
 
   bool _loading      = true;
@@ -94,13 +90,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final prefs = await SharedPreferences.getInstance();
     _myId = prefs.getString('user_id');
 
-    // Fetch recipient's public key FIRST so it is guaranteed available for decryption
-    await _fetchRecipientPublicKey();
-
     await Future.wait([
       _loadProfile(),
       _loadHistory(),
-      _uploadMyPublicKey(),
     ]);
 
     _subscribeToSocket();
@@ -128,39 +120,19 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (_) {}
   }
 
-  Future<void> _fetchRecipientPublicKey() async {
-    try {
-      final r = await ApiService().dio.get('/messages/keys/${widget.threadId}');
-      if (r.data['success'] == true) {
-        _recipientPublicKey = r.data['data']?['x25519']?.toString();
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _uploadMyPublicKey() async {
-    try {
-      final myPub = await EncryptionService.instance.getMyPublicKeyBase64();
-      await ApiService().dio.put('/messages/keys/public', data: {'x25519': myPub});
-    } catch (_) {}
-  }
-
   Future<void> _loadHistory() async {
     setState(() { _loading = true; _error = null; });
     try {
-      if (_recipientPublicKey == null) {
-        await _fetchRecipientPublicKey();
-      }
       final r = await ApiService().dio.get('/messages/dms/${widget.threadId}');
       if (r.data['success'] == true) {
         final rawMsgs = List<Map<String, dynamic>>.from(r.data['data'] ?? []);
         _hasMore  = r.data['hasMore'] == true;
         _oldestId = rawMsgs.isNotEmpty ? rawMsgs.first['_id']?.toString() : null;
 
-        final built = await _buildMessages(rawMsgs);
+        final built = _buildMessages(rawMsgs);
         setState(() {
           _messages
             ..clear()
-            ..add(const _ChatMsg(isMe: false, isSystem: true, text: 'End-to-end encrypted · only you can read these messages', time: ''))
             ..addAll(built);
           _loading = false;
         });
@@ -184,10 +156,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _hasMore  = r.data['hasMore'] == true;
         if (rawMsgs.isNotEmpty) _oldestId = rawMsgs.first['_id']?.toString();
 
-        final built = await _buildMessages(rawMsgs);
+        final built = _buildMessages(rawMsgs);
         final prevLen = _messages.length;
         setState(() {
-          _messages.insertAll(1, built); // after system marker
+          _messages.insertAll(0, built);
           _loadingMore = false;
         });
         // Keep scroll position stable after prepend
@@ -203,47 +175,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  /// Decrypts a batch of raw messages from the API.
-  Future<List<_ChatMsg>> _buildMessages(List<Map<String, dynamic>> rawMsgs) async {
+  /// Formats raw messages from the API.
+  List<_ChatMsg> _buildMessages(List<Map<String, dynamic>> rawMsgs) {
     final results = <_ChatMsg>[];
     for (final m in rawMsgs) {
       final senderId = (m['sender'] is Map ? m['sender']['_id'] : m['sender'])?.toString() ?? '';
       final isMe     = senderId == _myId;
       final time     = _formatTime(m['createdAt']?.toString() ?? '');
+      final content  = m['content']?.toString() ?? (m['ciphertext'] != null ? '[Legacy message]' : '');
 
-      // E2EE message
-      if (m['ciphertext'] != null) {
-        String text;
-        bool failed = false;
-
-        final msgSenderPub = m['senderPublicKey']?.toString() ?? '';
-        final msgReceiverPub = m['receiverPublicKey']?.toString() ?? '';
-        final fallbackKey = _recipientPublicKey;
-
-        final remoteKey = isMe ? msgReceiverPub : msgSenderPub;
-        final finalKey = remoteKey.isNotEmpty ? remoteKey : fallbackKey;
-
-        if (finalKey == null || finalKey.isEmpty) {
-          text   = '🔒 Cannot decrypt (missing key)';
-          failed = true;
-        } else {
-          final decrypted = await EncryptionService.instance.decrypt(
-            ciphertextBase64:          m['ciphertext'].toString(),
-            nonceBase64:               m['nonce'].toString(),
-            macBase64:                 m['mac'].toString(),
-            remotePartyPublicKeyBase64: finalKey,
-            messageId:                 m['_id']?.toString(),
-            remotePartyId:             widget.threadId,
-          );
-          text   = decrypted ?? '🔒 Could not decrypt';
-          failed = decrypted == null;
-        }
-
-        results.add(_ChatMsg(id: m['_id']?.toString(), isMe: isMe, text: text, time: time, decryptFailed: failed));
-      } else {
-        // Legacy plaintext (before E2EE was active)
-        results.add(_ChatMsg(id: m['_id']?.toString(), isMe: isMe, text: m['content']?.toString() ?? '', time: time));
-      }
+      results.add(_ChatMsg(
+        id:            m['_id']?.toString(),
+        isMe:          isMe,
+        text:          content,
+        time:          time,
+        decryptFailed: false,
+      ));
     }
     return results;
   }
@@ -263,11 +210,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           if (mounted) {
             setState(() {
               _messages[optIndex] = _ChatMsg(
-                id:             dm.id,
-                isMe:           true,
-                text:           _messages[optIndex].text, // Keep already decrypted text
-                time:           _formatTime(dm.createdAt.toString()),
-                decryptFailed:  false,
+                id:            dm.id,
+                isMe:          true,
+                text:          dm.content,
+                time:          _formatTime(dm.createdAt.toString()),
+                decryptFailed: false,
               );
             });
           }
@@ -275,28 +222,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
       }
 
-      if (_recipientPublicKey == null) {
-        await _fetchRecipientPublicKey();
-      }
-
-      final remoteKey = isMe ? dm.receiverPublicKey : dm.senderPublicKey;
-      final finalKey = remoteKey.isNotEmpty ? remoteKey : _recipientPublicKey;
-
-      final decoded = finalKey == null ? null : await EncryptionService.instance.decrypt(
-        ciphertextBase64:          dm.ciphertext,
-        nonceBase64:               dm.nonce,
-        macBase64:                 dm.mac,
-        remotePartyPublicKeyBase64: finalKey,
-        messageId:                 dm.id,
-        remotePartyId:             widget.threadId,
-      );
-
       final msg = _ChatMsg(
-        id:             dm.id,
-        isMe:           isMe,
-        text:           decoded ?? '🔒 Could not decrypt',
-        time:           _formatTime(dm.createdAt.toString()),
-        decryptFailed:  decoded == null,
+        id:            dm.id,
+        isMe:          isMe,
+        text:          dm.content,
+        time:          _formatTime(dm.createdAt.toString()),
+        decryptFailed: false,
       );
 
       if (mounted) setState(() => _messages.add(msg));
@@ -337,24 +268,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final text = _msgCtrl.text.trim();
     if (text.isEmpty || _sending) return;
 
-    if (_recipientPublicKey == null) {
-      await _fetchRecipientPublicKey();
-    }
-
-    if (_recipientPublicKey == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Recipient's encryption key not found. Try again.")),
-      );
-      return;
-    }
-
     setState(() => _sending = true);
     _msgCtrl.clear();
     _typingTimer?.cancel();
     SocketService.instance.sendDmTyping(widget.threadId, isTyping: false);
 
-    // BUG-06 fix: Optimistically add the message immediately so the user
-    // gets instant feedback. We'll remove it only on an explicit server error.
+    // Optimistically add the message immediately
     final optimisticMsg = _ChatMsg(
       id:            null,
       isMe:          true,
@@ -368,22 +287,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
 
     try {
-      final encrypted = await EncryptionService.instance.encrypt(
-        plaintext:                text,
-        recipientPublicKeyBase64: _recipientPublicKey!,
-      );
-
       final ok = await SocketService.instance.sendDM(
         receiverId: widget.threadId,
-        ciphertext: encrypted['ciphertext']!,
-        nonce:      encrypted['nonce']!,
-        mac:        encrypted['mac']!,
-        senderPublicKey: await EncryptionService.instance.getMyPublicKeyBase64(),
-        receiverPublicKey: _recipientPublicKey!,
+        content:    text,
       );
 
       if (!ok && mounted) {
-        // Explicit failure (not a timeout) — remove the optimistic message
+        // Explicit failure — remove the optimistic message
         setState(() => _messages.remove(optimisticMsg));
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to send — please retry')),
@@ -541,50 +451,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         controller: _scrollCtrl,
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                         itemCount: _messages.length,
-                        itemBuilder: (_, i) {
-                          final msg = _messages[i];
-                          if (msg.isSystem) return _buildSystemMarker(msg.text, context);
-                          return _buildBubble(msg, context);
-                        },
+                        itemBuilder: (_, i) => _buildBubble(_messages[i], context),
                       ),
                     ),
                     _buildInputBar(context),
                   ],
                 ),
-    );
-  }
-
-  Widget _buildSystemMarker(String text, BuildContext context) {
-    final isDark      = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark ? const Color(0xFF212A3D) : const Color(0xFFE7E8EC);
-    final textColor   = isDark ? const Color(0xFF838EA6) : const Color(0xFF888888);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        children: [
-          Expanded(child: Divider(color: borderColor)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock_rounded, color: textColor, size: 10),
-                const SizedBox(width: 4),
-                Flexible(
-                  child: Text(
-                    text,
-                    style: AppTextStyles.bodyXs.copyWith(color: textColor),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: Divider(color: borderColor)),
-        ],
-      ),
     );
   }
 

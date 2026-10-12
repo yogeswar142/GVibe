@@ -109,31 +109,37 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         return pId == partnerId;
       });
 
-      final newConvo = {
+      // Preserve partner profile data from existing conversation if available
+      Map<String, dynamic>? partnerObj;
+      if (index != -1) {
+        final existingConvo = _convos[index];
+        final sender = existingConvo['sender'] is Map ? Map<String, dynamic>.from(existingConvo['sender']) : null;
+        final receiver = existingConvo['receiver'] is Map ? Map<String, dynamic>.from(existingConvo['receiver']) : null;
+        final sId = sender?['_id']?.toString() ?? '';
+        partnerObj = sId == _myId ? receiver : sender;
+      }
+
+      final isFromMe = dm.senderId == _myId;
+      final senderObj = isFromMe
+          ? {'_id': _myId, 'name': 'You'}
+          : (partnerObj ?? {'_id': dm.senderId, 'name': dm.senderName, 'avatar': dm.senderAvatar});
+      final receiverObj = isFromMe
+          ? (partnerObj ?? {'_id': dm.receiverId})
+          : {'_id': _myId};
+
+      final updatedConvo = {
         '_id': dm.id,
-        'sender': dm.senderId == _myId 
-            ? {'_id': _myId, 'name': 'You'} 
-            : {'_id': dm.senderId, 'name': dm.senderName, 'avatar': dm.senderAvatar},
-        'receiver': dm.senderId == _myId
-            ? {'_id': dm.receiverId}
-            : {'_id': _myId},
-        'ciphertext': dm.ciphertext,
-        'nonce': dm.nonce,
-        'mac': dm.mac,
+        'sender': senderObj,
+        'receiver': receiverObj,
+        'content': dm.content,
         'createdAt': dm.createdAt.toIso8601String(),
-        'read': false, // Socket message starts as unread
+        'read': isFromMe ? true : false,
       };
 
       if (index != -1) {
-        final existingConvo = _convos[index];
-        newConvo['sender'] = existingConvo['sender'];
-        newConvo['receiver'] = existingConvo['receiver'];
-        
         _convos.removeAt(index);
-        _convos.insert(0, newConvo);
-      } else {
-        _convos.insert(0, newConvo);
       }
+      _convos.insert(0, updatedConvo);
     });
   }
 
@@ -292,7 +298,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                 final firstName = name.split(' ').first;
 
                 return GestureDetector(
-                  onTap: () => context.push('/chat/$uid'),
+                  onTap: () async {
+                    await context.push('/chat/$uid');
+                    if (mounted) _fetchConversations();
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
@@ -506,10 +515,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
           final isOnline  = lastSeen == null;
 
           // Last message preview
-          final hasCiphertext = convo['ciphertext'] != null;
-          final lastPreview = hasCiphertext
-              ? '🔒 Encrypted message'
-              : (convo['content']?.toString() ?? '');
+          final lastPreview = convo['content']?.toString().trim().isNotEmpty == true
+              ? convo['content'].toString()
+              : (convo['ciphertext'] != null ? '[Legacy message]' : '');
 
           // Timestamp
           final createdAt = convo['createdAt']?.toString() ?? '';
@@ -544,7 +552,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
             hasUnread:  hasUnread,
             unreadCount: hasUnread ? 1 : 0,
             isOnline:   isOnline,
-            onTap: () => context.push('/chat/$partnerId'),
+            onTap: () async {
+              await context.push('/chat/$partnerId');
+              if (mounted) _fetchConversations();
+            },
           );
         },
       ),
@@ -659,8 +670,8 @@ class _ChatRow extends StatelessWidget {
     final goldColor = isDark ? const Color(0xFFD97706) : const Color(0xFFB45309);
     final avatarBg = isDark ? const Color(0xFF131C1A) : const Color(0xFFEDF7F5);
 
-    final isEncrypted = message.contains('Encrypted') || message.startsWith('🔒');
-    final displayText = isEncrypted ? 'Encrypted message' : message;
+    final isLegacy = message.startsWith('[Legacy');
+    final displayText = message.isEmpty ? 'No messages yet' : message;
 
     return GestureDetector(
       onTap: onTap,
@@ -754,22 +765,14 @@ class _ChatRow extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      if (isEncrypted) ...[
-                        Icon(
-                          Icons.lock_outline_rounded,
-                          size: 12,
-                          color: tealColor,
-                        ),
-                        const SizedBox(width: 4),
-                      ],
                       Expanded(
                         child: Text(
                           displayText,
                           style: AppTextStyles.bodySm.copyWith(
                             fontSize: 13,
-                            fontStyle: isEncrypted ? FontStyle.italic : FontStyle.normal,
+                            fontStyle: isLegacy ? FontStyle.italic : FontStyle.normal,
                             color: msgColor,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: hasUnread ? FontWeight.w600 : FontWeight.w400,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

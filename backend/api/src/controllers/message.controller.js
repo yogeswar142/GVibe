@@ -9,6 +9,8 @@
 const Message = require('../models/Message');
 const Community = require('../models/Community');
 const User = require('../models/User');
+const { getClientIp } = require('../utils/ip.util');
+const { getIO } = require('../services/socket.service');
 
 const PAGE_SIZE = 30; // messages per page (cursor-based)
 
@@ -39,11 +41,62 @@ exports.getDMs = async (req, res) => {
     const messages = await Message.find(filter)
       .sort({ createdAt: -1 })           // newest first → client reverses
       .limit(PAGE_SIZE)
-      .select('sender receiver ciphertext nonce mac read senderPublicKey receiverPublicKey createdAt')
+      .select('sender receiver content read createdAt')
       .populate('sender', 'name avatar')
       .lean();
 
     res.json({ success: true, data: messages.reverse(), hasMore: messages.length === PAGE_SIZE });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/messages/dms/:userId
+ * Send a direct message via REST. Guarantees delivery even when WebSockets are disconnected.
+ */
+exports.sendDM = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { content, ciphertext } = req.body;
+    const msgText = (content && typeof content === 'string' && content.trim()) ||
+                    (ciphertext && typeof ciphertext === 'string' && ciphertext.trim());
+
+    if (!userId || !msgText) {
+      return res.status(400).json({ success: false, message: 'Message content is required' });
+    }
+
+    const senderIp = getClientIp(req);
+    const message = await Message.create({
+      sender: req.user._id,
+      receiver: userId,
+      content: msgText,
+      ipAddress: senderIp,
+    });
+
+    const populated = await Message.findById(message._id)
+      .populate('sender', 'name avatar')
+      .lean();
+
+    // Broadcast in real-time to recipient's socket AND sender's socket
+    try {
+      const io = getIO();
+      if (io) {
+        const payload = {
+          _id: message._id,
+          sender: { _id: req.user._id, name: req.user.name, avatar: req.user.avatar },
+          receiverId: userId,
+          content: message.content,
+          createdAt: message.createdAt,
+        };
+        io.to(userId).emit('dm:receive', payload);
+        io.to(req.user._id.toString()).emit('dm:receive', payload);
+      }
+    } catch (_) {
+      // Non-critical if socket is not initialized or user offline
+    }
+
+    res.status(201).json({ success: true, data: populated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -79,9 +132,11 @@ exports.getConversations = async (req, res) => {
       {
         $group: {
           _id: {
-            $cond: [{ $lt: ['$sender', '$receiver'] },
-              { a: '$sender', b: '$receiver' },
-              { a: '$receiver', b: '$sender' }]
+            $cond: [
+              { $eq: ['$sender', uid] },
+              '$receiver',
+              '$sender'
+            ]
           },
           lastMessage: { $first: '$$ROOT' },
         },
@@ -283,41 +338,6 @@ exports.getCommunityMessages = async (req, res) => {
 
 // ─── E2EE PUBLIC KEY ─────────────────────────────────────────────────────────
 
-/**
- * PUT /api/messages/keys/public
- * Flutter uploads the user's X25519 public key after generating it locally.
- */
-exports.uploadPublicKey = async (req, res) => {
-  try {
-    const { x25519 } = req.body;
-    if (!x25519) return res.status(400).json({ success: false, message: 'x25519 key required' });
-
-    await User.findByIdAndUpdate(req.user.id, {
-      'publicKey.x25519': x25519,
-      'publicKey.updatedAt': new Date(),
-    });
-
-    res.json({ success: true, message: 'Public key saved' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * GET /api/messages/keys/:userId
- * Fetch another user's public key so we can encrypt a DM for them.
- */
-exports.getPublicKey = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId).select('publicKey').lean();
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-
-    res.json({ success: true, data: user.publicKey });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 // ─── COMMUNITY MEMBER MANAGEMENT ENDPOINTS ───────────────────────────────────
 
 exports.getCommunityDetails = async (req, res) => {
@@ -409,34 +429,6 @@ exports.updateMemberRole = async (req, res) => {
     await community.save();
 
     res.json({ success: true, message: `Member role updated to ${role}` });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * POST /api/messages/debug/log-decrypt-failure
- * Logs detailed client-side E2EE decryption failure context on the server.
- */
-exports.logDecryptFailure = async (req, res) => {
-  try {
-    const { messageId, remotePartyId, remotePartyPublicKey, myPublicKeyUsed, errorDetails } = req.body;
-    
-    // Fetch current keys/names for debugging comparison
-    const me = await User.findById(req.user.id).select('publicKey name').lean();
-    const remote = await User.findById(remotePartyId).select('publicKey name').lean();
-
-    console.error(`\n🔒 [E2EE Decrypt Failure Report]`);
-    console.error(`   - Reporter: ${me?.name || 'Unknown'} (${req.user.id})`);
-    console.error(`   - Reporter Current DB Pub Key: ${me?.publicKey?.x25519 || 'none'}`);
-    console.error(`   - Reporter Local Pub Key Used: ${myPublicKeyUsed || 'none'}`);
-    console.error(`   - Partner: ${remote?.name || 'Unknown'} (${remotePartyId})`);
-    console.error(`   - Partner Current DB Pub Key: ${remote?.publicKey?.x25519 || 'none'}`);
-    console.error(`   - Partner Pub Key Used by Reporter: ${remotePartyPublicKey || 'none'}`);
-    console.error(`   - Message ID: ${messageId}`);
-    console.error(`   - Error Details: ${errorDetails || 'none'}\n`);
-
-    res.json({ success: true, message: 'Failure reported successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

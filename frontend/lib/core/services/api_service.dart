@@ -95,6 +95,26 @@ class ApiService {
             }
           }
         }
+
+        // 4. Handle 401 Unauthorized (expired or missing session)
+        if (res != null && res.statusCode == 401) {
+          final context = navigatorKey.currentContext;
+          if (context != null && context.mounted) {
+            try {
+              final route = GoRouterState.of(context).matchedLocation;
+              if (route != AppRouter.login &&
+                  route != AppRouter.signup &&
+                  route != AppRouter.onboarding) {
+                AppRouter.router.go(AppRouter.login);
+              }
+            } catch (_) {
+              AppRouter.router.go(AppRouter.login);
+            }
+          } else {
+            AppRouter.router.go(AppRouter.login);
+          }
+        }
+
         return handler.next(error);
       },
     ));
@@ -130,6 +150,12 @@ class ApiService {
     const ngrokUrl = 'https://levitative-unpresumptuously-claire.ngrok-free.dev/api';
     if (!candidates.contains(ngrokUrl)) {
       candidates.add(ngrokUrl);
+    }
+
+    // Local development endpoint (always tested for Chrome web and local debugging)
+    const localUrl = 'http://localhost:5000/api';
+    if (!candidates.contains(localUrl)) {
+      candidates.insert(0, localUrl);
     }
 
     // If we already successfully resolved one, test it first

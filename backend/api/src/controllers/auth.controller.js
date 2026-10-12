@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
+const { getClientIp, getUserAgent } = require('../utils/ip.util');
 
 const WEB_CLIENT_ID = process.env.WEB_APPLICATION_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '685012189458-rfin8p1eu8m518gmrff64uc1u6gsbbh2.apps.googleusercontent.com';
 const MOBILE_CLIENT_ID = process.env.MOBILE_APPLICATION_CLIENT_ID || process.env.GOOGLE_ANDROID_CLIENT_ID || '685012189458-t1slebthd5lbchu9n0aanph1060gffvm.apps.googleusercontent.com';
@@ -21,12 +22,19 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
+    const clientIp = getClientIp(req);
+    const userAgent = getUserAgent(req);
+
     const user = await User.create({
       name,
       email,
       password,
       dept,
       year,
+      lastLoginIp: clientIp,
+      lastActiveIp: clientIp,
+      lastLoginAt: new Date(),
+      deviceInfo: userAgent,
     });
 
     if (user) {
@@ -61,6 +69,13 @@ exports.login = async (req, res) => {
     }).select('+password');
 
     if (user && (await user.matchPassword(password))) {
+      const clientIp = getClientIp(req);
+      const userAgent = getUserAgent(req);
+      user.lastLoginIp = clientIp;
+      user.lastActiveIp = clientIp;
+      user.lastLoginAt = new Date();
+      user.deviceInfo = userAgent;
+      await user.save();
       res.json({
         success: true,
         data: {
@@ -118,12 +133,18 @@ exports.googleAuth = async (req, res) => {
       }
 
       // Create new user
+      const clientIp = getClientIp(req);
+      const userAgent = getUserAgent(req);
       user = await User.create({
         name,
         email,
         googleId,
         profileComplete: false,
-        isVerified: isNameVerified
+        isVerified: isNameVerified,
+        lastLoginIp: clientIp,
+        lastActiveIp: clientIp,
+        lastLoginAt: new Date(),
+        deviceInfo: userAgent,
       });
     } else if (action === 'login') {
       if (!user) {
@@ -135,18 +156,20 @@ exports.googleAuth = async (req, res) => {
       }
 
       // Ensure googleId is mapped if not already, and update verification if applicable
-      let updated = false;
+      const clientIp = getClientIp(req);
+      const userAgent = getUserAgent(req);
+      user.lastLoginIp = clientIp;
+      user.lastActiveIp = clientIp;
+      user.lastLoginAt = new Date();
+      user.deviceInfo = userAgent;
+
       if (!user.googleId) {
         user.googleId = googleId;
-        updated = true;
       }
       if (isNameVerified && !user.isVerified) {
         user.isVerified = true;
-        updated = true;
       }
-      if (updated) {
-        await user.save();
-      }
+      await user.save();
     } else {
       return res.status(400).json({ success: false, message: 'Invalid action' });
     }
@@ -178,3 +201,43 @@ exports.googleAuth = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * POST /api/auth/dev-login
+ * Developer and automated testing bypass to log into yamara@student.gitam.edu directly without Google OAuth.
+ */
+exports.devLogin = async (req, res) => {
+  if (process.env.NODE_ENV === 'production' && req.headers['x-dev-secret'] !== process.env.DEV_SECRET) {
+    return res.status(403).json({ success: false, message: 'Forbidden in production' });
+  }
+  try {
+    const email = req.body.email || 'yamara@student.gitam.edu';
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: `User not found for email: ${email}` });
+    }
+
+    const clientIp = getClientIp(req);
+    const userAgent = getUserAgent(req);
+    user.lastLoginIp = clientIp;
+    user.lastActiveIp = clientIp;
+    user.lastLoginAt = new Date();
+    user.deviceInfo = userAgent;
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        token: generateToken(user._id),
+        profileComplete: user.profileComplete,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

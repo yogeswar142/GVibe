@@ -21,6 +21,7 @@ const lostItemRoutes  = require('./routes/lost_item.routes');
 const shortLinkRoutes = require('./routes/short_link.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const liveLocationRoutes = require('./routes/live_location.routes');
+const reportRoutes = require('./routes/report.routes');
 const internalRoutes = require('./routes/internal.routes');
 const { redirectLiveLocation } = require('./controllers/live_location.controller');
 
@@ -93,6 +94,9 @@ app.use('/api/live-location', liveLocationRoutes);
 
 // Comprehensive user, content, and link analytics
 app.use('/api/analytics', analyticsRoutes);
+
+// Safety & Incident Reports
+app.use('/api/reports', reportRoutes);
 
 // ── Internal routes (Worker → API, secret-guarded, no rate limit) ────────────
 app.use('/internal', internalRoutes);

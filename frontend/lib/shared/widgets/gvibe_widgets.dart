@@ -504,15 +504,18 @@ class _NavItem extends StatelessWidget {
               child: Icon(icon, key: ValueKey(isActive), size: 22, color: color),
             ),
             const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              style: AppTextStyles.bodyXs.copyWith(
+            Text(
+              label,
+              key: ValueKey('$label-$isActive'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
                 color: color,
-                fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 fontSize: 10,
                 letterSpacing: 0.1,
+                height: 1.2,
               ),
-              child: Text(label),
             ),
           ],
         ),
@@ -746,16 +749,16 @@ class PostCardSkeleton extends StatelessWidget {
         borderRadius: BorderRadius.circular(20), // lg
         border: Border.all(color: cs.outline, width: 1),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const SkeletonBox(width: 44, height: 44, borderRadius: 22),
-              const SizedBox(width: 12),
+              SkeletonBox(width: 44, height: 44, borderRadius: 22),
+              SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   SkeletonBox(width: 120, height: 14),
                   SizedBox(height: 6),
                   SkeletonBox(width: 80, height: 10),
@@ -763,15 +766,15 @@ class PostCardSkeleton extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          const SkeletonBox(width: double.infinity, height: 14),
-          const SizedBox(height: 8),
-          const SkeletonBox(width: double.infinity, height: 14),
-          const SizedBox(height: 8),
-          const SkeletonBox(width: 180, height: 14),
-          const SizedBox(height: 16),
+          SizedBox(height: 14),
+          SkeletonBox(width: double.infinity, height: 14),
+          SizedBox(height: 8),
+          SkeletonBox(width: double.infinity, height: 14),
+          SizedBox(height: 8),
+          SkeletonBox(width: 180, height: 14),
+          SizedBox(height: 16),
           Row(
-            children: const [
+            children: [
               SkeletonBox(width: 48, height: 18, borderRadius: 9),
               SizedBox(width: 16),
               SkeletonBox(width: 48, height: 18, borderRadius: 9),

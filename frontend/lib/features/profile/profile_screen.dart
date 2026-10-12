@@ -606,9 +606,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           border: Border.all(color: borderColor, width: 1),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
@@ -666,7 +668,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildTopBar() {

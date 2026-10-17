@@ -8,6 +8,9 @@ import '../profile/profile_screen.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/socket_service.dart';
 
+import '../globe/presentation/globe_screen.dart';
+import '../../core/providers/navigation_provider.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,8 +19,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -39,19 +40,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     DiscoveryScreen(),
     MessagesScreen(),
     ProfileScreen(),
+    GlobeScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final currentIndex = ref.watch(homeNavIndexProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _tabs,
       ),
       bottomNavigationBar: GVibeNavBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        currentIndex: currentIndex,
+        onTap: (index) {
+          ref.read(homeNavIndexProvider.notifier).state = index;
+        },
       ),
     );
   }

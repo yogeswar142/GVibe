@@ -75,6 +75,16 @@ class LocationService {
       } catch (e) {
         debugPrint('[LocationService] Web coordinates error: $e');
       }
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not get location. Please ensure location access is allowed in your browser settings.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return null;
     }
 

@@ -10,6 +10,7 @@ import '../../shared/widgets/theme_toggle_button.dart';
 import 'dart:async';
 import '../../core/services/socket_service.dart';
 import 'community_sheet.dart';
+import '../../core/providers/navigation_provider.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -288,9 +289,60 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _following.length,
+              itemCount: _following.length + 1,
               itemBuilder: (context, index) {
-                final user = _following[index];
+                if (index == 0) {
+                  return GestureDetector(
+                    onTap: () {
+                      ref.read(homeNavIndexProvider.notifier).state = 4;
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF00E5FF), Color(0xFF0077FF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                ),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.public,
+                                color: Colors.black,
+                                size: 22,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Globe',
+                            style: AppTextStyles.label.copyWith(
+                              color: tealColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final user = _following[index - 1];
                 final name = user['name']?.toString() ?? '';
                 final avatar = user['avatar']?.toString();
                 final uid = user['_id']?.toString() ?? '';

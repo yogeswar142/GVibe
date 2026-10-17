@@ -13,12 +13,33 @@ Future<Map<String, double>?> getBrowserCoordinates() async {
       return null;
     }
 
-    final pos = await geo.getCurrentPosition(
-      enableHighAccuracy: true,
-      timeout: const Duration(seconds: 10),
+    // 1. Try high accuracy with a 3-second timeout (works on GPS-enabled mobile browsers)
+    try {
+      final pos = await geo.getCurrentPosition(
+        enableHighAccuracy: true,
+        timeout: const Duration(seconds: 3),
+      );
+      final coords = pos.coords;
+      if (coords != null &&
+          coords.latitude != null &&
+          coords.longitude != null) {
+        return {
+          'lat': coords.latitude!.toDouble(),
+          'lng': coords.longitude!.toDouble(),
+        };
+      }
+    } catch (e) {
+      debugPrint('[WebLocation] High accuracy unavailable/timed out, falling back to standard accuracy: $e');
+    }
+
+    // 2. Standard accuracy fallback with cached coordinates (essential for desktop/Chrome)
+    final fallbackPos = await geo.getCurrentPosition(
+      enableHighAccuracy: false,
+      timeout: const Duration(seconds: 8),
+      maximumAge: const Duration(minutes: 1),
     );
 
-    final coords = pos.coords;
+    final coords = fallbackPos.coords;
     if (coords != null && coords.latitude != null && coords.longitude != null) {
       return {
         'lat': coords.latitude!.toDouble(),

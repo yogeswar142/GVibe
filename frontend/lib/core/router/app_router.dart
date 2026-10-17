@@ -13,6 +13,7 @@ import '../../features/error/backend_down_screen.dart';
 import '../../features/messages/chat_detail_screen.dart';
 import '../../features/messages/community_chat_screen.dart';
 import '../../features/post/post_detail_screen.dart';
+import '../../features/globe/presentation/globe_screen.dart';
 
 // Slide-up from bottom transition (used for auth pages)
 CustomTransitionPage<void> _slideUpTransition({
@@ -55,6 +56,7 @@ class AppRouter {
   static const String signup = '/signup';
   static const String home = '/home';
   static const String profile = '/profile';
+  static const String globe = '/globe';
   static const String notFound = '/404';
   static const String backendDown = '/backend-down';
 
@@ -94,6 +96,10 @@ class AppRouter {
       GoRoute(
         path: home,
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: globe,
+        builder: (context, state) => const GlobeScreen(),
       ),
       GoRoute(
         path: backendDown,

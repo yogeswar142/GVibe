@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GVibe 3D Social Globe</title>
+  <link rel="stylesheet" href="maplibre-gl.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Dark Theme Variables (Default) */
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 50%, #030814 0%, #01040a 60%, #000103 100%);
+      --star-opacity: 0.45;
+      --vignette: radial-gradient(circle at 50% 50%, rgba(0, 229, 255, 0.02) 0%, rgba(0, 0, 0, 0.35) 75%, rgba(0, 0, 0, 0.75) 100%);
+      --loader-bg: #010408;
+      --loader-text: #80deea;
+      --spinner-border: rgba(0, 229, 255, 0.15);
+      --spinner-active: #00e5ff;
+      --friend-border: linear-gradient(135deg, #00e5ff 0%, #0077ff 100%);
+      --friend-shadow: 0 0 12px rgba(0, 229, 255, 0.65), 0 0 24px rgba(0, 119, 255, 0.35);
+      --friend-pulse: rgba(0, 229, 255, 0.8);
+      --self-border: linear-gradient(135deg, #00ffff 0%, #00e5ff 40%, #0d9488 100%);
+      --self-shadow: 0 0 16px rgba(0, 255, 255, 0.95), 0 0 30px rgba(0, 229, 255, 0.7), 0 0 45px rgba(13, 148, 136, 0.5);
+      --self-pulse: rgba(0, 255, 255, 0.9);
+      --self-badge-bg: linear-gradient(135deg, #00ffff, #00b4d8);
+      --self-badge-color: #020914;
+      --label-self-border: #00ffff;
+      --label-self-color: #00ffff;
+      --event-border: linear-gradient(135deg, #ff007f 0%, #7928ca 100%);
+      --event-shadow: 0 0 14px rgba(255, 0, 127, 0.7), 0 0 28px rgba(121, 40, 202, 0.4);
+      --event-pulse: rgba(255, 0, 127, 0.8);
+      --event-badge-bg: #ff007f;
+      --event-badge-color: #ffffff;
+      --cluster-border: #010408;
+      --cluster-bg: linear-gradient(135deg, #00e5ff, #00b0ff);
+      --cluster-color: #020914;
+      --cluster-shadow: 0 0 10px rgba(0, 229, 255, 0.85);
+      --label-bg: rgba(8, 16, 28, 0.94);
+      --label-border: rgba(0, 229, 255, 0.45);
+      --label-color: #ffffff;
+      --label-event-border: rgba(255, 0, 127, 0.7);
+      --label-event-color: #ffffff;
+      --label-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+      --pip-border: #010408;
+      --avatar-bg: #0b1320;
+      --avatar-border: #000000;
+    }
+
+    /* Light Theme Variables (Bright Mode) */
+    body.light-theme {
+      --bg-gradient: radial-gradient(circle at 50% 50%, #f4faf9 0%, #e1efec 60%, #cde3df 100%);
+      --star-opacity: 0;
+      --vignette: radial-gradient(circle at 50% 50%, rgba(15, 118, 110, 0.01) 0%, rgba(15, 118, 110, 0.05) 75%, rgba(15, 118, 110, 0.12) 100%);
+      --loader-bg: #f4faf9;
+      --loader-text: #0f766e;
+      --spinner-border: rgba(15, 118, 110, 0.18);
+      --spinner-active: #0f766e;
+      --friend-border: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+      --friend-shadow: 0 4px 14px rgba(15, 118, 110, 0.35), 0 0 20px rgba(13, 148, 136, 0.2);
+      --friend-pulse: rgba(15, 118, 110, 0.7);
+      --self-border: linear-gradient(135deg, #0f766e 0%, #14b8a6 50%, #06b6d4 100%);
+      --self-shadow: 0 4px 16px rgba(20, 184, 166, 0.8), 0 0 24px rgba(15, 118, 110, 0.5);
+      --self-pulse: rgba(20, 184, 166, 0.9);
+      --self-badge-bg: #0f766e;
+      --self-badge-color: #ffffff;
+      --label-self-border: #0f766e;
+      --label-self-color: #0f766e;
+      --event-border: linear-gradient(135deg, #e11d48 0%, #9333ea 100%);
+      --event-shadow: 0 4px 14px rgba(225, 29, 72, 0.4), 0 0 22px rgba(147, 51, 234, 0.25);
+      --event-pulse: rgba(225, 29, 72, 0.7);
+      --event-badge-bg: #e11d48;
+      --event-badge-color: #ffffff;
+      --cluster-border: #ffffff;
+      --cluster-bg: linear-gradient(135deg, #0f766e, #0d9488);
+      --cluster-color: #ffffff;
+      --cluster-shadow: 0 4px 12px rgba(15, 118, 110, 0.45);
+      --label-bg: #ffffff;
+      --label-border: #0f766e;
+      --label-color: #0c1f1d;
+      --label-event-border: #e11d48;
+      --label-event-color: #0c1f1d;
+      --label-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+      --pip-border: #ffffff;
+      --avatar-bg: #edf7f5;
+      --avatar-border: #ffffff;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-gradient);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background 0.4s ease;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Subtle space starfield background (visible in dark mode) */
+    .star-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: var(--star-opacity);
+      transition: opacity 0.4s ease;
+      background-image: 
+        radial-gradient(1px 1px at 25px 35px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(1.2px 1.2px at 75px 190px, #00e5ff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 150px 80px, #38bdf8, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 260px 240px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(1.8px 1.8px at 340px 120px, #00f2fe, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 410px 310px, #ffffff, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 450px 450px;
+      z-index: 0;
+    }
+
+    /* Ambient space/light vignette around viewport edges */
+    .space-vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      background: var(--vignette);
+      transition: background 0.4s ease;
+      z-index: 2;
+    }
+
+    /* Marker base styling */
+    .globe-marker {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-origin: center bottom;
+      pointer-events: auto;
+    }
+
+    .globe-marker:hover, .globe-marker:active {
+      transform: scale(1.18);
+    }
+
+    /* Friend avatar marker */
+    .marker-avatar-container {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      padding: 2px;
+      background: var(--friend-border);
+      box-shadow: var(--friend-shadow);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Self ("You") location marker with distinct radiant cyan/teal glow */
+    .marker-avatar-container.self {
+      width: 44px;
+      height: 44px;
+      background: var(--self-border);
+      box-shadow: var(--self-shadow);
+      border: 2px solid #ffffff;
+      z-index: 5;
+    }
+
+    .marker-avatar-container.self .marker-avatar-img {
+      border: 1.5px solid #ffffff;
+    }
+
+    .marker-self-badge {
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--self-badge-bg);
+      color: var(--self-badge-color);
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+      white-space: nowrap;
+    }
+
+    /* Campus activity / event marker */
+    .marker-avatar-container.event {
+      width: 44px;
+      height: 44px;
+      background: var(--event-border);
+      box-shadow: var(--event-shadow);
+    }
+
+    .marker-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background-color: var(--avatar-bg, #0b1320);
+      border: 1.5px solid var(--avatar-border, #000);
+    }
+
+    .marker-avatar-container.event .marker-avatar-img {
+      background-color: var(--event-badge-bg);
+      border-color: #ffffff;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+
+    .marker-online-pip {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #00e676;
+      border: 1.5px solid var(--pip-border);
+      box-shadow: 0 0 6px #00e676;
+    }
+
+    .marker-event-badge {
+      position: absolute;
+      top: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--event-badge-bg);
+      color: var(--event-badge-color);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 1px 5px;
+      border-radius: 6px;
+      box-shadow: 0 0 8px rgba(255, 0, 127, 0.8);
+      white-space: nowrap;
+    }
+
+    /* Cluster marker badge */
+    .marker-cluster-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      background: var(--cluster-bg);
+      color: var(--cluster-color);
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--cluster-shadow);
+      padding: 0 4px;
+      border: 1.5px solid var(--cluster-border);
+    }
+
+    .marker-pulse {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      right: -4px;
+      bottom: -4px;
+      border-radius: 50%;
+      border: 1.5px solid var(--friend-pulse);
+      animation: pulse-ring 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      pointer-events: none;
+    }
+
+    .marker-pulse.event {
+      border-color: var(--event-pulse);
+    }
+
+    .marker-pulse.self {
+      border: 2px solid var(--self-pulse);
+      box-shadow: 0 0 10px var(--self-pulse);
+      animation: pulse-ring-self 2.0s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        transform: scale(0.9);
+        opacity: 0.9;
+      }
+      70% {
+        transform: scale(1.45);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    @keyframes pulse-ring-self {
+      0% {
+        transform: scale(0.95);
+        opacity: 0.95;
+      }
+      70% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1.65);
+        opacity: 0;
+      }
+    }
+
+    /* Marker name pill label */
+    .marker-label {
+      margin-top: 5px;
+      padding: 3px 10px;
+      background: var(--label-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid var(--label-border);
+      border-radius: 14px;
+      color: var(--label-color);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      box-shadow: var(--label-shadow);
+      pointer-events: none;
+    }
+
+    .marker-label.event {
+      border-color: var(--label-event-border);
+      color: var(--label-event-color);
+    }
+
+    .marker-label.self {
+      border-color: var(--label-self-border);
+      color: var(--label-self-color);
+      font-weight: 800;
+      box-shadow: 0 2px 14px rgba(0, 229, 255, 0.5);
+    }
+
+    /* Loading indicator overlay */
+    #loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--loader-bg);
+      z-index: 10;
+      transition: opacity 0.5s ease-out;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--spinner-border);
+      border-top-color: var(--spinner-active);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: var(--loader-text);
+      font-size: 13px;
+      margin-top: 14px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="star-bg"></div>
+  <div id="map"></div>
+  <div class="space-vignette"></div>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Connecting to Campus Globe...</div>
+  </div>
+
+  <script src="maplibre-gl.js"></script>
+  <script>
+    let map = null;
+    let rawMarkersData = [];
+    const activeMarkers = [];
+
+    // Parse initial theme from URL query param
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentTheme = (urlParams.get('theme') === 'light') ? 'light' : 'dark';
+
+    // Apply initial theme CSS class
+    if (currentTheme === 'light') {
+      document.body.classList.add('light-theme');
+    }
+
+    // Theme Configurations for Globe & Atmosphere
+    const THEME_CONFIG = {
+      dark: {
+        styleUrl: 'https://tiles.openfreemap.org/styles/dark',
+        skyColor: '#01040a',
+        horizonColor: '#00e5ff',
+        skyHorizonBlend: 0.6,
+        fogColor: '#011524',
+        fogGroundBlend: 0.85,
+        waterColor: '#040d1a',
+        backgroundColor: '#081220',
+        boundaryColor: 'rgba(0, 229, 255, 0.45)',
+        stateBoundaryColor: 'rgba(0, 229, 255, 0.15)',
+        textColor: '#b2ebf2',
+        textHalo: 'rgba(2, 6, 16, 0.85)',
+        keepSymbols: ['place_country_major', 'place_city_large']
+      },
+      light: {
+        styleUrl: 'https://tiles.openfreemap.org/styles/positron',
+        skyColor: '#e4f3f0',
+        horizonColor: '#0f766e',
+        skyHorizonBlend: 0.5,
+        fogColor: '#d4ece7',
+        fogGroundBlend: 0.8,
+        waterColor: '#cbe8e4',
+        backgroundColor: '#f5faf9',
+        boundaryColor: 'rgba(15, 118, 110, 0.45)',
+        stateBoundaryColor: 'rgba(15, 118, 110, 0.15)',
+        textColor: '#0c1f1d',
+        textHalo: '#ffffff',
+        keepSymbols: ['label_country_1', 'label_city_capital']
+      }
+    };
+
+    const CONFIG = {
+      defaultCenter: [83.3768, 17.7818], // GITAM Visakhapatnam Campus
+      defaultZoom: 1.25,                 // Full curved 3D globe in space
+      minZoom: 0.8,                      // Allows viewing full floating sphere
+      maxZoom: 18.0
+    };
+
+    function notifyFlutter(handlerName, data = null) {
+      if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+        window.flutter_inappwebview.callHandler(handlerName, data);
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'fromGlobe', handlerName: handlerName, data: data }, '*');
+      } else {
+        console.log('[GlobeBridge -> Flutter]', handlerName, data);
+      }
+    }
+
+    // Listen to messages from parent window (Flutter Web)
+    window.addEventListener('message', (event) => {
+      if (!event.data || event.data.type !== 'toGlobe') return;
+      const { action, payload } = event.data;
+      if (action === 'updateMarkers' && typeof window.updateMarkers === 'function') {
+        window.updateMarkers(payload);
+      } else if (action === 'flyToCampus' && typeof window.flyToCampus === 'function') {
+        window.flyToCampus();
+      } else if (action === 'flyToUser' && typeof window.flyToUser === 'function') {
+        window.flyToUser(payload.lng, payload.lat, payload.zoom);
+      } else if (action === 'setGlobeStyle' && typeof window.setGlobeStyle === 'function') {
+        window.setGlobeStyle(payload.styleUrl);
+      } else if (action === 'setTheme' && typeof window.setTheme === 'function') {
+        window.setTheme(payload.theme);
+      }
+    });
+
+    // Edge swipe detection for horizontal back gesture
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchStartTime = Date.now();
+      }
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length === 1 && touchStartX < 32) {
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        const duration = Date.now() - touchStartTime;
+
+        if (deltaX > 48 && deltaY < 45 && duration < 400) {
+          notifyFlutter('onEdgeSwipeBack');
+        }
+      }
+    }, { passive: true });
+
+    // Fetch and customize style specification for dark cosmos or bright coastal globe
+    async function fetchAndCustomizeStyle(themeName) {
+      const cfg = THEME_CONFIG[themeName] || THEME_CONFIG.dark;
+      let styleObj = null;
+      try {
+        const res = await fetch(cfg.styleUrl);
+        if (res.ok) {
+          styleObj = await res.json();
+        }
+      } catch (err) {
+        console.warn('[Globe] Could not pre-fetch style JSON:', err);
+      }
+
+      if (styleObj) {
+        // Enforce globe projection directly in style specification
+        styleObj.projection = { type: 'globe' };
+
+        if (Array.isArray(styleObj.layers)) {
+          styleObj.layers.forEach(layer => {
+            // Remove / hide noisy road names and town labels
+            if (layer.type === 'symbol') {
+              if (!cfg.keepSymbols.includes(layer.id)) {
+                if (!layer.layout) layer.layout = {};
+                layer.layout.visibility = 'none';
+              } else if (layer.paint) {
+                layer.paint['text-color'] = cfg.textColor;
+                layer.paint['text-halo-color'] = cfg.textHalo;
+                layer.paint['text-halo-width'] = 1.5;
+              }
+            }
+
+            // Restyle water
+            if (layer.id.includes('water') && layer.type === 'fill' && layer.paint) {
+              layer.paint['fill-color'] = cfg.waterColor;
+            }
+
+            // Restyle background/land
+            if (layer.id === 'background' && layer.paint) {
+              layer.paint['background-color'] = cfg.backgroundColor;
+            }
+
+            // Restyle country boundaries
+            if ((layer.id.startsWith('boundary_country') || layer.id === 'boundary_2') && layer.paint) {
+              layer.paint['line-color'] = cfg.boundaryColor;
+              layer.paint['line-width'] = ['interpolate', ['linear'], ['zoom'], 1, 0.8, 6, 1.8];
+            }
+
+            // Restyle state boundaries
+            if ((layer.id.startsWith('boundary_state') || layer.id === 'boundary_3') && layer.paint) {
+              layer.paint['line-color'] = cfg.stateBoundaryColor;
+            }
+          });
+        }
+      }
+
+      return styleObj || cfg.styleUrl;
+    }
+
+    // Set atmospheric lighting and horizon glow matching active theme
+    function applyGlobeAtmosphere(themeName) {
+      if (!map) return;
+      const cfg = THEME_CONFIG[themeName] || THEME_CONFIG.dark;
+      try {
+        map.setProjection({ type: 'globe' });
+        map.setSky({
+          'sky-color': cfg.skyColor,
+          'horizon-color': cfg.horizonColor,
+          'sky-horizon-blend': cfg.skyHorizonBlend,
+          'fog-color': cfg.fogColor,
+          'fog-ground-blend': cfg.fogGroundBlend,
+          'atmosphere-blend': ['interpolate', ['linear'], ['zoom'], 0, 0.9, 6, 0.3, 10, 0]
+        });
+      } catch (e) {
+        console.warn('[Globe] Atmosphere apply notice:', e);
+      }
+    }
+
+    async function loadStyleAndInit() {
+      const styleSource = await fetchAndCustomizeStyle(currentTheme);
+      initMap(styleSource);
+    }
+
+    // Initialize MapLibre GL JS v5 with 3D Globe projection
+    function initMap(styleSource) {
+      try {
+        map = new maplibregl.Map({
+          container: 'map',
+          style: styleSource,
+          center: CONFIG.defaultCenter,
+          zoom: CONFIG.defaultZoom,
+          minZoom: CONFIG.minZoom,
+          maxZoom: CONFIG.maxZoom,
+          projection: 'globe',
+          pitch: 0,
+          bearing: 0,
+          antialias: true,
+          attributionControl: false
+        });
+
+        map.on('style.load', () => {
+          applyGlobeAtmosphere(currentTheme);
+        });
+
+        // Continuous subtle rotation when user is idle
+        let userInteracting = false;
+        let idleTimer = null;
+
+        function spinGlobe() {
+          if (!userInteracting && map && map.getZoom() < 3.5) {
+            const center = map.getCenter();
+            center.lng -= 0.06;
+            map.easeTo({ center, duration: 1000, easing: n => n });
+          }
+        }
+
+        function handleUserActivity() {
+          userInteracting = true;
+          clearTimeout(idleTimer);
+          idleTimer = setTimeout(() => {
+            userInteracting = false;
+            spinGlobe();
+          }, 8000);
+        }
+
+        map.on('mousedown', handleUserActivity);
+        map.on('touchstart', handleUserActivity);
+        map.on('wheel', handleUserActivity);
+        map.on('dragstart', handleUserActivity);
+        map.on('moveend', () => { spinGlobe(); });
+
+        map.on('load', () => {
+          applyGlobeAtmosphere(currentTheme);
+          const loader = document.getElementById('loading-overlay');
+          if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+          }
+          spinGlobe();
+          notifyFlutter('onMapLoaded');
+        });
+
+        map.on('error', (err) => {
+          console.error('[MapLibre Error]', err);
+          notifyFlutter('onMapError', { message: err?.error?.message || 'Map render error' });
+        });
+
+        map.on('click', (e) => {
+          notifyFlutter('onMapTapped', {
+            lng: e.lngLat.lng,
+            lat: e.lngLat.lat
+          });
+        });
+
+        // Dynamic marker clustering and zoom-dependent updates
+        let moveDebounce = null;
+        map.on('move', () => {
+          clearTimeout(moveDebounce);
+          moveDebounce = setTimeout(renderMarkers, 120);
+        });
+        map.on('moveend', renderMarkers);
+
+      } catch (err) {
+        console.error('[Init Failed]', err);
+        notifyFlutter('onMapError', { message: err.toString() });
+      }
+    }
+
+    // Public Theme Switcher
+    window.setTheme = async function(themeName) {
+      if (themeName !== 'light' && themeName !== 'dark') return;
+      if (currentTheme === themeName && map) return;
+      currentTheme = themeName;
+
+      if (currentTheme === 'light') {
+        document.body.classList.add('light-theme');
+      } else {
+        document.body.classList.remove('light-theme');
+      }
+
+      if (map) {
+        const styleSource = await fetchAndCustomizeStyle(currentTheme);
+        map.setStyle(styleSource);
+        map.once('style.load', () => {
+          applyGlobeAtmosphere(currentTheme);
+          renderMarkers();
+        });
+      }
+    };
+
+    // Public Bridge API callable from Flutter
+    window.setGlobeStyle = function(styleUrl) {
+      if (map) {
+        map.setStyle(styleUrl);
+      }
+    };
+
+    window.flyToCampus = function(lng = CONFIG.defaultCenter[0], lat = CONFIG.defaultCenter[1], zoom = 15.5) {
+      if (!map) return;
+      map.flyTo({
+        center: [lng, lat],
+        zoom: zoom,
+        pitch: 42,
+        speed: 1.1,
+        curve: 1.42,
+        essential: true
+      });
+    };
+
+    window.flyToUser = function(lng, lat, zoom = 14.5) {
+      if (!map) return;
+      map.flyTo({
+        center: [lng, lat],
+        zoom: zoom,
+        speed: 1.2,
+        curve: 1.35,
+        essential: true
+      });
+    };
+
+    window.updateMarkers = function(markersData) {
+      rawMarkersData = Array.isArray(markersData) ? markersData : [];
+      renderMarkers();
+    };
+
+    // Render markers with smart screen-space clustering & zoom-aware labels
+    function renderMarkers() {
+      // Clear previous markers
+      activeMarkers.forEach(m => m.remove());
+      activeMarkers.length = 0;
+
+      if (!map || !rawMarkersData.length) return;
+
+      const currentZoom = map.getZoom();
+      const showLabels = currentZoom >= 12.0;
+
+      // Ensure user's own location is never hidden in a cluster
+      const selfItem = rawMarkersData.find(item => item.type === 'self');
+      const otherItems = rawMarkersData.filter(item => item.type !== 'self');
+
+      if (selfItem) {
+        createSingleMarker(selfItem, true); // Self marker always displays label "You"
+      }
+
+      if (currentZoom >= 12.0) {
+        // High zoom: render individual markers with names
+        otherItems.forEach(item => {
+          createSingleMarker(item, showLabels);
+        });
+      } else {
+        // Low to medium zoom: cluster nearby friends/events to prevent overlapping clutter
+        const clusters = [];
+        const clusterRadiusPx = 42;
+
+        otherItems.forEach(item => {
+          const p = map.project([item.lng, item.lat]);
+          let added = false;
+          for (const c of clusters) {
+            const cp = map.project([c.centerLng, c.centerLat]);
+            const dx = p.x - cp.x;
+            const dy = p.y - cp.y;
+            if (Math.sqrt(dx * dx + dy * dy) < clusterRadiusPx) {
+              c.items.push(item);
+              added = true;
+              break;
+            }
+          }
+          if (!added) {
+            clusters.push({
+              centerLng: item.lng,
+              centerLat: item.lat,
+              items: [item]
+            });
+          }
+        });
+
+        clusters.forEach(c => {
+          if (c.items.length === 1) {
+            createSingleMarker(c.items[0], false);
+          } else {
+            createClusterMarker(c);
+          }
+        });
+      }
+    }
+
+    function getFallbackAvatar(isEvent, isSelf) {
+      if (isSelf) {
+        const col = currentTheme === 'light' ? '%230f766e' : '%2300ffff';
+        return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="${col}"><circle cx="12" cy="7" r="4.5"/><path d="M12 13c-4.42 0-8 2.24-8 5v2h16v-2c0-2.76-3.58-5-8-5z"/></svg>`;
+      }
+      if (isEvent) {
+        return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="%23ffffff"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>';
+      }
+      const col = currentTheme === 'light' ? '%230f766e' : '%2300e5ff';
+      return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="${col}"><circle cx="12" cy="8" r="4"/><path d="M12 14c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5z"/></svg>`;
+    }
+
+    function createSingleMarker(item, showLabel) {
+      const el = document.createElement('div');
+      el.className = 'globe-marker';
+
+      const isEvent = item.type === 'event';
+      const isSelf = item.type === 'self';
+
+      const avatarBox = document.createElement('div');
+      let boxClass = 'marker-avatar-container';
+      if (isSelf) boxClass += ' self';
+      else if (isEvent) boxClass += ' event';
+      avatarBox.className = boxClass;
+
+      const img = document.createElement('img');
+      img.className = 'marker-avatar-img';
+      img.src = item.avatarUrl || getFallbackAvatar(isEvent, isSelf);
+      img.onerror = function() {
+        this.src = getFallbackAvatar(isEvent, isSelf);
+      };
+
+      const pulse = document.createElement('div');
+      let pulseClass = 'marker-pulse';
+      if (isSelf) pulseClass += ' self';
+      else if (isEvent) pulseClass += ' event';
+      pulse.className = pulseClass;
+
+      avatarBox.appendChild(img);
+      avatarBox.appendChild(pulse);
+
+      if (isSelf) {
+        const badge = document.createElement('div');
+        badge.className = 'marker-self-badge';
+        badge.innerText = 'YOU';
+        avatarBox.appendChild(badge);
+      } else if (isEvent) {
+        const badge = document.createElement('div');
+        badge.className = 'marker-event-badge';
+        badge.innerText = 'CAMPUS';
+        avatarBox.appendChild(badge);
+      } else {
+        const pip = document.createElement('div');
+        pip.className = 'marker-online-pip';
+        avatarBox.appendChild(pip);
+      }
+
+      el.appendChild(avatarBox);
+
+      if (showLabel) {
+        const label = document.createElement('div');
+        let labelClass = 'marker-label';
+        if (isSelf) labelClass += ' self';
+        else if (isEvent) labelClass += ' event';
+        label.className = labelClass;
+        label.innerText = isSelf ? 'You' : (item.name || '');
+        el.appendChild(label);
+      }
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        notifyFlutter('onMarkerTapped', item);
+      });
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([item.lng, item.lat])
+        .addTo(map);
+
+      activeMarkers.push(marker);
+    }
+
+    function createClusterMarker(cluster) {
+      const el = document.createElement('div');
+      el.className = 'globe-marker';
+
+      const hasEvent = cluster.items.some(it => it.type === 'event');
+      const repItem = cluster.items.find(it => it.type === 'event') || cluster.items[0];
+
+      const avatarBox = document.createElement('div');
+      avatarBox.className = 'marker-avatar-container' + (hasEvent ? ' event' : '');
+
+      const img = document.createElement('img');
+      img.className = 'marker-avatar-img';
+      img.src = repItem.avatarUrl || getFallbackAvatar(hasEvent);
+      img.onerror = function() {
+        this.src = getFallbackAvatar(hasEvent);
+      };
+
+      const pulse = document.createElement('div');
+      pulse.className = 'marker-pulse' + (hasEvent ? ' event' : '');
+
+      const badge = document.createElement('div');
+      badge.className = 'marker-cluster-badge';
+      badge.innerText = '+' + cluster.items.length;
+
+      avatarBox.appendChild(img);
+      avatarBox.appendChild(pulse);
+      avatarBox.appendChild(badge);
+      el.appendChild(avatarBox);
+
+      // Tapping a cluster zooms smoothly into the cluster center
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentZoom = map.getZoom();
+        map.flyTo({
+          center: [cluster.centerLng, cluster.centerLat],
+          zoom: Math.min(currentZoom + 3.8, 15.5),
+          speed: 1.2,
+          curve: 1.35,
+          essential: true
+        });
+      });
+
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([cluster.centerLng, cluster.centerLat])
+        .addTo(map);
+
+      activeMarkers.push(marker);
+    }
+
+    // Auto-init on DOM ready
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStyleAndInit();
+    });
+  </script>
+</body>
+</html>

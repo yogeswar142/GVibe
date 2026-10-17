@@ -431,6 +431,7 @@ class GVibeNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isGlobe = currentIndex == 4;
     
     return Container(
       decoration: BoxDecoration(
@@ -449,14 +450,32 @@ class GVibeNavBar extends StatelessWidget {
           child: Row(
             children: List.generate(
               _items.length,
-              (i) => _NavItem(
-                activeIcon: _items[i].activeIcon,
-                inactiveIcon: _items[i].inactiveIcon,
-                label: _items[i].label,
-                index: i,
-                current: currentIndex,
-                onTap: onTap,
-              ),
+              (i) {
+                final isMessagesSlot = i == 2;
+                final activeIcon = (isMessagesSlot && isGlobe)
+                    ? Icons.public
+                    : _items[i].activeIcon;
+                final inactiveIcon = (isMessagesSlot && isGlobe)
+                    ? Icons.public_outlined
+                    : _items[i].inactiveIcon;
+                final label = (isMessagesSlot && isGlobe) ? 'Globe' : _items[i].label;
+
+                return _NavItem(
+                  activeIcon: activeIcon,
+                  inactiveIcon: inactiveIcon,
+                  label: label,
+                  index: i,
+                  current: currentIndex,
+                  onTap: (clickedIndex) {
+                    // Tapping Globe/Messages tab while on Globe returns to Messages
+                    if (clickedIndex == 2 && isGlobe) {
+                      onTap(2);
+                    } else {
+                      onTap(clickedIndex);
+                    }
+                  },
+                );
+              },
             ),
           ),
         ),
@@ -484,7 +503,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = index == current;
+    final isActive = index == current || (index == 2 && current == 4);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     final activeColor = isDark ? const Color(0xFF0D9488) : const Color(0xFF0F766E);

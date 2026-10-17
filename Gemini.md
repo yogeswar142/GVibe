@@ -11,6 +11,7 @@ To maximize developer efficiency and minimize token usage, the following rules a
 3. **No Redundant Tasks**: Before running any background commands, check if the process is already running using `pgrep` or `ps` to avoid multiple duplicate background services.
 4. **Console Output Management**: When running command line tools (e.g. `flutter run`, `npm install`), filter logs using `grep` or `head` to avoid dumping thousands of lines of output into the LLM context.
 5. **No Placeholders**: Always write production-ready code with complete logic to avoid iterative correction runs.
+6. **Direct Navigation for Verification**: When verifying or testing features via browser or MCP tools, directly navigate to the target route or page URL rather than stepping through intermediate pages sequentially to minimize time and token overhead.
 
 ---
 

@@ -199,11 +199,13 @@ const getLocations = async (req, res) => {
       if (visibility === 'everyone') {
         isAllowed = true;
       } else if (visibility === 'followers') {
-        // Allowed if caller follows target OR target follows caller
-        isAllowed = myFollowing.has(targetIdStr) || targetFollowing.has(callerId.toString());
+        // Allowed if caller follows target
+        isAllowed = myFollowing.has(targetIdStr) || targetFollowers.has(callerId.toString());
       } else {
         // 'mutual' (DEFAULT): Allowed ONLY IF both users follow each other
-        isAllowed = myFollowing.has(targetIdStr) && myFollowers.has(targetIdStr);
+        const callerFollowsTarget = myFollowing.has(targetIdStr) || targetFollowers.has(callerId.toString());
+        const targetFollowsCaller = myFollowers.has(targetIdStr) || targetFollowing.has(callerId.toString());
+        isAllowed = callerFollowsTarget && targetFollowsCaller;
       }
 
       if (isAllowed) {

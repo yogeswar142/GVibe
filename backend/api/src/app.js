@@ -21,6 +21,7 @@ const lostItemRoutes  = require('./routes/lost_item.routes');
 const shortLinkRoutes = require('./routes/short_link.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
 const liveLocationRoutes = require('./routes/live_location.routes');
+const globeRoutes = require('./routes/globe.routes');
 const reportRoutes = require('./routes/report.routes');
 const internalRoutes = require('./routes/internal.routes');
 const { redirectLiveLocation } = require('./controllers/live_location.controller');
@@ -91,6 +92,9 @@ app.use('/api/links', shortLinkRoutes);
 // Real-time Live Location with auto-expiration
 app.get('/live/:code', redirectLiveLocation);
 app.use('/api/live-location', liveLocationRoutes);
+
+// 3D Campus Social Globe (MapLibre 3D, opt-in privacy, mutual followers)
+app.use('/api/globe', globeRoutes);
 
 // Comprehensive user, content, and link analytics
 app.use('/api/analytics', analyticsRoutes);

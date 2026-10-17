@@ -60,6 +60,10 @@ const userSchema = new mongoose.Schema({
   // Privacy setting: public or private
   privacy: { type: String, enum: ['public', 'private'], default: 'public' },
 
+  // 3D Social Globe privacy & sharing settings (Opt-in by default, mutual followers)
+  globeSharingEnabled: { type: Boolean, default: false },
+  globeVisibleTo:      { type: String, enum: ['mutual', 'followers', 'everyone'], default: 'mutual' },
+
 }, { timestamps: true });
 
 // Hash password before saving if present
